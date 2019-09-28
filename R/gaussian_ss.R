@@ -39,16 +39,16 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,tau_t,sigma2,rho,tau,updat
   SSR <- sum((y-lp)^2)
   
   ## Expected sum of squared residuals
-  pi_tr <- 0
+  prob_tr <- 0
   for(g in 1:G){
-    pi_tr <- pi_tr + prob[g]*trace_prod(Sigma[g,,],XtX[g,,])
+    prob_tr <- prob_tr + prob[g]*trace_prod(Sigma[g,,],XtX[g,,])
   }
-  E_SSR <- pi_tr + SSR
+  E_SSR <- prob_tr + SSR
   
   ## Expected sum of squared gammas
   E_SSgamma <- 0
   for(g in 1:G){
-    E_SSgamma <- E_SSgamma + prob[g]*(sum(diag(Sigma[g,,])) + sum(mu[g,]^2))
+    E_SSgamma <- E_SSgamma + prob[g]*(sum(diag(matrix(Sigma[g,,],nrow=K))) + sum(mu[g,]^2))
   }
   E_SSgamma <- E_SSgamma + K*tau_t*sum(1-prob)
   
@@ -61,7 +61,7 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,tau_t,sigma2,rho,tau,updat
   line2 <- -E_SSgamma/(2*tau) - K*G*log(2*pi*tau)/2 + log(rho^sum(prob)) + log((1-rho)^sum(1-prob))
   
   ## Line 3
-  line3 <- 0.5*K+sum(prob) + G*K*log(2*pi) + sum(prob * apply(Sigma,1,function(A) log(det(A))))
+  line3 <- 0.5*(K*sum(prob) + G*K*log(2*pi) + sum(prob * apply(Sigma,1,function(A) log(det(A)))))
   
   ## Line 4
   line4 <- sum(1-prob)*K*0.5*(1 + log(2*pi*tau_t))
@@ -85,7 +85,7 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,tau_t,sigma2,rho,tau,updat
 }
 
 ######### ~.~ VI updates ~.~ ###########
-update_params_normal <- function(ELBO.old,X,XtX,y,prob,mu,Sigma,Sigma_inv,tau_t,sigma2,rho,tau,update.hyper=F,update.hyper.last=F){
+update_params_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_inv,tau_t,sigma2,rho,tau,update.hyper=F,update.hyper.last=F){
   
   ### -- Sigma -- ###
   if(update.hyper.last){

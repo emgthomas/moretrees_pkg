@@ -3,7 +3,7 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-source("./scripts/gaussian_ss.R")
+source("./R/gaussian_ss.R")
 require(plyr)
 
 #### Parameters ###
@@ -62,6 +62,10 @@ update.hyper.freq <- 10
 
 # put in list
 params <- list(mu=mu,prob=prob,Sigma=Sigma,Sigma_inv=Sigma_inv,tau_t=tau_t,rho=rho,sigma2=sigma2,tau=tau)
+# params.first <- list(mu=mu,prob=prob,Sigma=Sigma,Sigma_inv=Sigma_inv,tau_t=tau_t,rho=rho,sigma2=sigma2,tau=tau)
+# params <- params.first
+params.second <- list(mu=mu,prob=prob,Sigma=Sigma,Sigma_inv=Sigma_inv,tau_t=tau_t,rho=rho,sigma2=sigma2,tau=tau)
+params <- params.second
 
 #### Run algorithm ####
 
@@ -74,7 +78,7 @@ while(abs(ELBO.new-ELBO.old)>tol){
   # update.hyper.last <- (i %% update.hyper.freq == 1)
   update.hyper <- FALSE
   update.hyper.last <- FALSE
-  params <- update_params_normal(ELBO.old=ELBO.old,X=X,XtX=XtX,y=y,
+  params <- update_params_normal(X=X,XtX=XtX,y=y,
                                  prob=params$prob,mu=params$mu,Sigma=params$Sigma,Sigma_inv=params$Sigma_inv,
                                  tau_t=params$tau_t,sigma2=params$sigma2,rho=params$rho,tau=params$tau,
                                  update.hyper=update.hyper,update.hyper.last=update.hyper.last)
@@ -83,7 +87,7 @@ while(abs(ELBO.new-ELBO.old)>tol){
   print(i)
 }
 
-plot.start <- 60
+plot.start <- 1
 plot(plot.start:length(ELBO.track),ELBO.track[plot.start:length(ELBO.track)],type="l")
 
 prob <- params$prob
