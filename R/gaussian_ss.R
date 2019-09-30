@@ -6,7 +6,7 @@
 require(plyr)
 
 ######### ~.~ Sub-functions ~.~ #########
-trace_prod <- function(A,B) sum(t(A) * B)
+trace_prod <- function(A,B) sum(t(B) * A) # computes trace(A %*% B) for square matrices A, B
 
 log1p.exp <- function(x){
   if(x > 20){
