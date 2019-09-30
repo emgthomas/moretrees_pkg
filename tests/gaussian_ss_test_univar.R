@@ -95,7 +95,7 @@ while(abs(ELBO.new-ELBO.old)>tol){
   print(i)
 }
 
-plot.start <- 10
+plot.start <-10
 plot(plot.start:length(ELBO.track),ELBO.track[plot.start:length(ELBO.track)],type="l")
 plot(plot.start:length(rho.track),rho.track[plot.start:length(rho.track)],type="l")
 plot(plot.start:length(tau.track),tau.track[plot.start:length(tau.track)],type="l")

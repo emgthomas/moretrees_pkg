@@ -50,7 +50,7 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_det,tau_t,sigma2,rho
   for(g in 1:G){
     E_SSgamma <- E_SSgamma + prob[g]*(sum(diag(matrix(Sigma[g,,],nrow=K))) + sum(mu[g,]^2))
   }
-  E_SSgamma <- E_SSgamma + K*tau_t*sum(1-prob)
+  E_SSgamma <- E_SSgamma + K*tau_t*(G-sum(prob))
   
   ### -- Compute ELBO -- ###
   
@@ -58,19 +58,19 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_det,tau_t,sigma2,rho
   line1 <- -1/(2*sigma2)*E_SSR - (n/2)*log(2*pi*sigma2)
   
   ## Line 2
-  #line2 <- -E_SSgamma/(2*tau) - K*G*log(2*pi*tau)/2 + log(rho^sum(prob)) + log((1-rho)^sum(1-prob))
-  
+  line2 <- -E_SSgamma/(2*tau) - K*G*log(2*pi*tau)/2 + log(rho^sum(prob)) + log((1-rho)^(G-sum(prob)))
+
   ## Line 3
-  line3 <- 0.5*(K*sum(prob) + G*K*log(2*pi) + sum(prob * Sigma_det))
+  line3 <- 0.5*(K*sum(prob)*(1 + log(2*pi)) + sum(prob * log(Sigma_det)))
   
   ## Line 4
-  line4 <- sum(1-prob)*K*0.5*(1 + log(2*pi*tau_t))
+  line4 <- (G-sum(prob))*K*0.5*(1 + log(2*pi*tau_t))
   
   ## Line 5
-  line5 <- sum(prob[prob!=0]*log(prob[prob!=0])) + sum((1-prob[prob!=1])*log(1-prob[prob!=1]))
+  line5 <- -1*(sum(prob[prob!=0]*log(prob[prob!=0])) + sum((1-prob[prob!=1])*log(1-prob[prob!=1])))
   
   ## ELBO
-  ELBO <- line1 + line3 + line4 + line5
+  ELBO <- line1 + line2 + line3 + line4 + line5
   
   ### -- Update hyperparams -- ###
   if(update.hyper){
@@ -86,6 +86,9 @@ compute_ELBO_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_det,tau_t,sigma2,rho
 
 ######### ~.~ VI updates ~.~ ###########
 update_params_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_inv,Sigma_det,tau_t,sigma2,rho,tau,update.hyper=F,update.hyper.last=F){
+  
+  ### -- tau_t -- ###
+  # only changes if tau has been updated; see below
   
   ### -- Sigma -- ###
   if(update.hyper.last){
@@ -118,9 +121,6 @@ update_params_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_inv,Sigma_det,tau_t
     prob[g] <- exp(loglogit(u[1,1]))
   }
   
-  ### -- tau_t -- ###
-  tau_t <- tau
-  
   ### -- Compute ELBO -- ###
   ELBO <- compute_ELBO_normal(X=X,XtX=XtX,y=y,prob=prob,mu=mu,Sigma=Sigma,Sigma_det=Sigma_det,
                               tau_t=tau_t,sigma2=sigma2,rho=rho,tau=tau,update.hyper=update.hyper)
@@ -128,6 +128,7 @@ update_params_normal <- function(X,XtX,y,prob,mu,Sigma,Sigma_inv,Sigma_det,tau_t
     sigma2 <- ELBO$sigma2
     rho <- ELBO$rho
     tau <- ELBO$tau
+    tau_t <- tau
     ELBO <- ELBO$ELBO
   }
   
