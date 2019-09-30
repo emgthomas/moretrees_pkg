@@ -7,9 +7,11 @@ source("./R/gaussian_ss.R")
 require(plyr)
 
 #### Parameters ###
-K <- 1
+K <- 2
 G <- 200 ## note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
-beta <- matrix(sample(c(-1,0,1),replace=T,size=G,prob=c(0.25,0.5,0.25)),nrow=G)
+beta <- matrix(sample(c(-1,1),replace=T,size=G*K,prob=c(0.25,0.75)),nrow=G)
+s_true <- sample(c(0,1),replace=T,size=G)
+beta <- beta*s_true
 sigma2 <- 0.5
 n <- 500
 
@@ -95,19 +97,11 @@ while(abs(ELBO.new-ELBO.old)>tol){
   print(i)
 }
 
-plot.start <- 10
+plot.start <- 1
 plot(plot.start:length(ELBO.track),ELBO.track[plot.start:length(ELBO.track)],type="l")
 plot(plot.start:length(rho.track),rho.track[plot.start:length(rho.track)],type="l")
 plot(plot.start:length(tau.track),tau.track[plot.start:length(tau.track)],type="l")
 
-# prob <- params$prob
-# mu <- params$mu
-# Sigma <- params$Sigma
-# Sigma_inv <- params$Sigma_inv
-# tau_t <- params$tau_t
-# sigma2 <- params$sigma2
-# rho <- params$rho
-# tau <- params$tau
-
-plot(params$prob,beta)
+tapply(params$prob,s_true,summary)
+plot(params$prob,s_true)
 plot(params$mu,beta)
