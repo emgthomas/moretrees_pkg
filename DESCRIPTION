@@ -1,0 +1,17 @@
+Package: moretrees
+Title: Multi-Outcome Regression with Tree-Structured Shrinkage
+Version: 0.0.0.9000
+Authors@R: person("Emma", "Thomas", email = "emmathomas@g.harvard.edu",
+                  role = c("aut", "cre"))
+Description: Provides functions for implementingmulti-outcome regression
+    tree-structured shrinkage with a spike-and-slab prior (ssMOReTreeS).
+    Three different likelihoods corresponding to different generalized
+    linear models are available: binary with logistic link, Poisson with
+    log link, and Gaussian with identity link. Models are fit using
+    variational inference (VI). Also performs spike-and-slab variable
+    selection with the same three likelihoods.
+Depends: R (>= 3.1.0)
+License: MIT + file LICENSE
+LazyData: true
+Imports:
+    plyr (>= 1.8.4)
