@@ -1,8 +1,4 @@
-# --------------------------------------------------------------------------------- #
-# --------------------- Runs VI algorithm for Gaussian outcome  ------------------- #
-# --------------------------------------------------------------------------------- #
-
-#' Group spike and slab variable selection with a Gaussian outcome,
+#' ssMOReTreeS with a Gaussian outcome,
 #' with model fitting via variational inference.
 #' 
 #' @param y Vector of outcomes data.

@@ -1,17 +1,28 @@
-# --------------------------------------------------------------------------------- #
-# --------------------- Runs VI algorithm for Gaussian outcome  ------------------- #
-# --------------------------------------------------------------------------------- #
-
-#' Group spike and slab variable selection with a Gaussian outcome,
-#' with model fitting via variational inference.
+#' Group spike and slab variable selection with Gaussian outcome
+#' 
+#' Here's a brief description.
+#'   \code{spike_and_slab_normal} performs group variable selection via a spike
+#'   and slab prior. The posterior is approximated via variational inference.
+#'   This function returns the parameters of the variational approximation.
+#' 
+#' All the details go here!
+#' 
+#' @section Model Description:
+#'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param y Vector of outcomes data.
-#' @param X Array of design matrices for each variable group.
-#' @return The sum of \code{x} and \code{y}.
-#' @examples
-#' add(1, 1)
+#' @param X Array of design matrices for each variable group, with dimensions dim(X) = c(G,n,K),
+#'   where G is the number of variable groups, n is the number of observations, and
+#'   K is the number of variables.
+#' @param tol Convergence tolerance for ELBO. Default = 1E-4.
+#' @param update_hyper Update hyperparameters? Default = TRUE.
+#' @param update_hyper_freq How frequently to update hyperparameters. Default = every 10 iterations.
+#' @param print_freq How often to print out iteration number. Default = every 10 iterations.
+#' @return A list of variational parameters.
+#' @examples Add this later from test file.
+#' @family spike and slab functions
 
-moretrees_normal <- function(y, X, tol = 1E-4, 
+spike_and_slab_normal <- function(y, X, tol = 1E-4, 
                              update_hyper = T,
                              update_hyper_freq = 10,
                              print_freq=10) {
