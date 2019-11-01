@@ -37,10 +37,11 @@ moretrees_normal <- function(y, X, tol = 1E-4,
   mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
   prob <- runif(G)
   tau_t <- tau
-  # Put parameters in list
-  params <- list(mu = mu, prob = prob, Sigma = Sigma,
+  # Put arguments in list
+  args <- list(mu = mu, prob = prob, Sigma = Sigma,
                  Sigma_inv = Sigma_inv, Sigma_det = Sigma_det, # variational params
-                 tau_t = tau_t, rho = rho, sigma2 = sigma2, tau = tau) # hyperparams
+                 tau_t = tau_t, rho = rho, sigma2 = sigma2, tau = tau, # hyperparams
+                 update_hyper = FALSE, update_hyper_last = FALSE) 
   # Run algorithm -----------------------------------------------------------------
   ELBO_track <- c()
   rho_track <- c()
@@ -52,14 +53,9 @@ moretrees_normal <- function(y, X, tol = 1E-4,
   while (abs(ELBO_new - ELBO_old) > tol) {
     ELBO_old <- ELBO_new
     i <- i + 1
-    update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-    update_hyper_im1 <- (i %% update_hyper_freq == 1)
-    params <- update_params_normal(X = X, XtX = XtX, y = y, n = n, K = K, G = G,
-                                   prob = params$prob, mu = params$mu, Sigma = params$Sigma,
-                                   Sigma_inv = params$Sigma_inv, Sigma_det = params$Sigma_det,
-                                   tau_t = params$tau_t, sigma2 = params$sigma2, rho = params$rho,
-                                   tau = params$tau,
-                                   update_hyper = update_hyper_i, update_hyper_last = update_hyper_im1)
+    params$update_hyper <- (i %% update_hyper_freq == 0) & update_hyper
+    params$update_hyper_last <- (i %% update_hyper_freq == 1)
+    params <- do.call(update_params_normal, params) # update all parameters
     ELBO_new <- params$ELBO
     ELBO_track <- c(ELBO_track, ELBO_new)
     rho_track <- c(rho_track, params$rho)

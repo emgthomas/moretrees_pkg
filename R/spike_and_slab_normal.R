@@ -22,10 +22,9 @@
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-spike_and_slab_normal <- function(y, X, tol = 1E-4, 
-                             update_hyper = T,
-                             update_hyper_freq = 10,
-                             print_freq=10) {
+spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
+                             update_hyper = T, update_hyper_freq = 10,
+                             print_freq = 10) {
   # Prepare for running algorithm ---------------------------------------------------
   G <- dim(X)[1]
   n <- dim(X)[2]
@@ -33,10 +32,10 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4,
   # Computing XtX so we don't have to do this repeatedly
   XtX <- plyr::aaply(X, 1, function(X) crossprod(X, X), .drop = F)
   attributes(XtX)$dimnames <- NULL
-  # Hyperparameter initial values
-  rho <- 0.5
+  # Random initial hyperparameter values
   tau <- 1
-  sigma2 <- var(y)
+  sigma2 <- 1
+  rho <- 0.5
   # Variational parameter initial values
   Sigma_inv <- plyr::aaply(.data = XtX, .margins = 1,
                      .fun = function(XtX, tau, K, sigma2) XtX / sigma2 + diag(1 / tau, K),
@@ -52,36 +51,64 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4,
   mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
   prob <- runif(G)
   tau_t <- tau
-  # Put parameters in list
-  params <- list(mu = mu, prob = prob, Sigma = Sigma,
-                 Sigma_inv = Sigma_inv, Sigma_det = Sigma_det, # variational params
-                 tau_t = tau_t, rho = rho, sigma2 = sigma2, tau = tau) # hyperparams
+  # Put VI parameters in list
+  vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
+                    Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
+                    tau_t = tau_t)
+  # First update of hyperparameters + initial ELBO
+  hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, y = y, n = n,
+                              K = K, G = G, prob = prob, mu = mu,
+                              Sigma = Sigma, Sigma_det = Sigma_det,
+                              tau_t = tau_t)
+  ELBO_track <- numeric(max_iter %/% update_hyper_freq + 1)
+  ELBO_track[1] <- hyperparams$ELBO
+  sigma2_track <- numeric(max_iter %/% update_hyper_freq + 1)
+  sigma2_track[1] <- hyperparams$sigma2
+  rho_track <- numeric(max_iter %/% update_hyper_freq + 1)
+  rho_track[1] <- hyperparams$rho
+  tau_track <- numeric(max_iter %/% update_hyper_freq + 1)
+  tau_track[1] <- hyperparams$tau
   # Run algorithm -----------------------------------------------------------------
-  ELBO_track <- c()
-  rho_track <- c()
-  tau_track <- c()
-  sigma2_track <- c()
-  ELBO_old <- -1E16
-  ELBO_new <- 1E16
   i <- 0
-  while (abs(ELBO_new - ELBO_old) > tol) {
-    ELBO_old <- ELBO_new
+  repeat {
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     update_hyper_im1 <- (i %% update_hyper_freq == 1)
-    params <- update_params_normal(X = X, XtX = XtX, y = y, n = n, K = K, G = G,
-                                   prob = params$prob, mu = params$mu, Sigma = params$Sigma,
-                                   Sigma_inv = params$Sigma_inv, Sigma_det = params$Sigma_det,
-                                   tau_t = params$tau_t, sigma2 = params$sigma2, rho = params$rho,
-                                   tau = params$tau,
-                                   update_hyper = update_hyper_i, update_hyper_last = update_hyper_im1)
-    ELBO_new <- params$ELBO
-    ELBO_track <- c(ELBO_track, ELBO_new)
-    rho_track <- c(rho_track, params$rho)
-    tau_track <- c(tau_track, params$tau)
-    sigma2_track <- c(sigma2_track, params$sigma2)
+    vi_params <- update_vi_params_normal(X = X, XtX = XtX, y = y, n = n, K = K, G = G,
+                                   prob = vi_params$prob, mu = vi_params$mu, 
+                                   Sigma = vi_params$Sigma, Sigma_inv = vi_params$Sigma_inv, 
+                                   Sigma_det = vi_params$Sigma_det, tau_t = vi_params$tau_t, 
+                                   sigma2 = hyperparams$sigma2, rho = hyperparams$rho, 
+                                   tau = hyperparams$tau,
+                                   update_hyper_last = update_hyper_im1)
+    if (update_hyper_i) {
+      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, y = y,
+                                               n = n, K = K, G = G,
+                                               prob = vi_params$prob,
+                                               mu = vi_params$mu,
+                                               Sigma = vi_params$Sigma,
+                                               Sigma_det = vi_params$Sigma_det, 
+                                               tau_t = vi_params$tau_t)
+      j <- i %/% update_hyper_freq
+      ELBO_track[j+1] <- hyperparams$ELBO
+      sigma2_track[j+1] <- hyperparams$sigma2
+      rho_track[j+1] <- hyperparams$rho
+      tau_track[j+1] <- hyperparams$tau
+      if (abs(ELBO_track[j+1] - ELBO_track[j]) < tol) {
+        ELBO_track <- ELBO_track[1:(j+1)]
+        sigma2_track <- sigma2_track[1:(j+1)]
+        rho_track <- rho_track[1:(j+1)]
+        tau_track <- tau_track[1:(j+1)]
+        break
+      } 
+    }
     if (i %% print_freq == 0) print(i)
+    if (i == max_iter) {
+      rlang::warn("Maximum number of iterations reached")
+      break
+    }
   }
-  return(list(params = params, ELBO = ELBO_track, rho_track = rho_track,
+  return(list(vi_params = vi_params, hyperparams = hyperparams,
+              ELBO_track = ELBO_track, rho_track = rho_track,
               tau_track = tau_track, sigma2_track = sigma2_track))
 }

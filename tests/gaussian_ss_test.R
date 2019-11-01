@@ -11,8 +11,8 @@ beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
                       prob = c(0.25, 0.75)), nrow = G)
 s_true <- sample(c(0, 1), replace = T, size = G)
 beta <- beta * s_true
-sigma2 <- 0.5
-n <- 500
+sigma2 <- 1.5
+n <- 5000
 # Generate some data -----------------------------------------------------------------
 X <- array(rnorm(K * G * n), dim = c(G, n, K))
 lp <- numeric(n) + 0
@@ -22,11 +22,11 @@ for (g in 1:G) {
 lp <- as.numeric(lp)
 y <- lp + rnorm(n, sigma2)
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- moretrees_normal(y, X, update_hyper = T)
+mod1 <- spike_and_slab_normal(y, X, update_hyper = T)
 # Plot results -----------------------------------------------------------------------
-plot_start <- 50
-plot(plot_start:length(mod1$ELBO),
-     mod1$ELBO[plot_start:length(mod1$ELBO)],
+plot_start <- 4
+plot(plot_start:length(mod1$ELBO_track),
+     mod1$ELBO_track[plot_start:length(mod1$ELBO_track)],
      type = "l")
 plot(plot_start:length(mod1$rho_track),
      mod1$rho_track[plot_start:length(mod1$rho_track)],
@@ -37,6 +37,6 @@ plot(plot_start:length(mod1$tau_track),
 plot(plot_start:length(mod1$sigma2_track),
      mod1$sigma2_track[plot_start:length(mod1$sigma2_track)],
      type = "l")
-tapply(mod1$params$prob, s_true, summary)
-plot(mod1$params$prob, s_true)
-plot(mod1$params$mu, beta)
+tapply(mod1$vi_params$prob, s_true, summary)
+plot(mod1$vi_params$prob, s_true)
+plot(mod1$vi_params$mu, beta)

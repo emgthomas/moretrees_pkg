@@ -2,11 +2,9 @@
 # --------------------- Computes the ELBO for Gaussian outcome  ------------------- #
 # --------------------------------------------------------------------------------- #
 
-compute_elbo_normal <- function(X, XtX, y, n, K, G, # data
-                                prob, mu, Sigma, Sigma_det, tau_t, # variational parameters
-                                sigma2, rho, tau, # hyperparameters
-                                update_hyper = F) {
-  # Computing quantities needed for ELBO --------------------------------------------
+update_hyperparams_normal <- function(X, XtX, y, n, K, G, # data
+                                prob, mu, Sigma, Sigma_det, tau_t) { # variational params
+  # Computing quantities needed for ELBO and hyperparameter updates ---------------
   # Sum of squared residuals
   lp <- numeric(n) + 0
   for (g in 1:G) {
@@ -26,6 +24,10 @@ compute_elbo_normal <- function(X, XtX, y, n, K, G, # data
       (sum(diag(matrix(Sigma[g, , ], nrow = K)) ) + sum(mu[g, ] ^ 2))
   }
   expected_ss_gamma <- expected_ss_gamma + K * tau_t * (G - sum(prob))
+  # Update hyperparameters ---------------------------------------------------------
+  sigma2 <- expected_ssr / n
+  tau <- expected_ss_gamma / (K * G)
+  rho <- mean(prob)
   # Compute ELBO -------------------------------------------------------------------
   # See pg XX of manuscript; line numbers correspond to lines in equation
   line1 <- -1 / (2 * sigma2) * expected_ssr - (n / 2) * log(2 * pi * sigma2)
@@ -38,13 +40,6 @@ compute_elbo_normal <- function(X, XtX, y, n, K, G, # data
   line5 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   ELBO <- line1 + line2 + line3 + line4 + line5
-  # Update hyperparameters ---------------------------------------------------------
-  if (update_hyper) {
-    sigma2 <- expected_ssr / n
-    tau <- expected_ss_gamma / (K * G)
-    rho <- mean(prob)
-    return(list(ELBO = ELBO, sigma2 = sigma2, tau = tau, rho = rho))
-  } else {
-    return(ELBO)
-  }
+  # Return -------------------------------------------------------------------------
+  return(list(ELBO = ELBO, sigma2 = sigma2, tau = tau, rho = rho))
 }
