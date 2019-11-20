@@ -25,7 +25,7 @@ for (g in 1:G) {
 lp <- as.numeric(lp)
 y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- spike_and_slab_normal(y, X, update_hyper = F, update_hyper_freq = 50,
+mod1 <- spike_and_slab_normal(y, X, update_hyper = F, update_hyper_freq = 1,
                               tol = 1E-8,
                               hyperparams_init = list(rho = rho,
                                                       tau = tau,
@@ -38,9 +38,9 @@ cbind(mod1$hyperparams[2:4], c(sigma2, tau, rho))
 
 # ELBO at every time step
 ELBO_track <- mod1$ELBO_track2
-plot_start <- 1
+plot_start <- 15
 plot_end <- length(ELBO_track)
-plot_end <- 30
+# plot_end <- 40
 plot(plot_start:plot_end,
      ELBO_track[plot_start:plot_end],
      type = "l")
