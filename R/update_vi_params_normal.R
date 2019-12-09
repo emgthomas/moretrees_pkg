@@ -40,7 +40,6 @@ update_vi_params_normal <- function(X, XtX, y, n, K, G, # data
       matrix(mu[g, ], nrow = K) + 0.5 * log(Sigma_det[g]) + const
     prob[g] <- exp(loglogit(u[1, 1]))
   }
-
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, sigma2 = sigma2, 

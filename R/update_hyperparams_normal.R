@@ -38,7 +38,8 @@ update_hyperparams_normal <- function(X, XtX, y, n, K, G, # data
     rho <- mean(prob)
   }
   # Compute ELBO -------------------------------------------------------------------
-  # See pg XX of manuscript; line numbers correspond to lines in equation
+  # See pg 3 of "variational inference for spike & slab model" document -
+  # line numbers correspond to lines in equation
   line1 <- -1 / (2 * sigma2) * expected_ssr - (n / 2) * log(2 * pi * sigma2)
   line2 <- - expected_ss_gamma / (2 * tau) - 
     K * G * log(2 * pi * tau) / 2 + 
