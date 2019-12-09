@@ -28,3 +28,8 @@ loglogit <- function(x) {
   # computes -log(1+exp(-x)) for x a vector
   -log1p.exp.vec(-x)
 }
+
+logfac <- function(x) {
+  if(x == 0) return(0)
+  sum(log(1:x))
+}
