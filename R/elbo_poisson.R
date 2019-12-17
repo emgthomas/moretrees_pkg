@@ -4,8 +4,7 @@
 
 elbo_poisson <- function(par, # variational params
                          X, y, n, K, G, sum_log_y_fac, # data
-                         tau, rho, tau_alpha # hyperparameters
-                         ) {
+                         tau, rho, tau_alpha) { # hyperparameters
   
   prob <- 1 / (1 + exp(-par[1:G]))
   mu <- matrix(par[(G + 1):(G + G * K)], nrow = G)

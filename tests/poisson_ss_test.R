@@ -5,8 +5,8 @@
 
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
-K <- 2
-G <- 10 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+K <- 1
+G <- 5 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 # beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
 #                       prob = c(0.25, 0.75)), nrow = G)
 tau <- 1
@@ -17,7 +17,7 @@ gamma_true <- matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
 s_true <- rbinom(n = G, size = 1, prob = rho)
 # s_true <- c(1,0)
 beta <- gamma_true * s_true
-n <- 2000
+n <- 200
 # Generate some data -----------------------------------------------------------------
 X <- array(rnorm(K * G * n, sd = 1), dim = c(G, n, K))
 lp <- numeric(n) + 0
@@ -42,6 +42,10 @@ tau_t <- tau
 mu_alpha <- alpha
 tau_t_alpha <- 0.1
 par <- c(log(prob / (1 - prob)), mu, log(Sigma), log(tau_t), mu_alpha, log(tau_t_alpha))
+
+elbo_poisson(par = par, 
+             X = X, y = y, n = n, K = K, G = G, sum_log_y_fac = sum_log_y_fac, # data
+             tau = tau, rho = rho, tau_alpha = tau_alpha)
 
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- optim(par, elbo_poisson, 
