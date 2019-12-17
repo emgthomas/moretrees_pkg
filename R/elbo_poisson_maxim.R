@@ -2,10 +2,18 @@
 # ---------------------- Computes the ELBO for Poisson outcome  ------------------- #
 # --------------------------------------------------------------------------------- #
 
-elbo_poisson <- function(X, y, n, K, G, sum_log_y_fac, # data
-                         u, mu, Sigma, mu_alpha, tau_t_alpha, expA, # variational params
+elbo_poisson_maxim <- function(X, y, n, K, G, sum_log_y_fac, # data
+                         u, mu, Sigma, mu_alpha, tau_t_alpha, # variational params
                          rho, tau ) { # hyperparams
   
+  expA <- matrix(nrow = n, ncol = G)
+  b <- numeric(n)
+  for (g in 1:G) {
+    for (i in 1:n) {
+      b[i] <- t(X[g, i, ]) %*% Sigma[g, , ] %*% X[g, i, ]
+    }
+    expA[, g] <- exp(mu[g, ] %*% t(X[g, , ])  + b / 2)
+  }
   prob <- 1 / (1 + exp(-u))
   
   # Computing quantities needed for ELBO and hyperparameter updates ---------------

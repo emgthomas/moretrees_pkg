@@ -25,7 +25,8 @@
 spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
                                   hyperparams_init = list(tau = 100,
-                                                          rho = 0.5)) {
+                                                          rho = 0.5),
+                                  s_true) {
   # Prepare for running algorithm ---------------------------------------------------
   G <- dim(X)[1]
   n <- dim(X)[2]
@@ -34,19 +35,23 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
   sum_log_y_fac <- sum(sapply(y, logfac))
   Xy <- matrix(nrow = G, ncol = K)
   for (g in 1:G) {
-    Xy[g, ] <- t(X[G, , ]) %*% y
+    Xy[g, ] <- t(X[g, , ]) %*% y
   }
   # Initial hyperparameter values
   hyperparams <- hyperparams_init
   # Variational parameter initial values
-  prob <- rep(0.5, G)
-  u <- log(prob / (1 - prob))
+  # prob <- rep(0.5, G)
+  # u <- log(prob / (1 - prob))
+  # u <- rep(1000, G)
+  u <- rep(2, G)
+  u[s_true == 0] <- -2
   mu <- matrix(rnorm(G * K, sd = 1), nrow = G)
   Sigma <- array(dim = c(G, K, K))
   for (g in 1:G){
     Sigma[g, , ] <- diag(1, nrow = K)
   }
-  mu_alpha <- log(mean(y))
+  # mu_alpha <- log(mean(y))
+  mu_alpha <- rnorm(1, sd = 10)
   tau_t_alpha <- 1
   expA <- matrix(nrow = n, ncol = G)
   b <- numeric(n)
@@ -54,7 +59,7 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
     for (i in 1:n) {
       b[i] <- t(X[g, i, ]) %*% Sigma[g, , ] %*% X[g, i, ]
     }
-    expA[, g] <- exp(X[g, , ] %*% mu[g, ]  + b / 2)
+    expA[, g] <- exp(mu[g, ] %*% t(X[g, , ])  + b / 2)
   }
   # Put VI parameters in list
   vi_params <- list(u = u, mu = mu, Sigma = Sigma,
