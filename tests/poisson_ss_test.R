@@ -22,7 +22,7 @@ s_true <- rbinom(n = G, size = 1, prob = rho)
 rho <- 0.5
 beta <- gamma_true * s_true
 # beta[1,] <- rep(0, K)
-n <- 100
+n <- 200
 # Generate some data -----------------------------------------------------------------
 X <- array(rnorm(K * G * n, sd = 1), dim = c(G, n, K))
 lp <- numeric(n) + 0
@@ -75,10 +75,10 @@ mod1 <- spike_and_slab_poisson(y, X, tol = 1E-16, max_iter = 500,
 # Computing some constant values
 sum_log_y_fac <- sum(sapply(y, logfac))
 # Initial values
-u <- rep(5, G)
-u[s_true == 0] <- -5
+u <- rep(1, G)
+u[s_true == 0] <- -1
 # mu <- matrix(rnorm(G * K, sd = 1), nrow = G)
-mu <- beta
+mu <- beta + matrix(rnorm(G * K, sd = 0.2), nrow = G)
 Sigma <- array(dim = c(G, K, K))
 for (g in 1:G){
   Sigma[g, , ] <- matrix(0.1, nrow = K, ncol =K) + diag(0.9, nrow = K)
@@ -115,7 +115,8 @@ mod2 <- optim(par = VIparams, fn = ELBO_wrap,
               X = X, y = y, n = n, K = K, G = G,
               sum_log_y_fac = sum_log_y_fac, 
               rho = rho, tau = tau,
-              control = list(maxit = 10000))
+              control = list(maxit = 50000, fnscale = -1))
+# fnscale = -1 ensures maximisation rather than minimisation
 mod2$convergence
 
 res <- mod2$par
@@ -129,6 +130,10 @@ mu_nm <- sapply(1:(G * K), function(i) paste0("mu", i))
 mu_res <- matrix(res[mu_nm], nrow = G)
 Sigma_nm <- sapply(1:(G * K * K), function(i) paste0("log_Sigma", i))
 Sigma_res <- array(exp(res[Sigma_nm]), dim = c(G, K, K))
+
+cbind(as.numeric(mu_res * prob_res), as.numeric(beta))
+cbind(prob_res, s_true)
+plot(as.numeric(mu_res * prob_res), as.numeric(beta))
 }
 
 # Plot results -----------------------------------------------------------------------
@@ -158,7 +163,6 @@ cbind(as.numeric(mu_est * prob_est), as.numeric(beta))
 cbind(Sigma_est, prob_est)
 
 lm(as.numeric(mu_est) ~ 0 + as.numeric(beta))
-# error is a factor of around 2.8
 
 X2 <- matrix(nrow = n, ncol = K * G)
 for (g in 1:G) {
@@ -166,9 +170,11 @@ for (g in 1:G) {
     X2[ , K * (g - 1) + k] <- X[g, , k]
   }
 }
-mod2 <- glm(y ~ X2, family = poisson)
-cbind(mod2$coefficients, c(mu_alpha_est, as.numeric(t(mu_est))))
-plot(mod2$coefficients, c(mu_alpha_est, as.numeric(t(mu_est))))
+mod3 <- glm(y ~ X2, family = poisson)
+cbind(mod3$coefficients, c(mu_alpha_est, as.numeric(t(mu_est))))
+plot(mod3$coefficients, c(mu_alpha_est, as.numeric(t(mu_est))))
+plot(mod3$coefficients, c(mu_alpha_res, as.numeric(t(mu_res * prob_res))))
+cbind(mod3$coefficients, c(mu_alpha_res, as.numeric(t(mu_res * prob_res))))
 
 # plot(c(alpha, as.numeric(t(beta))), c(mu_alpha_est, as.numeric(t(mu_est))))
 # plot(mod2$coefficients, c(alpha, as.numeric(t(beta))))
