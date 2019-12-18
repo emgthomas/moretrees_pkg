@@ -50,7 +50,7 @@ elbo_poisson <- function(par, # variational params
   line2 <- - expected_sum_lambda
   line3 <- - (expected_ss_gamma) / (2 * tau) - K * G * log(2 * pi * tau) / 2
   line4 <- log(rho ^ sum(prob)) + log((1 - rho) ^ (G - sum(prob)))
-  line5 <- ((tau_t_alpha + mu_alpha ^ 2) / tau_alpha +log(2 * pi * tau_alpha)) / 2
+  line5 <- - ((tau_t_alpha + mu_alpha ^ 2) / tau_alpha + log(2 * pi * tau_alpha)) / 2
   line6 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * rowSums(log(Sigma)))) / 2
   line7 <- K * (G - sum(prob)) * (1 + log(2 * pi * tau_t)) / 2
   line8 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
