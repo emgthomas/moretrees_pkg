@@ -25,7 +25,8 @@
 spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
                                   hyperparams_init = list(tau = 100,
-                                                          rho = 0.5),
+                                                          rho = 0.5,
+                                                          tau_alpha = 10),
                                   s_true) {
   # Prepare for running algorithm ---------------------------------------------------
   G <- dim(X)[1]
@@ -74,7 +75,8 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                       tau_t_alpha = vi_params$tau_t_alpha, 
                                       expA = vi_params$expA,
                                       rho = hyperparams$rho,
-                                      tau = hyperparams$tau)
+                                      tau = hyperparams$tau,
+                                      tau_alpha = hyperparams$tau_alpha)
   # ELBO_track <- numeric(max_iter %/% update_hyper_freq + 1)
   ELBO_track <- numeric(max_iter)
   ELBO_track[1] <- ELBO
@@ -100,7 +102,8 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                           tau_t_alpha = vi_params$tau_t_alpha, 
                                           expA = vi_params$expA,
                                           rho = hyperparams$rho,
-                                          tau = hyperparams$tau)
+                                          tau = hyperparams$tau,
+                                          tau_alpha = hyperparams$tau_alpha)
     ELBO_track[i] <- elbo_poisson(X = X, y = y, n = n, K = K, G = G, sum_log_y_fac = sum_log_y_fac, 
                                   u = vi_params$u,
                                   mu = vi_params$mu, 
@@ -109,7 +112,8 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                   tau_t_alpha = vi_params$tau_t_alpha, 
                                   expA = vi_params$expA,
                                   rho = hyperparams$rho,
-                                  tau = hyperparams$tau)
+                                  tau = hyperparams$tau,
+                                  tau_alpha = hyperparams$tau_alpha)
     # if (!update_hyper_i) {
     #   hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, y = y,
     #                                            n = n, K = K, G = G,

@@ -4,7 +4,7 @@
 
 elbo_poisson <- function(X, y, n, K, G, sum_log_y_fac, # data
                          u, mu, Sigma, mu_alpha, tau_t_alpha, expA, # variational params
-                         rho, tau ) { # hyperparams
+                         rho, tau, tau_alpha) { # hyperparams
   
   prob <- 1 / (1 + exp(-u))
   
@@ -44,10 +44,10 @@ elbo_poisson <- function(X, y, n, K, G, sum_log_y_fac, # data
   line2 <- - expected_sum_lambda
   line3 <- - expected_ss_gamma - K * G * log(2 * pi * tau) /2
   line4 <- log(rho ^ sum(prob)) + log((1 - rho) ^ (G - sum(prob)))
-  line5 <- - ((mu_alpha ^2 + tau_t_alpha ^ 2) / tau_alpha + log(2 * pi* tau_alpha))
+  line5 <- - ((mu_alpha ^ 2 + tau_t_alpha) / tau_alpha + log(2 * pi* tau_alpha)) / 2
   line6 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
-  line7 <-  (G + sum(Sigma_det) + G * K * log(2 * pi) + 1 + log(2 * pi* tau_t_alpha)) / 2
+  line7 <-  (G * K + sum(log(Sigma_det)) + G * K * log(2 * pi) + 1 + log(2 * pi* tau_t_alpha)) / 2
   ELBO <- line1 + line2 + line3 + line4 + line5 + line6 + line7
   
   # Return -------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 
 update_vi_params_poisson <- function(X, y, Xy, n, K, G, # data
                                     u, mu, Sigma, mu_alpha, tau_t_alpha, expA, # variational params
-                                    rho, tau ) { # hyperparams
+                                    rho, tau, tau_alpha) { # hyperparams
   prob <- 1 / (1 + exp(-u))
   exp_int <- exp(mu_alpha + tau_t_alpha / 2)
   # Update mu_g, Sigma_g -----------------------------------------------------------
@@ -33,7 +33,7 @@ update_vi_params_poisson <- function(X, y, Xy, n, K, G, # data
   for (i in 1:n) {
     b <- b + prod(1 - prob + prob * expA[i, ])
   }
-  tau_t_alpha <- 1 / (exp_int * b + tau_t_alpha / tau_alpha)
+  tau_t_alpha <- 1 / (exp_int * b + 1 / tau_alpha)
   mu_alpha <- mu_alpha + tau_t_alpha * (sum(y) - mu_alpha / tau_alpha - exp_int * b)
   exp_int <- exp(mu_alpha + tau_t_alpha / 2)
   # Update u_g ---------------------------------------------------------------------
