@@ -24,10 +24,8 @@
 
 spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
-                                  hyperparams_init = list(tau = 100,
-                                                          rho = 0.5,
-                                                          tau_alpha = 10),
-                                  s_true) {
+                                  hyperparams_init = NULL,
+                                  vi_params_init = NULL) {
   # Prepare for running algorithm ---------------------------------------------------
   G <- dim(X)[1]
   n <- dim(X)[2]
@@ -39,21 +37,29 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
     Xy[g, ] <- t(X[g, , ]) %*% y
   }
   # Initial hyperparameter values
-  hyperparams <- hyperparams_init
-  # Variational parameter initial values
-  # prob <- rep(0.5, G)
-  # u <- log(prob / (1 - prob))
-  # u <- rep(1000, G)
-  u <- rep(2, G)
-  u[s_true == 0] <- -2
-  mu <- matrix(rnorm(G * K, sd = 1), nrow = G)
-  Sigma <- array(dim = c(G, K, K))
-  for (g in 1:G){
-    Sigma[g, , ] <- diag(1, nrow = K)
+  if (is.null(hyperparams_init)) {
+    hyperparams <- list(tau = 100,
+         rho = 0.5,
+         tau_alpha = 10)
+  } else {
+    hyperparams <- hyperparams_init
   }
-  # mu_alpha <- log(mean(y))
-  mu_alpha <- rnorm(1, sd = 10)
-  tau_t_alpha <- 1
+  # Variational parameter initial values
+  if (is.null(vi_params_init)) {
+    u <- rep(0, G)
+    mu <- matrix(rnorm(G * K, sd = 1), nrow = G)
+    Sigma <- array(dim = c(G, K, K))
+    for (g in 1:G) {
+      Sigma[g, , ] <- diag(1, nrow = K)
+    }
+    mu_alpha <- rnorm(1, sd = 10)
+    tau_t_alpha <- 1
+    vi_params <- list(u = u, mu = mu, Sigma = Sigma,
+                      mu_alpha = mu_alpha, tau_t_alpha = tau_t_alpha)
+  } else {
+    vi_params <- vi_params_init
+  }
+  # compute expA
   expA <- matrix(nrow = n, ncol = G)
   b <- numeric(n)
   for (g in 1:G) {
@@ -62,10 +68,7 @@ spike_and_slab_poisson <- function(y, X, tol = 1E-4, max_iter = 1E5,
     }
     expA[, g] <- exp(mu[g, ] %*% t(X[g, , ])  + b / 2)
   }
-  # Put VI parameters in list
-  vi_params <- list(u = u, mu = mu, Sigma = Sigma,
-                    mu_alpha = mu_alpha, tau_t_alpha = tau_t_alpha,
-                    expA = expA)
+  vi_params$expA <- expA
   # Compute initial ELBO
   ELBO <-  elbo_poisson(X = X, y = y, n = n, K = K, G = G, sum_log_y_fac = sum_log_y_fac, 
                                       u = vi_params$u,
