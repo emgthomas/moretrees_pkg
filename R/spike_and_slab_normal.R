@@ -22,18 +22,21 @@
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
+spike_and_slab_normal <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
-                                  hyperparams_init = list(tau = 100,
+                                  hyperparams_init = list(omega = 100,
+                                                          tau = 100,
                                                           sigma2 = var(y),
                                                           rho = 0.5)) {
   # Prepare for running algorithm ---------------------------------------------------
   G <- dim(X)[1]
   n <- dim(X)[2]
   K <- dim(X)[3]
-  # Computing XtX so we don't have to do this repeatedly
+  m <- ncol(W)
+  # Computing XtX and WtW so we don't have to do this repeatedly
   XtX <- plyr::aaply(X, 1, function(X) crossprod(X, X), .drop = F)
   attributes(XtX)$dimnames <- NULL
+  WtW <- crossprod(W, W)
   # Initial hyperparameter values
   hyperparams <- hyperparams_init
   # Variational parameter initial values
@@ -49,18 +52,38 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
   } else {
     Sigma_det <- plyr::aaply(.data = Sigma, .margins = 1, .fun = det)
   }
+  # get starting values for mu from linear regression
+  # X2 <- matrix(nrow = n, ncol = G * K)
+  # for (g in 1:G) {
+  #   X2[ , ((g - 1) * K + 1):(g * K)] <- X[g, , ]
+  # }
+  # mod.lm <- lm(y ~ 0 + X2)
+  # mu <- matrix(mod.lm$coefficients, nrow = G, ncol = K, byrow = T)
   mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
-  prob <- rep(hyperparams$rho, G)
-  tau_t <- hyperparams$tau
+  prob <- rep(rho, G)
+  tau_t <- rep(tau, G)
+  # tau_t <- mean(diag(summary(mod.lm)$cov.unscaled))
+  delta <- rnorm(m, sd = 10)
+  Omega_inv <- WtW / hyperparams$sigma2 + diag(1 / hyperparams$omega, nrow = m)
+  Omega <- solve(Omega_inv)
+  Omega_det <- det(Omega)
   # Put VI parameters in list
   vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
                     Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
-                    tau_t = tau_t)
+                    tau_t = tau_t, delta = delta,
+                    Omega = Omega, Omega_inv = Omega_inv,
+                    Omega_det = Omega_det)
   # Compute initial ELBO
-  hyperparams <-  update_hyperparams_normal(X = X, XtX = XtX, y = y, n = n,
-                                              K = K, G = G, prob = prob, mu = mu,
+  hyperparams <-  update_hyperparams_normal(X = X, XtX = XtX, 
+                                              W = W, WtW = WtW,
+                                              y = y, n = n,
+                                              K = K, G = G, m = m,
+                                              prob = prob, mu = mu,
                                               Sigma = Sigma, Sigma_det = Sigma_det,
                                               tau_t = tau_t,
+                                              delta = delta,
+                                              Omega = Omega, Omega_det = Omega_det,
+                                              omega = hyperparams$omega,
                                               sigma2 = hyperparams$sigma2,
                                               tau = hyperparams$tau,
                                               rho = hyperparams$rho,
@@ -81,21 +104,38 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     update_hyper_im1 <- (i %% update_hyper_freq == 1)
-    vi_params <- update_vi_params_normal(X = X, XtX = XtX, y = y, n = n, K = K, G = G,
-                                         prob = vi_params$prob, mu = vi_params$mu, 
-                                         Sigma = vi_params$Sigma, Sigma_inv = vi_params$Sigma_inv, 
-                                         Sigma_det = vi_params$Sigma_det, tau_t = vi_params$tau_t, 
-                                         sigma2 = hyperparams$sigma2, rho = hyperparams$rho, 
+    vi_params <- update_vi_params_normal(X = X, XtX = XtX, 
+                                         W = W, WtW = WtW,
+                                         y = y, n = n, K = K, G = G, m = m,
+                                         prob = vi_params$prob, 
+                                         mu = vi_params$mu, 
+                                         Sigma = vi_params$Sigma, 
+                                         Sigma_inv = vi_params$Sigma_inv, 
+                                         Sigma_det = vi_params$Sigma_det, 
+                                         tau_t = vi_params$tau_t,
+                                         delta = vi_params$delta, 
+                                         Omega = vi_params$Omega,
+                                         Omega_inv = vi_params$Omega_inv, 
+                                         Omega_det = vi_params$Omega_det,
+                                         omega = hyperparams$omega, 
+                                         sigma2 = hyperparams$sigma2,  
+                                         rho = hyperparams$rho, 
                                          tau = hyperparams$tau,
                                          update_hyper_last = update_hyper_im1)
     if (!update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, y = y,
-                                               n = n, K = K, G = G,
-                                               prob = vi_params$prob,
+      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, 
+                                               W = W, WtW = WtW,
+                                               y = y, n = n,
+                                               K = K, G = G, m = m,
+                                               prob = vi_params$prob, 
                                                mu = vi_params$mu,
-                                               Sigma = vi_params$Sigma,
-                                               Sigma_det = vi_params$Sigma_det, 
+                                               Sigma = vi_params$Sigma, 
+                                               Sigma_det = vi_params$Sigma_det,
                                                tau_t = vi_params$tau_t,
+                                               delta = vi_params$delta,
+                                               Omega = vi_params$Omega, 
+                                               Omega_det = vi_params$Omega_det,
+                                               omega = hyperparams$omega,
                                                sigma2 = hyperparams$sigma2,
                                                tau = hyperparams$tau,
                                                rho = hyperparams$rho,
@@ -114,13 +154,19 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, y = y,
-                                               n = n, K = K, G = G,
-                                               prob = vi_params$prob,
+      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, 
+                                               W = W, WtW = WtW,
+                                               y = y, n = n,
+                                               K = K, G = G, m = m,
+                                               prob = vi_params$prob, 
                                                mu = vi_params$mu,
-                                               Sigma = vi_params$Sigma,
-                                               Sigma_det = vi_params$Sigma_det, 
+                                               Sigma = vi_params$Sigma, 
+                                               Sigma_det = vi_params$Sigma_det,
                                                tau_t = vi_params$tau_t,
+                                               delta = vi_params$delta,
+                                               Omega = vi_params$Omega, 
+                                               Omega_det = vi_params$Omega_det,
+                                               omega = hyperparams$omega,
                                                sigma2 = hyperparams$sigma2,
                                                tau = hyperparams$tau,
                                                rho = hyperparams$rho,
