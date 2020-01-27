@@ -44,7 +44,7 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
   # See pg 13 of "variational inference for spike & slab model" document -
   # line numbers correspond to lines in equation
   line1 <- (1 / 2) * t(y) %*% lp + 
-    sum(log(eta)) - sum(eta) / 2 + g_eta %*% eta ^ 2
+    sum(log(expit(eta))) - sum(eta) / 2 + g_eta %*% eta ^ 2
   line2 <- - g_eta %*% lp2
   line3 <- - expected_ss_gamma / (2 * tau) - 
     K * G * log(2 * pi * tau) / 2 + 
