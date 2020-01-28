@@ -8,7 +8,7 @@ devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
 K <- 4
 G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
-m <- 2
+m <- 5
 tau <- 3
 rho <- 0.5
 omega <- 2
@@ -59,7 +59,7 @@ plot(plot_start:plot_end,
 tapply(mod1$vi_params$prob, s_true, summary) 
 plot(mod1$vi_params$prob, s_true)
 # compare estimated coefficients to true coefficients
-plot(mod1$vi_params$mu, beta)
+plot(mod1$vi_params$mu * mod1$vi_params$prob, beta)
 abline(a = 0, b = 1, col = "red")
 
 # Compare non-sparse effect estimates to truth ----------------------------------------------
@@ -71,12 +71,12 @@ X1 <- X[[1]]
 for (g in 2:G) {
   X1 <- cbind(X1, X[[g]])
 }
-mod2 <- lm(y ~ 0 + as.matrix(W) + as.matrix(X1))
+# mod2 <- lm(y ~ 0 + as.matrix(W) + as.matrix(X1))
+mod2 <- lm(y ~ 0 + as.matrix(X1))
 plot(mod2$coefficients, c(theta, as.numeric(t(beta))))
 abline(a = 0, b = 1, col = "red")
 plot(mod2$coefficients, c(as.numeric(mod1$vi_params$delta), as.numeric(t(mod1$vi_params$mu))))
 abline(a = 0, b = 1, col = "red")
-
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 
