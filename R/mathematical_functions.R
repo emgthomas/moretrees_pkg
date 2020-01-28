@@ -4,7 +4,7 @@
 
 trace_prod <- function(A, B) {
   # computes trace(A %*% B) for square matrices A, B
-  sum(t(B) * A)
+  sum(Matrix::t(B) * A)
 }
 
 log1p_exp <- function(x) {
@@ -24,7 +24,12 @@ log1p.exp.vec <- function(x){
   return(y)
 }
 
-loglogit <- function(x) {
+logexpit <- function(x) {
   # computes -log(1+exp(-x)) for x a vector
   -log1p.exp.vec(-x)
+}
+
+expit <- function(x) {
+  # computes 1/(1+exp(-x)) for x a vector
+  exp(logexpit(x))
 }

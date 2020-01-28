@@ -11,34 +11,40 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   # Sum of squared residuals
   lp <- W %*% delta
   for (g in 1:G) {
-    lp <- lp + prob[g] * matrix(X[g, , ], nrow = n) %*% matrix(mu[g, ], nrow = K) 
+    lp <- lp + prob[g] * 
+      X[[g]] %*% mu[g, ]
   }
   ssr <- sum( (y - lp) ^ 2 )
   # Expected sum of squared residuals
   prob_tr <- 0
   ssr_corr <- 0
   for (g in 1:G) {
-    prob_tr <- prob_tr + 
-      prob[g] * trace_prod(Sigma[g, , ], XtX[g, , ])
+    prob_tr <- prob_tr + prob[g] * trace_prod(Sigma[[g]], XtX[[g]])
     ssr_corr <- ssr_corr + 
-      prob[g] * (1 - prob[g]) * t(mu[g, ]) %*% XtX[g, , ] %*% mu[g, ]
+      prob[g] * (1 - prob[g]) * t(mu[g, ]) %*% XtX[[g]] %*% mu[g, ]
   }
-  expected_ssr <- as.numeric(trace_prod(Omega, WtW) + prob_tr + ssr + ssr_corr)
+  expected_ssr <- as.numeric(trace_prod(WtW, Omega) + prob_tr + ssr + ssr_corr)
   
   # Expected sum of squared gammas
   expected_ss_gamma <- 0
   for (g in 1:G) {
     expected_ss_gamma <- expected_ss_gamma + prob[g] *
-      (sum(diag(matrix(Sigma[g, , ], nrow = K))) + sum(mu[g, ] ^ 2))
+      (sum(Matrix::diag(Sigma[[g]])) + sum(mu[g, ] ^ 2))
   }
   expected_ss_gamma <- as.numeric(expected_ss_gamma + K * sum(tau_t * (1 - prob)))
   
   # Expected sum of squared thetas
-  expected_ss_theta <- sum(diag(Omega)) + sum(delta ^ 2)
+  if (m == 0) {
+    expected_ss_theta <- 0
+  } else {
+    expected_ss_theta <- sum(Matrix::diag(Omega)) + sum(delta ^ 2)
+  }
   
   # Update hyperparameters ---------------------------------------------------------
   if (update_hyper) {
-    omega <- expected_ss_theta / m
+    if (m != 0) {
+      omega <- expected_ss_theta / m
+    }
     sigma2 <- expected_ssr / n
     tau <- expected_ss_gamma / (K * G)
     rho <- mean(prob)
