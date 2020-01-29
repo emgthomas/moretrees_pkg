@@ -3,39 +3,37 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-set.seed(98647)
+# set.seed(98647)
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
 K <- 4
-G <- 100 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
-m <- 50
-# beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
-#                       prob = c(0.25, 0.75)), nrow = G)
+G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+m <- 5
 tau <- 3
-rho <- 0.3
+rho <- 0.5
 omega <- 2
-gamma_true <- matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
+gamma_true <- Matrix::Matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
 s_true <- rbinom(n = G, size = 1, prob = rho)
 beta <- gamma_true * s_true
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
 n <- 300
 # Generate some data -----------------------------------------------------------------
-X <- array(rnorm(K * G * n, sd = 0.5), dim = c(G, n, K))
-W <- matrix(rnorm(m * n, sd = 0.5), nrow = n)
+X <- sapply(1:G, FUN = function(i) Matrix::Matrix(rnorm(K * n, sd = 0.5), nrow = n))
+W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
 for (g in 1:G) {
-  lp <- lp + matrix(X[g, , ], nrow = n) %*% matrix(beta[g, ], nrow = K)
+  lp <- lp + X[[g]] %*% beta[g, ]
 }
 lp <- as.numeric(lp)
 y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab_normal(y, X, W, update_hyper = T, update_hyper_freq = 50,
-                              tol = 1E-8, max_iter = 5000)
-                              # hyperparams_init = list(omega = omega,
-                              #                         rho = 0.05,
-                              #                         tau = tau,
-                              #                         sigma2 = sigma2))
+                              tol = 1E-8, max_iter = 5000,
+                              hyperparams_init = list(omega = omega,
+                                                      rho = rho,
+                                                      tau = tau,
+                                                      sigma2 = sigma2))
 
 # Plot results -----------------------------------------------------------------------
 
@@ -64,8 +62,20 @@ plot(mod1$vi_params$prob, s_true)
 plot(mod1$vi_params$mu * mod1$vi_params$prob, beta)
 abline(a = 0, b = 1, col = "red")
 
-# Compare non-sparse effect estiamtes to truth ----------------------------------------------
+# Compare non-sparse effect estimates to truth ----------------------------------------------
 plot(mod1$vi_params$delta, theta)
+abline(a = 0, b = 1, col = "red")
+
+# Compare moretrees estimates to maximum likelihood -----------------------------------------
+X1 <- X[[1]]
+for (g in 2:G) {
+  X1 <- cbind(X1, X[[g]])
+}
+# mod2 <- lm(y ~ 0 + as.matrix(W) + as.matrix(X1))
+mod2 <- lm(y ~ 0 + as.matrix(X1))
+plot(mod2$coefficients, c(theta, as.numeric(t(beta))))
+abline(a = 0, b = 1, col = "red")
+plot(mod2$coefficients, c(as.numeric(mod1$vi_params$delta), as.numeric(t(mod1$vi_params$mu))))
 abline(a = 0, b = 1, col = "red")
 
 # Compare hyperparameter estimates to truth -------------------------------------------------

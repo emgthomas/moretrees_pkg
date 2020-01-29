@@ -11,7 +11,7 @@
 #'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param y Vector of outcomes data.
-#' @param X Array of design matrices for each variable group, with dimensions dim(X) = c(G,n,K),
+#' @param X List of length g of design matrices for each variable group, each with dimension n x K
 #'   where G is the number of variable groups, n is the number of observations, and
 #'   K is the number of variables.
 #' @param tol Convergence tolerance for ELBO. Default = 1E-4.
@@ -22,35 +22,33 @@
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-spike_and_slab_normal <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
+spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), ncol = 0), 
+                                  tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
                                   hyperparams_init = list(omega = 100,
                                                           tau = 100,
                                                           sigma2 = var(y),
                                                           rho = 0.5)) {
   # Prepare for running algorithm ---------------------------------------------------
-  G <- dim(X)[1]
-  n <- dim(X)[2]
-  K <- dim(X)[3]
+  G <- length(X)
+  n <- length(y)
+  K <- ncol(X[[1]])
   m <- ncol(W)
   # Computing XtX and WtW so we don't have to do this repeatedly
-  XtX <- plyr::aaply(X, 1, function(X) crossprod(X, X), .drop = F)
-  attributes(XtX)$dimnames <- NULL
-  WtW <- crossprod(W, W)
+  XtX <- sapply(X, Matrix::crossprod)
+  WtW <- Matrix::crossprod(W)
   # Initial hyperparameter values
   hyperparams <- hyperparams_init
   # Variational parameter initial values
-  Sigma_inv <- plyr::aaply(.data = XtX, .margins = 1,
-                           .fun = function(XtX, tau, K, sigma2) XtX / sigma2 + diag(1 / tau, K),
-                           tau = hyperparams$tau, K = K, 
-                           sigma2 = hyperparams$sigma2, .drop = F)
-  attributes(Sigma_inv)$dimnames <- NULL
-  Sigma <- plyr::aaply(.data = Sigma_inv, .margins = 1, .fun = solve, .drop = F)
-  attributes(Sigma)$dimnames <- NULL
+  Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, K, sigma2) XtX / sigma2 + 
+                      Matrix::Diagonal(K, 1 / tau),
+                      tau = hyperparams$tau, K = K, 
+                      sigma2 = hyperparams$sigma2)  
+  Sigma <- sapply(Sigma_inv, Matrix::solve)
   if (K == 1) {
-    Sigma_det <- Sigma[, 1, 1]
+    Sigma_det <- unlist(Sigma)
   } else {
-    Sigma_det <- plyr::aaply(.data = Sigma, .margins = 1, .fun = det)
+    Sigma_det <- sapply(Sigma, Matrix::det)
   }
   # get starting values for mu from linear regression
   # X2 <- matrix(nrow = n, ncol = G * K)
@@ -59,14 +57,19 @@ spike_and_slab_normal <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
   # }
   # mod.lm <- lm(y ~ 0 + X2)
   # mu <- matrix(mod.lm$coefficients, nrow = G, ncol = K, byrow = T)
-  mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
+  mu <- Matrix::Matrix(rnorm(G * K, sd = 10), nrow = G)
   prob <- rep(rho, G)
-  tau_t <- rep(tau, G)
-  # tau_t <- mean(diag(summary(mod.lm)$cov.unscaled))
+  tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
   delta <- rnorm(m, sd = 10)
   Omega_inv <- WtW / hyperparams$sigma2 + diag(1 / hyperparams$omega, nrow = m)
-  Omega <- solve(Omega_inv)
-  Omega_det <- det(Omega)
+  if (m != 0) {
+    Omega <- solve(Omega_inv)
+    Omega_det <- det(Omega)
+  } else {
+    Omega <- Matrix::Matrix(nrow = 0, ncol = 0)
+    Omega_det <- 1
+  }
+  
   # Put VI parameters in list
   vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
                     Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
@@ -103,7 +106,7 @@ spike_and_slab_normal <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
   repeat {
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-    update_hyper_im1 <- (i %% update_hyper_freq == 1)
+    update_hyper_im1 <- (i %% update_hyper_freq == 1) & update_hyper
     vi_params <- update_vi_params_normal(X = X, XtX = XtX, 
                                          W = W, WtW = WtW,
                                          y = y, n = n, K = K, G = G, m = m,
