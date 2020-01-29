@@ -32,4 +32,9 @@ logexpit <- function(x) {
 expit <- function(x) {
   # computes 1/(1+exp(-x)) for x a vector
   exp(logexpit(x))
+
+gfun <- function(x) {
+  # computes function g described in manuscript;
+  # needed for normal approx to logistic likelihood
+  (expit(x) - 1 / 2) / (2 * x)
 }
