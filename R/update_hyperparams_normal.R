@@ -12,7 +12,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   lp <- W %*% delta
   for (g in 1:G) {
     lp <- lp + prob[g] * 
-      X[[g]] %*% mu[g, ]
+      X[[g]] %*% mu[[g]]
   }
   ssr <- sum( (y - lp) ^ 2 )
   # Expected sum of squared residuals
@@ -21,7 +21,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   for (g in 1:G) {
     prob_tr <- prob_tr + prob[g] * trace_prod(Sigma[[g]], XtX[[g]])
     ssr_corr <- ssr_corr + 
-      prob[g] * (1 - prob[g]) * t(mu[g, ]) %*% XtX[[g]] %*% mu[g, ]
+      prob[g] * (1 - prob[g]) * Matrix::t(mu[[g]]) %*% XtX[[g]] %*% mu[[g]]
   }
   expected_ssr <- as.numeric(trace_prod(WtW, Omega) + prob_tr + ssr + ssr_corr)
   
@@ -29,9 +29,9 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   expected_ss_gamma <- 0
   for (g in 1:G) {
     expected_ss_gamma <- expected_ss_gamma + prob[g] *
-      (sum(Matrix::diag(Sigma[[g]])) + sum(mu[g, ] ^ 2))
+      (sum(Matrix::diag(Sigma[[g]])) + sum(mu[[g]] ^ 2))
   }
-  expected_ss_gamma <- as.numeric(expected_ss_gamma + K * sum(tau_t * (1 - prob)))
+  expected_ss_gamma <- as.numeric(expected_ss_gamma + sum(K * tau_t * (1 - prob)))
   
   # Expected sum of squared thetas
   if (m == 0) {
@@ -46,7 +46,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
       omega <- expected_ss_theta / m
     }
     sigma2 <- expected_ssr / n
-    tau <- expected_ss_gamma / (K * G)
+    tau <- expected_ss_gamma / sum(K)
     rho <- mean(prob)
   }
   # Compute ELBO -------------------------------------------------------------------
@@ -54,14 +54,14 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   # line numbers correspond to lines in equation
   line1 <- - 1 / (2 * sigma2) * expected_ssr - (n / 2) * log(2 * pi * sigma2)
   line2 <- - expected_ss_gamma / (2 * tau) - 
-    K * G * log(2 * pi * tau) / 2 + 
+    sum(K) * log(2 * pi * tau) / 2 + 
     log(rho ^ sum(prob)) +
     log((1 - rho) ^ (G - sum(prob)))
   line3 <- expected_ss_theta / (2 * omega) - 
     (m / 2) * log(2 * pi * omega)
-  line4 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
-  line5 <- (K / 2) * (G - sum(prob)) + 
-    (K / 2) * sum(log(2 * pi * tau_t) * (1 - prob))
+  line4 <- (sum(K * prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
+  line5 <- (1 / 2) * sum(K * (1 - prob)) + 
+    (1 / 2) * sum(K * log(2 * pi * tau_t) * (1 - prob))
   line6 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   line7 <- (m + log(Omega_det) + m * log(2 * pi)) / 2

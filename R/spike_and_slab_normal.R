@@ -32,7 +32,7 @@ spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), nco
   # Prepare for running algorithm ---------------------------------------------------
   G <- length(X)
   n <- length(y)
-  K <- ncol(X[[1]])
+  K <- sapply(X, ncol)
   m <- ncol(W)
   # Computing XtX and WtW so we don't have to do this repeatedly
   XtX <- sapply(X, Matrix::crossprod)
@@ -40,24 +40,14 @@ spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), nco
   # Initial hyperparameter values
   hyperparams <- hyperparams_init
   # Variational parameter initial values
-  Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, K, sigma2) XtX / sigma2 + 
-                      Matrix::Diagonal(K, 1 / tau),
-                      tau = hyperparams$tau, K = K, 
+  Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
+                      Matrix::Diagonal(ncol(XtX), 1 / tau),
+                      tau = hyperparams$tau, 
                       sigma2 = hyperparams$sigma2)  
   Sigma <- sapply(Sigma_inv, Matrix::solve)
-  if (K == 1) {
-    Sigma_det <- unlist(Sigma)
-  } else {
-    Sigma_det <- sapply(Sigma, Matrix::det)
-  }
-  # get starting values for mu from linear regression
-  # X2 <- matrix(nrow = n, ncol = G * K)
-  # for (g in 1:G) {
-  #   X2[ , ((g - 1) * K + 1):(g * K)] <- X[g, , ]
-  # }
-  # mod.lm <- lm(y ~ 0 + X2)
-  # mu <- matrix(mod.lm$coefficients, nrow = G, ncol = K, byrow = T)
-  mu <- Matrix::Matrix(rnorm(G * K, sd = 10), nrow = G)
+  Sigma_det <- sapply(Sigma, Matrix::det)
+  mu <- sapply(K, rnorm, mean = 0 , sd = 10)
+  mu <- sapply(mu, Matrix::Matrix, ncol = 1)
   prob <- rep(rho, G)
   tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
   delta <- rnorm(m, sd = 10)

@@ -5,25 +5,25 @@
 
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
-# Input parameters ------------------------------------------------------------------
-K <- 4
+# Input parameters -------------------------------------------------------------------
 G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+K <- sample(1:4, size = G, replace = T)
 m <- 5
 tau <- 3
 rho <- 0.5
 omega <- 2
-gamma_true <- Matrix::Matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
+gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
 s_true <- rbinom(n = G, size = 1, prob = rho)
-beta <- gamma_true * s_true
+beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
 n <- 300
 # Generate some data -----------------------------------------------------------------
-X <- sapply(1:G, FUN = function(i) Matrix::Matrix(rnorm(K * n, sd = 0.5), nrow = n))
+X <- sapply(K, FUN = function(k) Matrix::Matrix(rnorm(k * n, sd = 0.5), nrow = n))
 W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
 for (g in 1:G) {
-  lp <- lp + X[[g]] %*% beta[g, ]
+  lp <- lp + X[[g]] %*% beta[[g]]
 }
 lp <- as.numeric(lp)
 y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
@@ -47,7 +47,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 1
+plot_start <- 100
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
@@ -59,7 +59,9 @@ plot(plot_start:plot_end,
 tapply(mod1$vi_params$prob, s_true, summary) 
 plot(mod1$vi_params$prob, s_true)
 # compare estimated coefficients to true coefficients
-plot(mod1$vi_params$mu * mod1$vi_params$prob, beta)
+moretrees_est <- unlist(sapply(1:G, 
+                function(g) as.numeric(mod1$vi_params$mu[[g]] * mod1$vi_params$prob[g])))
+plot(moretrees_est, unlist(beta))
 abline(a = 0, b = 1, col = "red")
 
 # Compare non-sparse effect estimates to truth ----------------------------------------------
@@ -71,11 +73,12 @@ X1 <- X[[1]]
 for (g in 2:G) {
   X1 <- cbind(X1, X[[g]])
 }
-# mod2 <- lm(y ~ 0 + as.matrix(W) + as.matrix(X1))
-mod2 <- lm(y ~ 0 + as.matrix(X1))
-plot(mod2$coefficients, c(theta, as.numeric(t(beta))))
+mod2 <- lm(y ~ 0 + as.matrix(W) + as.matrix(X1))
+# mod2 <- lm(y ~ 0 + as.matrix(X1))
+plot(mod2$coefficients, c(theta, unlist(beta)))
 abline(a = 0, b = 1, col = "red")
-plot(mod2$coefficients, c(as.numeric(mod1$vi_params$delta), as.numeric(t(mod1$vi_params$mu))))
+plot(mod2$coefficients, c(as.numeric(mod1$vi_params$delta),
+                          moretrees_est))
 abline(a = 0, b = 1, col = "red")
 
 # Compare hyperparameter estimates to truth -------------------------------------------------

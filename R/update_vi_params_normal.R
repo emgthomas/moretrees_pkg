@@ -10,30 +10,26 @@ update_vi_params_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   # Update sparse coefficients ------------------------------------------------------
   pred_g <- Matrix::Matrix(0, nrow = n, ncol = G)
   for (g in 2:G) {
-    pred_g[, g] <- prob[g] * X[[g]] %*% mu[g, ]
+    pred_g[, g] <- prob[g] * X[[g]] %*% mu[[g]]
   }
   Wdelta <- W %*% delta
   for (g in 1:G) {
     # Update Sigma_g and tau_t_g only if hyperparameters were updated last round
     if (update_hyper_last) {
-      Sigma_inv[[g]] <- XtX[[g]] / sigma2 + Matrix::Diagonal(n = K, x = 1 / tau)
+      Sigma_inv[[g]] <- XtX[[g]] / sigma2 + Matrix::Diagonal(n = K[g], x = 1 / tau)
       Sigma[[g]] <- Matrix::solve(Sigma_inv[[g]])
-      if (K == 1) {
-        Sigma_det[g] <- Sigma[[g]][1, 1]
-      } else {
-        Sigma_det[g] <- Matrix::det(Sigma[[g]])
-      }
+      Sigma_det[g] <- Matrix::det(Sigma[[g]])
       tau_t[g] <- tau
     }
     # update mu_g
-    mu[g, ] <- (1 / sigma2) * Sigma[[g]] %*%
+    mu[[g]] <- (1 / sigma2) * Sigma[[g]] %*%
       Matrix::crossprod(X[[g]], y - Wdelta - apply(pred_g[, -g, drop = F], 1, sum))
     # update prob_g (pi_g in manuscript)
-    u <- t(mu[g, , drop == F]) %*% Sigma_inv[[g]] %*% mu[g, , drop == F] +
-      0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K * log(tau_t[g])
+    u <- Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
+      0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
     prob[g] <- expit(u[1, 1])
     # update pred_g
-    pred_g[, g] <- prob[g] * X[[g]] %*% mu[g, ]
+    pred_g[, g] <- prob[g] * X[[g]] %*% mu[[g]]
   }
   # Update non-sparse coefficients ---------------------------------------------------
   # Update Omega only if hyperparameters were updated at last step

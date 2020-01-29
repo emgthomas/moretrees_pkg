@@ -7,18 +7,18 @@
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
 K <- 2
-G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
-m <- 20
+G <- 5 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+m <- 10
 # beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
 #                       prob = c(0.25, 0.75)), nrow = G)
 tau <- 3
-rho <- 0.3
+rho <- 0.5
 omega <- 2
 gamma_true <- matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
 s_true <- rbinom(n = G, size = 1, prob = rho)
 beta <- gamma_true * s_true
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
-n <- 5000
+n <- 600
 # Generate some data -----------------------------------------------------------------
 X <- array(rnorm(K * G * n, sd = 0.5), dim = c(G, n, K))
 W <- matrix(rnorm(m * n, sd = 0.5), nrow = n)
