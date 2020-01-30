@@ -50,11 +50,11 @@ spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), nco
   mu <- sapply(mu, Matrix::Matrix, ncol = 1)
   prob <- rep(rho, G)
   tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
-  delta <- rnorm(m, sd = 10)
-  Omega_inv <- WtW / hyperparams$sigma2 + diag(1 / hyperparams$omega, nrow = m)
+  delta <- Matrix::Matrix(rnorm(m, sd = 10), ncol = 1)
+  Omega_inv <- WtW / hyperparams$sigma2 + Matrix::Diagonal(m, 1 / hyperparams$omega)
   if (m != 0) {
-    Omega <- solve(Omega_inv)
-    Omega_det <- det(Omega)
+    Omega <- Matrix::solve(Omega_inv)
+    Omega_det <- Matrix::det(Omega)
   } else {
     Omega <- Matrix::Matrix(nrow = 0, ncol = 0)
     Omega_det <- 1

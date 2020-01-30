@@ -6,25 +6,23 @@
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
-K <- 2
 G <- 5 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+K <- sample(1:4, size = G, replace = T)
 m <- 10
-# beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
-#                       prob = c(0.25, 0.75)), nrow = G)
 tau <- 3
 rho <- 0.5
 omega <- 2
-gamma_true <- matrix(rnorm(G * K, mean = 0, sd = sqrt(tau)), nrow = G)
+gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
 s_true <- rbinom(n = G, size = 1, prob = rho)
-beta <- gamma_true * s_true
+beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 n <- 600
 # Generate some data -----------------------------------------------------------------
-X <- array(rnorm(K * G * n, sd = 0.5), dim = c(G, n, K))
+X <- sapply(K, FUN = function(k) Matrix::Matrix(rnorm(k * n, sd = 0.5), nrow = n))
 W <- matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
 for (g in 1:G) {
-  lp <- lp + matrix(X[g, , ], nrow = n) %*% matrix(beta[g, ], nrow = K)
+  lp <- lp + X[[g]] %*% beta[[g]]
 }
 lp <- as.numeric(lp)
 expit <- 1 / (1 + exp(-lp))
@@ -60,9 +58,10 @@ plot(plot_start:plot_end,
 # compare estimated probabilities of variable inclusion to true variable inclusion indicators
 tapply(mod1$vi_params$prob, s_true, summary) 
 plot(mod1$vi_params$prob, s_true)
-
 # compare estimated coefficients to true coefficients
-plot(mod1$vi_params$mu * mod1$vi_params$prob, beta)
+moretrees_est <- unlist(sapply(1:G, 
+                               function(g) as.numeric(mod1$vi_params$mu[[g]] * mod1$vi_params$prob[g])))
+plot(moretrees_est, unlist(beta))
 abline(a = 0, b = 1, col = "red")
 
 # Compare non-sparse effect estimates to truth ----------------------------------------------
@@ -70,17 +69,18 @@ plot(mod1$vi_params$delta, theta)
 abline(a = 0, b = 1, col = "red")
 
 # Compare moretrees estimates to ML estimates -----------------------------------------------
-X1 <- X[1, , ] * (mod1$vi_params$prob[1] > 0.5)
+X1 <- X[[1]] * (mod1$vi_params$prob[1] > 0.5)
 for (g in 2:G) {
-  X1 <- cbind(X1, X[g, , ] * (mod1$vi_params$prob[g] > 0.5) )
+  X1 <- cbind(X1, X[[g]] * (mod1$vi_params$prob[g] > 0.5) )
 }
 y2 <- y
 y2[y == -1] <- 0
-mod2 <- glm(y2 ~ 0 + W + X1, family = binomial)
+mod2 <- glm(y2 ~ 0 + as.matrix(W) + as.matrix(X1), family = binomial)
 mod2$coefficients
-plot(mod2$coefficients, c(theta, t(beta)))
+plot(mod2$coefficients, c(theta, unlist(beta)))
 abline(a = 0, b = 1, col = "red")
-plot(mod2$coefficients, c(mod1$vi_params$delta, t(mod1$vi_params$mu)))
+plot(mod2$coefficients, c(as.numeric(mod1$vi_params$delta),
+                          moretrees_est))
 abline(a = 0, b = 1, col = "red")
 
 # Compare hyperparameter estimates to truth -------------------------------------------------

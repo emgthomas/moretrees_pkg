@@ -27,9 +27,9 @@ spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
                                                           tau = 100,
                                                           rho = 0.5)) {
   # Prepare for running algorithm ---------------------------------------------------
-  G <- dim(X)[1]
-  n <- dim(X)[2]
-  K <- dim(X)[3]
+  G <- length(X)
+  n <- length(y)
+  K <- sapply(X, ncol)
   m <- ncol(W)
   # Initial hyperparameter values
   eta <- abs(rnorm(n))
@@ -39,25 +39,27 @@ spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   A_eta <- Matrix::Diagonal(n = n, g_eta)
-  Sigma_inv <- apply(X = X, MARGIN = 1,
-                           FUN = function(X, A, K, tau)
-                             2 * t(X) %*% A %*% X + diag(1 / tau, K),
-                           tau = hyperparams$tau, K = K,
-                           A = A_eta)
-  Sigma <- sapply(X = Sigma_inv, FUN = solve, simplify = F)
-  if (K == 1) {
-    Sigma_det <- unlist(Sigma)
-  } else {
-    Sigma_det <- sapply(X = Sigma, FUN = det)
-  }
-  mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
+  Sigma_inv <- sapply(X = X, 
+                FUN = function(X, A, tau) 2 * Matrix::t(X) %*% A %*% X + 
+                Matrix::Diagonal(ncol(X), 1 / tau),
+                tau = hyperparams$tau,
+                A = A_eta)
+  Sigma <- sapply(Sigma_inv, Matrix::solve)
+  Sigma_det <- sapply(Sigma, Matrix::det)
+  mu <- sapply(K, rnorm, mean = 0 , sd = 10)
+  mu <- sapply(mu, Matrix::Matrix, ncol = 1)
   prob <- rep(rho, G)
   tau_t <- rep(tau, G)
-  delta <- rnorm(m, sd = 10)
-  Omega_inv <- 2 * t(W) %*% A_eta %*% W + 
-    diag(1 / hyperparams$omega, nrow = m)
-  Omega <- solve(Omega_inv)
-  Omega_det <- det(Omega)
+  delta <- Matrix::Matrix(rnorm(m, sd = 10), ncol = 1)
+  Omega_inv <- 2 * Matrix::t(W) %*% A_eta %*% W + 
+    Matrix::Diagonal(m, 1 / hyperparams$omega)
+  if (m != 0) {
+    Omega <- Matrix::solve(Omega_inv)
+    Omega_det <- Matrix::det(Omega)
+  } else {
+    Omega <- Matrix::Matrix(nrow = 0, ncol = 0)
+    Omega_det <- 1
+  }
   # Put VI parameters in list
   vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
                     Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
