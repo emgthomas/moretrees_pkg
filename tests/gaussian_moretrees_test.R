@@ -42,26 +42,6 @@ ccs_levels <- ccs_levels[order(ccs_levels$l1, ccs_levels$l2,
                                ccs_levels$l3, ccs_levels$l4) , ]
 ccs <- ccs_levels[ , names(ccs)]
 
-# Make adjacency matrix
-codes_all <- unique(unlist(ccs))
-codes_all <- codes_all[!(codes_all == " ")]
-p <- length(codes_all)
-D <- Matrix(0, nrow = p, ncol = p)
-rownames(D) <- codes_all
-colnames(D) <- codes_all
-for (l in 1:3) {
-  lvl <- paste0("ccs_l",l)
-  lvl_blw <- paste0("ccs_l",l + 1)
-  codes_l <- unique(ccs[ , lvl])
-  for (v in codes_l) {
-    chldrn <- unique(ccs[ccs[ , lvl] == v, lvl_blw])
-    chldrn <- chldrn[!(chldrn == " ")]
-    if (length(chldrn) > 0) {
-      D[rownames(D) == v, colnames(D) %in% chldrn] <- 1
-    }
-  }
-}
-
 # Make tree
 edges <- rbind(as.matrix(ccs[ , c(1, 2)]),
                as.matrix(ccs[ , c(2, 3)]),
@@ -70,7 +50,7 @@ edges <- edges[edges[ , 2] != " ", ]
 edges <- edges[!duplicated(edges), ]
 tr <- graph_from_edgelist(e = edges, directed = T)
 plot(tr, layout = layout_as_tree, root = 1)
-D2 <- as_adjacency_matrix(tr)
+D <- as_adjacency_matrix(tr)
 
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
