@@ -62,6 +62,15 @@ for (l in 1:3) {
   }
 }
 
+# Make tree
+edges <- rbind(as.matrix(ccs[ , c(1, 2)]),
+               as.matrix(ccs[ , c(2, 3)]),
+               as.matrix(ccs[ , c(3, 4)]))
+edges <- edges[edges[ , 2] != " ", ]
+edges <- edges[!duplicated(edges), ]
+tr <- graph_from_edgelist(e = edges, directed = T)
+plot(tr, layout = layout_as_tree, root = 1)
+D2 <- as_adjacency_matrix(tr)
 
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
