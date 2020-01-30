@@ -4,6 +4,64 @@
 # --------------------------------------------------------------------------------- #
 
 require(icd)
+require(igraph)
+
+# Get data.frame showing mapping from ICD9 to multilevel CCS
+ccs_icd9 <- data.frame(icd9 = unlist(icd9_map_multi_ccs[[1]]), stringsAsFactors = F)
+for (i in 1:4) {
+  ccs_list <- icd9_map_multi_ccs[[i]]
+  ccs_df <- data.frame(icd9 = unlist(ccs_list), 
+                       stringsAsFactors = F)
+  ccs_df$ccs <- ccs_list %>% 
+    names %>% # names of the list entries are the CCS codes
+    sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
+    unlist
+  names(ccs_df)[2] <- paste0("ccs_l", i)
+  ccs_icd9 <- merge(ccs_icd9, ccs_df, by = "icd9", all.x = T, all.y = F)
+}
+
+# Keep only diseases of the circulatory system
+ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
+
+# CCS codes only
+ccs <- ccs_icd9
+ccs$icd9 <- NULL
+ccs <- ccs[!duplicated(ccs), ]
+
+# Order CCS codes appropriately
+ccs_l4 <- sapply(1:nrow(ccs),
+      function(i) if(ccs$ccs_l4[i] == " ") paste0(ccs$ccs_l3[i],".0") else ccs$ccs_l4[i])
+ccs_levels <- matrix(nrow = nrow(ccs), ncol = 4)
+for (i in 1:nrow(ccs_levels)) {
+  ccs_levels[i, ] <- as.integer(str_split(ccs_l4[i], "\\.")[[1]])
+}
+ccs_levels <- as.data.frame(ccs_levels)
+names(ccs_levels) <- c("l1", "l2", "l3", "l4")
+ccs_levels <- cbind(ccs_levels, ccs)
+ccs_levels <- ccs_levels[order(ccs_levels$l1, ccs_levels$l2,
+                               ccs_levels$l3, ccs_levels$l4) , ]
+ccs <- ccs_levels[ , names(ccs)]
+
+# Make adjacency matrix
+codes_all <- unique(unlist(ccs))
+codes_all <- codes_all[!(codes_all == " ")]
+p <- length(codes_all)
+D <- Matrix(0, nrow = p, ncol = p)
+rownames(D) <- codes_all
+colnames(D) <- codes_all
+for (l in 1:3) {
+  lvl <- paste0("ccs_l",l)
+  lvl_blw <- paste0("ccs_l",l + 1)
+  codes_l <- unique(ccs[ , lvl])
+  for (v in codes_l) {
+    chldrn <- unique(ccs[ccs[ , lvl] == v, lvl_blw])
+    chldrn <- chldrn[!(chldrn == " ")]
+    if (length(chldrn) > 0) {
+      D[rownames(D) == v, colnames(D) %in% chldrn] <- 1
+    }
+  }
+}
+
 
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
