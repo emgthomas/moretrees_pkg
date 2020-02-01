@@ -46,8 +46,8 @@ spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), nco
                       sigma2 = hyperparams$sigma2)  
   Sigma <- sapply(Sigma_inv, Matrix::solve)
   Sigma_det <- sapply(Sigma, Matrix::det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = 10)
-  mu <- sapply(mu, Matrix::Matrix, ncol = 1)
+  mu <- sapply(K, rnorm, mean = 0 , sd = 10, simplify = F)
+  mu <- sapply(mu, Matrix::Matrix, ncol = 1, simplify = F)
   prob <- rep(rho, G)
   tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
   delta <- Matrix::Matrix(rnorm(m, sd = 10), ncol = 1)
