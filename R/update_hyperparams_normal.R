@@ -30,7 +30,7 @@ update_hyperparams_normal <- function(X, XtX, y, n, K, G, # data
     expected_ss_gamma <- expected_ss_gamma + prob[g] *
       (sum(diag(matrix(Sigma[g, , ], nrow = K)) ) + sum(mu[g, ] ^ 2))
   }
-  expected_ss_gamma <- expected_ss_gamma + K * tau_t * (G - sum(prob))
+  expected_ss_gamma <- expected_ss_gamma + K * sum((1 - prob) * tau_t)
   # Update hyperparameters ---------------------------------------------------------
   if (update_hyper) {
     sigma2 <- expected_ssr / n
@@ -46,7 +46,7 @@ update_hyperparams_normal <- function(X, XtX, y, n, K, G, # data
     log(rho ^ sum(prob)) +
     log((1 - rho) ^ (G - sum(prob)))
   line3 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
-  line4 <- K * (G - sum(prob)) * (1 + log(2 * pi * tau_t)) / 2
+  line4 <- K * (sum(1 - prob) +  sum((1 - prob) * log(2 * pi * tau_t))) / 2
   line5 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   ELBO <- line1 + line2 + line3 + line4 + line5

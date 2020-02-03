@@ -51,7 +51,7 @@ spike_and_slab_normal <- function(y, X, tol = 1E-4, max_iter = 1E5,
   }
   mu <- matrix(rnorm(G * K, sd = 10), nrow = G)
   prob <- rep(hyperparams$rho, G)
-  tau_t <- hyperparams$tau
+  tau_t <- rep(hyperparams$tau, G)
   # Put VI parameters in list
   vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
                     Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
