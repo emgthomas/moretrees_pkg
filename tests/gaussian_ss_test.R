@@ -3,10 +3,12 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-set.seed(98647)
+# seed <- sample(1:1e6, size = 1)
+seed <- 180361
+set.seed(seed)
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
-K <- 2
+K <- 4
 G <- 100 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 # beta <- matrix(sample(c(-1, 1), replace = T, size = G * K,
 #                       prob = c(0.25, 0.75)), nrow = G)
@@ -44,9 +46,9 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 10
+plot_start <- 13
 plot_end <- length(ELBO_track)
-# plot_end <- 240
+# plot_end <- 20
 plot(plot_start:plot_end,
      ELBO_track[plot_start:plot_end],
      type = "l")
