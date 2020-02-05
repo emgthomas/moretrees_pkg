@@ -25,7 +25,7 @@ update_vi_params_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
     mu[[g]] <- (1 / sigma2) * Sigma[[g]] %*%
       Matrix::crossprod(X[[g]], y - Wdelta - apply(pred_g[, -g, drop = F], 1, sum))
     # update prob_g (pi_g in manuscript)
-    u <- Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
+    u <- 0.5 * Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
       0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
     prob[g] <- expit(u[1, 1])
     # update pred_g
