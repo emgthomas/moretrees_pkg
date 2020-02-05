@@ -35,6 +35,9 @@ spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
   eta <- abs(rnorm(n))
   g_eta <- gfun(eta)
   hyperparams <- hyperparams_init
+  if (m == 0) {
+    hyperparams$omega <- 1
+  }
   hyperparams$eta <- eta
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values

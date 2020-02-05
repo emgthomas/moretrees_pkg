@@ -39,6 +39,9 @@ spike_and_slab_normal <- function(y, X, W = Matrix::Matrix(nrow = length(y), nco
   WtW <- Matrix::crossprod(W)
   # Initial hyperparameter values
   hyperparams <- hyperparams_init
+  if (m == 0) {
+    hyperparams$omega <- 1
+  }
   # Variational parameter initial values
   Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
                       Matrix::Diagonal(ncol(XtX), 1 / tau),

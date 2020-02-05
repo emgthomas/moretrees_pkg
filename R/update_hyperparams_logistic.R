@@ -41,7 +41,9 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
   
   # Update hyperparameters ---------------------------------------------------------
   if (update_hyper) {
-    omega <- expected_ss_theta / m
+    if (m != 0) {
+      omega <- expected_ss_theta / m
+    }
     tau <- expected_ss_gamma / sum(K)
     rho <- mean(prob)
   }

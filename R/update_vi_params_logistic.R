@@ -26,7 +26,7 @@ update_vi_params_logistic <- function(X, W, y, n, K, G, m, # data
       Matrix::crossprod(X[[g]],
                 y / 2 - 2 * g_eta * (Wdelta + apply(pred_g[, -g, drop = F], 1, sum)))
     # update prob_g (pi_g in manuscript)
-    u <- Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
+    u <- 0.5 * Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
       0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
     prob[g] <- expit(u[1, 1])
     # update pred_g
@@ -35,7 +35,9 @@ update_vi_params_logistic <- function(X, W, y, n, K, G, m, # data
   # Update non-sparse coefficients ---------------------------------------------------
   # Update Omega only if hyperparameters were updated at last step
   Omega_inv <- 2 * Matrix::t(W) %*% A_eta %*% W + Matrix::Diagonal(m, 1 / omega)
-  Omega <- solve(Omega_inv)
+  if (m != 0) {
+    Omega <- solve(Omega_inv)
+  }
   if (m == 1) {
     Omega_det <- Omega[1, 1]
   } else {

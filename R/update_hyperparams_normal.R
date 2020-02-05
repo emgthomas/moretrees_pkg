@@ -11,8 +11,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   # Sum of squared residuals
   lp <- W %*% delta
   for (g in 1:G) {
-    lp <- lp + prob[g] * 
-      X[[g]] %*% mu[[g]]
+    lp <- lp + prob[g] * X[[g]] %*% mu[[g]]
   }
   ssr <- sum( (y - lp) ^ 2 )
   # Expected sum of squared residuals
