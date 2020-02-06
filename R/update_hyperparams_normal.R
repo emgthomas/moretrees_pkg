@@ -56,7 +56,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
     sum(K) * log(2 * pi * tau) / 2 + 
     log(rho ^ sum(prob)) +
     log((1 - rho) ^ (G - sum(prob)))
-  line3 <- expected_ss_theta / (2 * omega) - 
+  line3 <- - expected_ss_theta / (2 * omega) - 
     (m / 2) * log(2 * pi * omega)
   line4 <- (sum(K * prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
   line5 <- (1 / 2) * sum(K * (1 - prob)) + 

@@ -8,7 +8,7 @@ devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
 G <- 10 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 K <- sample(1:4, size = G, replace = T)
-m <- 0
+m <- 10
 tau <- 3
 rho <- 0.5
 omega <- 2
@@ -76,8 +76,8 @@ for (g in 2:G) {
 }
 y2 <- y
 y2[y == -1] <- 0
-# mod2 <- glm(y2 ~ 0 + as.matrix(W) + as.matrix(X1), family = binomial)
-mod2 <- glm(y2 ~ 0 + as.matrix(X1), family = binomial)
+mod2 <- glm(y2 ~ 0 + as.matrix(W) + as.matrix(X1), family = binomial)
+# mod2 <- glm(y2 ~ 0 + as.matrix(X1), family = binomial)
 mod2$coefficients
 plot(mod2$coefficients, c(theta, unlist(beta)))
 abline(a = 0, b = 1, col = "red")
