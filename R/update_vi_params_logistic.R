@@ -8,12 +8,12 @@ update_vi_params_logistic <- function(X, W, y, n, K, G, m, # data
                                     eta, g_eta, # variational params
                                     omega, rho, tau) { # hyperparams
   # Update sparse coefficients ------------------------------------------------------
-  Wdelta <- W %*% delta
-  A_eta <- Matrix::Diagonal(n = n, g_eta)
   pred_g <- Matrix::Matrix(0, nrow = n, ncol = G)
   for (g in 2:G) {
-    pred_g[, g] <- prob[g] * matrix(X[[g]], nrow = n) %*% mu[[g]]
+    pred_g[, g] <- prob[g] * X[[g]] %*% mu[[g]]
   }
+  Wdelta <- W %*% delta
+  A_eta <- Matrix::Diagonal(n = n, g_eta)
   # Update Sigma_g and tau_t_g
   for (g in 1:G) {
     Sigma_inv[[g]] <- 2 * Matrix::t(X[[g]]) %*% A_eta %*% X[[g]] + 

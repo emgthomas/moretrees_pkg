@@ -6,14 +6,15 @@
 # set.seed(98647)
 devtools::load_all() # Sources all files in R/
 # Input parameters ------------------------------------------------------------------
-G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+G <- 10 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 K <- sample(1:4, size = G, replace = T)
 m <- 0
 tau <- 3
-rho <- 0.4
+rho <- 0.5
 omega <- 2
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
 s_true <- rbinom(n = G, size = 1, prob = rho)
+print(s_true)
 beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 n <- 1000
@@ -30,10 +31,10 @@ y <- sapply(expit, rbinom, n = 1, size = 1)
 y[y == 0] <- -1
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab_logistic(y, X, W, update_hyper = F, update_hyper_freq = 1,
-                              tol = 1E-8, max_iter = 5000)
-                              # hyperparams_init = list(omega = omega,
-                              #                         rho = rho,
-                              #                         tau = tau))
+                              tol = 1E-8, max_iter = 5000,
+                              hyperparams_init = list(omega = omega,
+                                                      rho = rho,
+                                                      tau = tau))
 
 # Plot results -----------------------------------------------------------------------
 

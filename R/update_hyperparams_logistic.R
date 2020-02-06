@@ -20,7 +20,8 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
                Omega = Omega)
   for (g in 1:G) {
     lp2 <- lp2 + prob[g] * apply(X[[g]], MARGIN = 1, 
-          FUN = function(x, Sigma) as.numeric(t(x) %*% Sigma %*% x), Sigma = Sigma[[g]])
+          FUN = function(x, Sigma) as.numeric(t(x) %*% Sigma %*% x),
+          Sigma = Sigma[[g]] + (1 - prob[g]) * mu[[g]] %*% Matrix::t(mu[[g]])) 
   }
   lp2 <- lp2 + lp ^ 2
 
@@ -47,11 +48,15 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
     tau <- expected_ss_gamma / sum(K)
     rho <- mean(prob)
   }
+  # Update eta  --------------------------------------------------------------------
+  eta <- as.numeric(sqrt(lp2))
+  g_eta <- as.numeric(gfun(eta))
+  
   # Compute ELBO -------------------------------------------------------------------
   # See pg 13 of "variational inference for spike & slab model" document -
   # line numbers correspond to lines in equation
   line1 <- (1 / 2) * t(y) %*% lp + 
-    sum(log(expit(eta))) - sum(eta) / 2 + g_eta %*% eta ^ 2
+    sum(logexpit(eta)) - sum(eta) / 2 + g_eta %*% (eta ^ 2)
   line2 <- - g_eta %*% lp2
   line3 <- - expected_ss_gamma / (2 * tau) - 
     sum(K) * log(2 * pi * tau) / 2 + 
@@ -66,9 +71,6 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   line8 <- (m + log(Omega_det) + m * log(2 * pi)) / 2
   ELBO <- line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8
-  # Update eta
-  eta <- as.numeric(sqrt(lp2))
-  g_eta <- as.numeric(gfun(eta))
   # Return -------------------------------------------------------------------------
   return(list(ELBO = as.numeric(ELBO), omega = omega, tau = tau, rho = rho,
               eta = eta, g_eta = g_eta))
