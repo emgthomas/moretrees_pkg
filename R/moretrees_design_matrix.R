@@ -8,10 +8,16 @@
 # outcomes is a character vector of length n, where entry i
 # tells us which outcome is represented by unit i
 
-moretrees_design <- function(X, tr, outcomes) {
+moretrees_design_matrix <- function(X, tr, outcomes) {
+  # Check
+  if (!is.character(outcomes)) stop("outcomes is not a character object")
+  if (!is.igraph(tr)) stop("tr is not a graph object")
+  if (!is.directed(tr)) stop("tr is not a directed graph object")
+  
   nodes <- names(V(tr))
   leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
   if(!setequal(unique(outcomes), leaves)) stop("Not all outcomes are leaves of tree")
+  
   p <- length(nodes)
   pL <- length(leaves)
   K <- ncol(X)

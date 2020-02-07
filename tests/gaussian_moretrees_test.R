@@ -16,52 +16,14 @@ K <- 2
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 plot.igraph(tr, layout = layout_as_tree, root = group)
-X <- Matrix(rnorm(n * K), nrow = n)
-outcomes <- sample(V(tr)[V(tr)$leaf], size = n, replace = T)
+X <- matrix(rnorm(n * K), nrow = n)
+outcomes <- sample(names(V(tr)[V(tr)$leaf]), size = n, replace = T)
 
-# Extract relevant parameters for analysis
-D <- igraph::as_adjacency_matrix(subtr, sparse = T)
-A <- expm(Matrix::t(D))
-A[A > 0 ] <- 1 
-p <- length(igraph::V(subtr))
-leaves <- V(subtr)$leaf
-pL <- sum(leaves)
-codes <- names(V(subtr))
-
-# Construct design matrix
-K_g <- 2
-splt <- 0
-n_leaf <- rep(100, pL)
-n <- sum(n_leaf)
-x <- sapply(n_leaf, rnorm, simplify = F) # exposure for each outcome
-x_splt <- list()
-x_splt[[1]] <- sapply(x, function(x, splt) {
-  x[x > splt] <- 0
-  x
-}, splt = splt, simplify = F)
-x_splt[[2]] <- sapply(x, function(x, splt) {
-  x[x <= splt] <- 0
-  x
-}, splt = splt, simplify = F)
-Xmat <- list()
-Xstar <- list()
-for (k in 1:K_g) {
-  Xmat_k <- Matrix(0, nrow = n, ncol = p)
-  Xmat_k[ , leaves] <- Matrix::bdiag(x_splt[[k]])
-  colnames(Xmat_k) <- codes
-  Xmat[[k]] <- Xmat_k
-  Xstar[[k]] <- Xmat[[k]] %*% A
-}
-
-# Generate data
-X <- rep(list(), p)
-for (v in 1:p) {
-  Xmat_v <- Matrix::Matrix(0, nrow = n, ncol = K_g)
-  for (k in 1:K_g) {
-    Xmat_v[ , k] <- Xstar[[k]][ , v]
-  }
-  X[[v]] <- Xmat_v
-}
+# Create MORETreeS design matrix
+dsgn <- moretrees_design_matrix(X, tr, outcomes)
+X <- dsgn$X
+A <- dsgn$A
+rm(dsgn)
 
 # Input parameters -------------------------------------------------------------------
 G <- p
