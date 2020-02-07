@@ -30,11 +30,11 @@ expit <- 1 / (1 + exp(-lp))
 y <- sapply(expit, rbinom, n = 1, size = 1)
 y[y == 0] <- -1
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- spike_and_slab_logistic(y, X, W, update_hyper = F, update_hyper_freq = 1,
-                              tol = 1E-8, max_iter = 5000,
-                              hyperparams_init = list(omega = omega,
-                                                      rho = rho,
-                                                      tau = tau))
+mod1 <- spike_and_slab_logistic(y, X, W, update_hyper = F, update_hyper_freq = 10,
+                              tol = 1E-8, max_iter = 5000)
+                              # hyperparams_init = list(omega = omega,
+                              #                         rho = rho,
+                              #                         tau = tau))
 
 # Plot results -----------------------------------------------------------------------
 

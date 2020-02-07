@@ -10,61 +10,14 @@ require(igraph)
 require(stringr)
 require(Matrix)
 
-# Get data.frame showing mapping from ICD9 to multilevel CCS
-ccs_icd9 <- data.frame(icd9 = unlist(icd9_map_multi_ccs[[1]]), stringsAsFactors = F)
-for (i in 1:4) {
-  ccs_list <- icd9_map_multi_ccs[[i]]
-  ccs_df <- data.frame(icd9 = unlist(ccs_list), 
-                       stringsAsFactors = F)
-  ccs_df$ccs <- ccs_list %>% 
-    names %>% # names of the list entries are the CCS codes
-    sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
-    unlist
-  names(ccs_df)[2] <- paste0("ccs_l", i)
-  ccs_icd9 <- merge(ccs_icd9, ccs_df, by = "icd9", all.x = T, all.y = F)
-}
+n <- 100
+K <- 2
 
-# Keep only diseases of the circulatory system
-ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
-
-# CCS codes only
-ccs <- ccs_icd9
-ccs$icd9 <- NULL
-ccs <- ccs[!duplicated(ccs), ]
-
-# Order CCS codes appropriately
-ccs$ccs_l4 <- sapply(1:nrow(ccs),
-      function(i) if(ccs$ccs_l4[i] == " ") paste0(ccs$ccs_l3[i],".0") else ccs$ccs_l4[i])
-ccs_levels <- matrix(nrow = nrow(ccs), ncol = 4)
-for (i in 1:nrow(ccs_levels)) {
-  ccs_levels[i, ] <- as.integer(str_split(ccs$ccs_l4[i], "\\.")[[1]])
-}
-ccs_levels <- as.data.frame(ccs_levels)
-names(ccs_levels) <- c("l1", "l2", "l3", "l4")
-ccs_levels <- cbind(ccs_levels, ccs)
-ccs_levels <- ccs_levels[order(ccs_levels$l1, ccs_levels$l2,
-                               ccs_levels$l3, ccs_levels$l4) , ]
-ccs <- ccs_levels[ , names(ccs)]
-
-# Make tree
-edges <- rbind(as.matrix(ccs[ , c(1, 2)]),
-               as.matrix(ccs[ , c(2, 3)]),
-               as.matrix(ccs[ , c(3, 4)]))
-edges <- edges[edges[ , 2] != " ", ]
-edges <- edges[!duplicated(edges), ]
-tr <- igraph::graph_from_edgelist(e = edges, directed = T)
-igraph::plot.igraph(tr, layout = layout_as_tree, root = 1)
-leaves <- igraph::V(tr)[igraph::degree(tr, mode = "out") == 0]
-igraph::V(tr)$leaf <- FALSE
-igraph::V(tr)$leaf[V(tr) %in% leaves] <- TRUE
-ccs_levels_sub <- subset(ccs_levels, l2 == 4)
-v_sub <- unique(c(ccs_levels_sub$ccs_l2,
-                  ccs_levels_sub$ccs_l3,
-                  ccs_levels_sub$ccs_l4))
-v_sub <- v_sub[!(v_sub == " ")]
-subtr <- igraph::induced_subgraph(graph = tr,
-                          v = v_sub)
-plot.igraph(subtr, layout = layout_as_tree, root = "7.4")
+group <- "7.4"
+tr <- ccs_tree(group)$tr
+plot.igraph(tr, layout = layout_as_tree, root = group)
+X <- Matrix(rnorm(n * K), nrow = n)
+outcomes <- sample(V(tr)[V(tr)$leaf], size = n, replace = T)
 
 # Extract relevant parameters for analysis
 D <- igraph::as_adjacency_matrix(subtr, sparse = T)
