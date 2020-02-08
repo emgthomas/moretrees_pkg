@@ -11,22 +11,22 @@ require(stringr)
 require(Matrix)
 
 n <- 100
-K <- 2
+K_g <- 2
 
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 plot.igraph(tr, layout = layout_as_tree, root = group)
-X <- matrix(rnorm(n * K), nrow = n)
+X <- matrix(rnorm(n * K_g), nrow = n)
 outcomes <- sample(names(V(tr)[V(tr)$leaf]), size = n, replace = T)
 
 # Create MORETreeS design matrix
 dsgn <- moretrees_design_matrix(X, tr, outcomes)
-X <- dsgn$X
+Xstar <- dsgn$Xstar
 A <- dsgn$A
 rm(dsgn)
 
 # Input parameters -------------------------------------------------------------------
-G <- p
+G <- length(Xstar)
 K <- rep(K_g, G)
 m <- 0
 tau <- 3
@@ -39,22 +39,24 @@ xi <- sapply(1:G, function(g) Matrix::Matrix(gamma_true[[g]] * s_true[[g]],
              ncol = 1))
 xi1 <- sapply(xi, function(xi) xi[1 , 1])
 xi2 <- sapply(xi, function(xi) xi[2 , 1])
+xi <- cbind(xi1, xi2)
 beta1 <- A[leaves, ] %*% xi1
 beta2 <- A[leaves, ] %*% xi2
-beta <- list(beta1, beta2)
+beta <- cbind(beta1, beta2)
+row.names(beta) <- leaves
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
 
 # Generate some data -----------------------------------------------------------------
 W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
-for (k in 1:K_g) {
-  lp <- lp + Matrix::bdiag(x_splt[[k]]) %*% beta[[k]]
+for (g in 1:G) {
+  lp <- lp + Xstar[[g]] %*% xi[g, ]
 }
 lp <- as.numeric(lp)
 y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- spike_and_slab_normal(y, X, W, update_hyper = T, update_hyper_freq = 50,
+mod1 <- spike_and_slab_normal(y, Xstar, W, update_hyper = T, update_hyper_freq = 50,
                               tol = 1E-8, max_iter = 5000,
                               hyperparams_init = list(omega = omega,
                                                       rho = rho,
@@ -73,7 +75,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 100
+plot_start <- 502
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
