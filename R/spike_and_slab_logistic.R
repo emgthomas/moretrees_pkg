@@ -49,7 +49,7 @@ spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
                 A = A_eta)
   Sigma <- sapply(Sigma_inv, Matrix::solve)
   Sigma_det <- sapply(Sigma, Matrix::det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = 10)
+  mu <- sapply(K, rnorm, mean = 0 , sd = 10, simplify = F)
   mu <- sapply(mu, Matrix::Matrix, ncol = 1)
   prob <- rep(rho, G)
   tau_t <- rep(tau, G)

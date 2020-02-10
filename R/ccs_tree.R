@@ -7,18 +7,19 @@
 # For example, group = "7" means only codes starting with 7 will be included on the tree
 # This is the subtree corresponding to cardiovascular disease
 # The default is NULL (returns full tree of CCS codes)
+require(magrittr)
 
 ccs_tree <- function(group = NULL) {
   # Get data.frame showing mapping from ICD9 to multilevel CCS
-  ccs_icd <- data.table(icd = unlist(icd9_map_multi_ccs[[1]]))
+  ccs_icd <- data.frame(icd = unlist(icd::icd9_map_multi_ccs[[1]]))
   for (i in 1:4) {
-    ccs_list <- icd9_map_multi_ccs[[i]]
-    ccs_df <- data.table(icd = unlist(ccs_list))
-    ccs_df[ , ccs := ccs_list %>% 
+    ccs_list <- icd::icd9_map_multi_ccs[[i]]
+    ccs_df <- data.frame(icd = unlist(ccs_list))
+    ccs_df$ccs <-  ccs_list %>% 
       names %>% # names of the list entries are the CCS codes
       sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
-      unlist]
-    setnames(ccs_df, "ccs", paste0("l", i))
+      unlist
+    names(ccs_df)[names(ccs_df) == "ccs"] <- paste0("l", i)
     ccs_icd <- merge(ccs_icd, ccs_df, by = "icd", all.x = T, all.y = F)
   }
   
@@ -30,11 +31,11 @@ ccs_tree <- function(group = NULL) {
   # Order CCS codes appropriately
   ccs_levels <- matrix(nrow = nrow(ccs), ncol = 4)
   for (i in 1:nrow(ccs_levels)) {
-    splt <- as.integer(str_split(ccs$l4[i], "\\.")[[1]])
+    splt <- as.integer(stringr::str_split(ccs$l4[i], "\\.")[[1]])
     if (length(splt) != 4) {
-      splt <- as.integer(str_split(ccs$l3[i], "\\.")[[1]])
+      splt <- as.integer(stringr::str_split(ccs$l3[i], "\\.")[[1]])
       if (length(splt) != 3) {
-        splt <- as.integer(str_split(ccs$l2[i], "\\.")[[1]])
+        splt <- as.integer(stringr::str_split(ccs$l2[i], "\\.")[[1]])
         if (length(splt) != 2) {
           splt <- as.integer(ccs$l1[i])
         }
@@ -43,19 +44,18 @@ ccs_tree <- function(group = NULL) {
     }
     ccs_levels[i, ] <- splt
   }
-  ccs_levels <- as.data.table(ccs_levels)
+  ccs_levels <- as.data.frame(ccs_levels)
   names(ccs_levels) <- c("l1", "l2", "l3", "l4")
   ccs <- ccs[order(ccs_levels$l1, ccs_levels$l2, ccs_levels$l3, ccs_levels$l4), ]
   
   # Keep only diseases starting with group
   if (!is.null(group)) {
-    group_length <- length(str_split(group, "\\.")[[1]])
+    group_length <- length(stringr::str_split(group, "\\.")[[1]])
     group_lvl <- paste0("l", group_length)
-    ccs <- ccs[get(group_lvl) == group]
+    ccs <- ccs[ccs[ , group_lvl] == group, ]
   }
   if (group_length > 1) {
-    ccs <- ccs[ , .SD, 
-          .SDcols = sapply(group_length:4, function(x) paste0("l", x))]
+    ccs <- ccs[ , sapply(group_length:4, function(x) paste0("l", x))]
   }
   
   # Make tree
@@ -71,21 +71,21 @@ ccs_tree <- function(group = NULL) {
   tr <- igraph::graph_from_edgelist(e = edges, directed = T)
   leaves <- igraph::V(tr)[igraph::degree(tr, mode = "out") == 0]
   igraph::V(tr)$leaf <- FALSE
-  igraph::V(tr)$leaf[V(tr) %in% leaves] <- TRUE
+  igraph::V(tr)$leaf[igraph::V(tr) %in% leaves] <- TRUE
   
   # ICD mapping
   ccs$keep <- T
   ccs_icd <- merge(ccs_icd, ccs, by = names(ccs)[-ncol(ccs)],
                    all.x = T, sort = FALSE)
-  ccs_icd <- ccs_icd[(keep)]
-  ccs_ics <- ccs_icd[ , keep := NULL]
+  ccs_icd <- subset(ccs_icd, keep)
+  ccs_icd$keep <- NULL
   for (i in 2:4) {
     nm <- paste0("l", i)
     nm_p <- paste0("l", i - 1)
-    ccs_icd[get(nm) == " ", (nm) := .SD, .SDcols = nm_p]
+    ccs_icd[ccs_icd[ , nm] == " ", nm] <- ccs_icd[ccs_icd[ , nm] == " ", nm_p]
   }
-  ccs_icd <- ccs_ics[ , c("icd", "l4")]
-  setnames(ccs_icd, "l4", "ccs")
+  ccs_icd <- ccs_icd[ , c("icd", "l4")]
+  names(ccs_icd)[names(ccs_icd) == "l4"] <- "ccs"
 
   return(list(tr = tr, ccs_icd_mapping = ccs_icd))
 }

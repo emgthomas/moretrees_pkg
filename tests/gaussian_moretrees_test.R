@@ -14,7 +14,7 @@ n <- 100
 K_g <- 2
 
 group <- "7.4"
-tr <- ccs_tree(group)$tr
+tr <- ccs_tree("7")$tr
 plot.igraph(tr, layout = layout_as_tree, root = group)
 X <- matrix(rnorm(n * K_g), nrow = n)
 outcomes <- sample(names(V(tr)[V(tr)$leaf]), size = n, replace = T)
