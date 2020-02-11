@@ -14,7 +14,8 @@ moretrees_design_matrix <- function(X, y, tr, outcomes) {
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!is.igraph(tr)) stop("tr is not a graph object")
   if (!is.directed(tr)) stop("tr is not a directed graph object")
-  if (!(sum(y %in% c(0, 1)) == n)) stop("y contains values other than zero or one")
+  if (is.integer(y) & !(sum(y %in% c(0, 1)) == n)) 
+    stop("y contains values other than zero or one")
   nodes <- names(V(tr))
   leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
   if(!setequal(unique(outcomes), leaves)) {
@@ -55,7 +56,7 @@ moretrees_design_matrix <- function(X, y, tr, outcomes) {
   }
   
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
-  y[y == 0] <- -1
+  if (is.integer(y)) y[y == 0] <- -1
   
   return(list(Xstar = Xstar, y = y, A = A, ord = ord))
 }

@@ -11,7 +11,16 @@ require(Matrix)
 # Input parameters -------------------------------------------------------------------
 group <- "7"
 tr <- ccs_tree(group)$tr
-plot.igraph(tr, layout = layout_as_tree, root = group)
+# l <- layout_as_tree(tr)
+# l[ , 2] <- - 2 * l[ , 2]
+# l[ , 1] <- 2 * l[ , 1]
+# pdf(file = "./tests/tree.pdf", width = 30, height = 5)
+# plot.igraph(tr, layout = l, root = group, vertex.color = "white",
+#             vertex.frame.color = "white", vertex.size = 100,
+#             rescale = F, xlim = c(min(l[ , 1]), max(l[ , 1])),
+#             ylim = c(max(l[ , 2]), min(l[ , 2])),
+#             edge.arrow.size = 0.2)
+# dev.off()
 leaves <- names(V(tr)[V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- expm(Matrix::t(A))
