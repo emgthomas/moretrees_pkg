@@ -11,16 +11,16 @@ require(Matrix)
 # Input parameters -------------------------------------------------------------------
 group <- "7"
 tr <- ccs_tree(group)$tr
-# l <- layout_as_tree(tr)
-# l[ , 2] <- - 2 * l[ , 2]
-# l[ , 1] <- 2 * l[ , 1]
-# pdf(file = "./tests/tree.pdf", width = 30, height = 5)
-# plot.igraph(tr, layout = l, root = group, vertex.color = "white",
-#             vertex.frame.color = "white", vertex.size = 100,
-#             rescale = F, xlim = c(min(l[ , 1]), max(l[ , 1])),
-#             ylim = c(max(l[ , 2]), min(l[ , 2])),
-#             edge.arrow.size = 0.2)
-# dev.off()
+l <- layout_as_tree(tr)
+l[ , 2] <- - 2 * l[ , 2]
+l[ , 1] <- 2 * l[ , 1]
+pdf(file = "./tests/tree.pdf", width = 30, height = 5)
+plot.igraph(tr, layout = l, root = group, vertex.color = "white",
+            vertex.frame.color = "white", vertex.size = 100,
+            rescale = F, xlim = c(min(l[ , 1]), max(l[ , 1])),
+            ylim = c(max(l[ , 2]), min(l[ , 2])),
+            edge.arrow.size = 0.2)
+dev.off()
 leaves <- names(V(tr)[V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- expm(Matrix::t(A))
@@ -43,9 +43,9 @@ xi <- sapply(1:G, function(g) Matrix::Matrix(gamma_true[[g]] * s_true[[g]],
 xi1 <- sapply(xi, function(xi) xi[1 , 1])
 xi2 <- sapply(xi, function(xi) xi[2 , 1])
 xi <- cbind(xi1, xi2)
-beta1 <- A[leaves, ] %*% xi1
-beta2 <- A[leaves, ] %*% xi2
-beta <- cbind(beta1, beta2)
+beta <- A[leaves, ] %*% xi
+beta1 <- beta[ , 1]
+beta2 <- beta[ , 2]
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 groups_true <- as.integer(as.factor(as.numeric(beta1)))
 table(groups_true)

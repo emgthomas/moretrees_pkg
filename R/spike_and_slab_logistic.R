@@ -2,7 +2,8 @@
 #' 
 #' Here's a brief description.
 #'   \code{spike_and_slab_logistic} performs group variable selection via a spike
-#'   and slab prior. The posterior is approximated via variational inference.
+#'   and slab prior for binary data.
+#'   The posterior is approximated via variational inference.
 #'   This function returns the parameters of the variational approximation.
 #' 
 #' All the details go here!
@@ -10,22 +11,25 @@
 #' @section Model Description:
 #'   Describe group spike and slab prior and all parameters here.
 #' 
-#' @param y Vector of outcomes data.
-#' @param X Array of design matrices for each variable group, with dimensions dim(X) = c(G,n,K),
-#'   where G is the number of variable groups, n is the number of observations, and
-#'   K is the number of variables.
-#' @param tol Convergence tolerance for ELBO. Default = 1E-4.
+#' @param y Integer vector of length n containing outcomes; 1 = success, 0 = failure.
+#' @param X List of length G of design matrices for each variable group.
+#'   Each element of the list has dimension n x K_g
+#'   where n is the number of observations, and K_g is the number of variables in group g.
+#' @param W Matrix of non-sparse regression coefficients of dimension n x m
+#' @param tol Convergence tolerance for ELBO. Default = 1E-8.
 #' @param update_hyper Update hyperparameters? Default = TRUE.
 #' @param update_hyper_freq How frequently to update hyperparameters. Default = every 10 iterations.
 #' @return A list of variational parameters.
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
+spike_and_slab_logistic <- function(y, X, W = NULL,
+                                  tol = 1E-4, max_iter = 1E5,
                                   update_hyper = T, update_hyper_freq = 10,
-                                  hyperparams_init = list(omega = 100,
-                                                          tau = 100,
-                                                          rho = 0.5)) {
+                                  hyperparams_init = NULL) {
+  if (is.null(W)) {
+    W <- Matrix::Matrix(nrow = length(y), ncol = 0)
+  }
   # Prepare for running algorithm ---------------------------------------------------
   G <- length(X)
   n <- length(y)
@@ -34,6 +38,11 @@ spike_and_slab_logistic <- function(y, X, W, tol = 1E-4, max_iter = 1E5,
   # Initial hyperparameter values
   eta <- abs(rnorm(n))
   g_eta <- gfun(eta)
+  if (is.null(hyperparams_init)) {
+    hyperparams_init <- list(omega = 100,
+         tau = 100,
+         rho = 0.5)
+  }
   hyperparams <- hyperparams_init
   if (m == 0) {
     hyperparams$omega <- 1

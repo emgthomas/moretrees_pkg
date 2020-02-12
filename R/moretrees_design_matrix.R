@@ -3,13 +3,34 @@
 # -------- Design Matrix ---------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-# X is an n x K matrix
-# y is an integer vector of length n containing only zeros and ones
-# tr is an igraph tree, where the leaves represent outcomes
-# outcomes is a character vector of length n, where entry i
-# tells us which outcome is represented by unit i
+#' Here's a brief description.
+#'   \code{moretrees_design_matrix} converts outcome, exposure, and covariate data
+#'   into format suitable for analysis using MOReTreeS.
+#' 
+#' All the details go here!
+#' 
+#' @section Model Description:
+#'   Describe group spike and slab prior and all parameters here.
+#' 
+#' @param y Vector of length n containing outcomes data.
+#' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
+#' If family = "gaussian", y must be a numeric vector containing continuous data.
+#' @param X An n x K matrix of exposure data, where K is the dimension of the exposure.
+#' Grouping of the outcomes will be based on their relationships with the variables in X.
+#' @param W Matrix of covariates of dimension n x m.
+#' Coefficients for these variables do not affect grouping of the outcomes.
+#' Default is NULL (no covariates).
+#' @param outcomes is a character vector of length n, where entry i
+#  tells us which outcome is represented by unit i
+#' @param tr is an igraph tree, where the leaves represent outcomes
+#' @return A list containing the following elements:
+#' Xstar: a list of MOReTreeS design matrices
+#' y: re-ordered outcome vector
+#' A: ancestor matrix
+#' @examples Add this later from test file.
+#' @family spike and slab functions
 
-moretrees_design_matrix <- function(X, y, tr, outcomes) {
+moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr) {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!is.igraph(tr)) stop("tr is not a graph object")
@@ -58,5 +79,5 @@ moretrees_design_matrix <- function(X, y, tr, outcomes) {
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(Xstar = Xstar, y = y, A = A, ord = ord))
+  return(list(Xstar = Xstar, y = y, A = A))
 }
