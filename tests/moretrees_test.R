@@ -1,11 +1,15 @@
 # --------------------------------------------------------------------------------- #
-# -------- ssMOReTreeS for Gaussian outcomes  ------------------------------------- #
+# -------- ssMOReTreeS for Gaussian and Bernoulli outcomes  ----------------------- #
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 devtools::load_all() # Sources all files in R/
 
 require(igraph)
 require(Matrix)
+
+# Chose one --------------------------------------------------------------------------
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
@@ -15,7 +19,7 @@ A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- expm(Matrix::t(A))
 A[A > 0 ] <- 1 
 G <- length(V(tr))
-n <- 200
+n <- 500
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 0
@@ -58,13 +62,19 @@ for (v in leaves) {
 lp <- as.numeric(lp)
 
 # Simulate outcomes
-y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
+if (family == "gaussian") {
+  y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
+} else {
+  p_success <- expit(lp)
+  y <- sapply(p_success, rbinom, n = 1, size = 1)
+}
+
 
 # Run algorithm ----------------------------------------------------------------------
 # Create MORETreeS design matrix
 mod <- moretrees(X = X, y = y, outcomes = outcomes, 
-                  tr = tr, family = "gaussian",
-                  update_hyper = T, update_hyper_freq = 50,
+                  tr = tr, family = family,
+                  update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
                   get_ml = T)
 beta_est <- mod$beta_est
@@ -101,10 +111,6 @@ abline(a = 0, b = 1, col = "red")
 plot(beta_est[ , 2], beta2)
 abline(a = 0, b = 1, col = "red")
 
-# # Compare non-sparse effect estimates to truth --------------------------------------------
-# plot(mod1$vi_params$delta, theta)
-# abline(a = 0, b = 1, col = "red")
-
 # Compare estimated groups to truth ---------------------------------------------------------
 groups_est <- beta_est$group
 table(groups_est, groups_true)
@@ -118,7 +124,6 @@ abline(a = 0, b = 1, col = "red")
 cbind(beta_ml$est2, beta_moretrees$est2)
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
-
 if (family == "gaussian") {
   cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
 } else {
