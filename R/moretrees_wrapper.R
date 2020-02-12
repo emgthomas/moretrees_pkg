@@ -43,7 +43,7 @@
 # tells us which outcome is represented by unit i
 # tr is an igraph tree, where the leaves represent outcomes
 
-moretrees <- function(X, y, outcomes, tr,
+moretrees <- function(X, W = NULL, y, outcomes, tr,
                       family = "bernoulli",
                       ci_level = 0.95,
                       get_ml = FALSE,
@@ -58,11 +58,13 @@ moretrees <- function(X, y, outcomes, tr,
   if (family == "gaussian") ss_fun <- spike_and_slab_normal
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   
-  # Get design matrix
-  dsgn <- moretrees_design_matrix(X = X, y = y, outcomes = outcomes, tr = tr)
-  
+  # Get MOReTreeS design matrices
+  dsgn <- moretrees_design_matrix(X = X, W = W, y = y,
+                                  outcomes = outcomes, tr = tr,
+                                  share_W = T)
+
   # Run algorithm
-  mod <- ss_fun(dsgn$y, dsgn$Xstar, W,
+  mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, W = dsgn$Wstar,
                 update_hyper = update_hyper, 
                 update_hyper_freq = update_hyper_freq,
                 tol = tol,
@@ -71,20 +73,21 @@ moretrees <- function(X, y, outcomes, tr,
   
   # Get betas from xis
   p <- length(mod$vi_params$prob)
-  xi_est <- t(sapply(1:p, 
-                   function(v) as.numeric(mod$vi_params$mu[[v]] * (mod$vi_params$prob[v] >= 0.5)),
-                   simplify = T))
+  node_select <- mod$vi_params$prob >= 0.5
+  xi_est <- mapply(function(x, y) as.numeric(x * y),
+                   mod$vi_params$mu, node_select,
+                   SIMPLIFY = T) %>% t
+  K <- ncol(X)
+  if (K == 1) xi_est <- t(xi_est)
   beta_est <- as.matrix(dsgn$A[names(V(tr))[V(tr)$leaf], ] %*% xi_est) %>%
     as.data.frame
-  K <- ncol(beta_est)
   beta_names <- sapply(1:K, function(i) paste0("est",i))
   colnames(beta_est) <- beta_names
   
   # Compute credible intervals
-  xi_var_est <- sapply(1:p, 
-                         function(v) diag(as.matrix(mod$vi_params$Sigma[[v]])) * 
-                                                 (mod$vi_params$prob[v] >= 0.5),
-                         simplify = T) %>% t
+  xi_var_est <- mapply(function(Sigma, node_select) diag(as.matrix(Sigma)) * node_select,
+                       mod$vi_params$Sigma, node_select, SIMPLIFY = T) %>% t
+  if (K == 1) xi_var_est <- t(xi_var_est)
   beta_sd_est <- as.matrix(dsgn$A[names(V(tr))[V(tr)$leaf], ] %*% xi_var_est) %>%
                              sqrt
   z <- qnorm(ci_level + (1 - ci_level) / 2)
@@ -118,15 +121,18 @@ moretrees <- function(X, y, outcomes, tr,
     names(beta_ml) <- c("group", cols)
     beta_ml$group <- 1:G
     beta_ml$outcomes <- beta_moretrees$outcomes
+    if (is.null(W)) W <- matrix(nrow = nrow(X), ncol = 0)
     if (family == "bernoulli") family <- "binomial"
     for (g in 1:G) {
       which_i <- outcomes %in% beta_moretrees$outcomes[[g]]
-      mod_ml <- glm(y[which_i] ~ 0 + X[which_i, ], 
+      mod_ml <- glm(y[which_i] ~ 0 + as.matrix(X[which_i, ]) + 
+                      as.matrix(W[which_i, ]), 
                     family = family)
       suppressMessages(beta_ml_ci <- confint(mod_ml, level = ci_level))
-      beta_ml[g, paste0("est", 1:K)] <- mod_ml$coefficients
-      beta_ml[g, paste0("cil", 1:K)] <- beta_ml_ci[ , 1]
-      beta_ml[g, paste0("ciu", 1:K)] <- beta_ml_ci[ , 2]
+      if (K == 1) beta_ml_ci <- matrix(beta_ml_ci, nrow = K)
+      beta_ml[g, paste0("est", 1:K)] <- mod_ml$coefficients[1:K]
+      beta_ml[g, paste0("cil", 1:K)] <- beta_ml_ci[1:K , 1]
+      beta_ml[g, paste0("ciu", 1:K)] <- beta_ml_ci[1:K , 2]
     }
   } else {
     beta_ml <- NULL

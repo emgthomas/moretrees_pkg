@@ -8,8 +8,8 @@ require(igraph)
 require(Matrix)
 
 # Chose one --------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
@@ -20,9 +20,9 @@ A <- expm(Matrix::t(A))
 A[A > 0 ] <- 1 
 G <- length(V(tr))
 n <- 500
-K_g <- 2 # number of variables
+K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 0
+m <- 1
 tau <- 3
 rho <- 0.5
 omega <- 2
@@ -34,32 +34,36 @@ gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
 # s_true[1] <- 1
 s_true <- rep(0, G)
 s_true[c(1, 2, 5)] <- 1
-xi <- sapply(1:G, function(g) Matrix::Matrix(gamma_true[[g]] * s_true[[g]],
-                                             ncol = 1))
-xi1 <- sapply(xi, function(xi) xi[1 , 1])
-xi2 <- sapply(xi, function(xi) xi[2 , 1])
-xi <- cbind(xi1, xi2)
+xi <- mapply(function(gamma, s) matrix(gamma * s, nrow = 1),
+             gamma = gamma_true, s = s_true,
+             SIMPLIFY = T) %>% t
+if (K_g == 1) xi <- t(xi)
 beta <- A[leaves, ] %*% xi
-beta1 <- beta[ , 1]
-beta2 <- beta[ , 2]
-theta <- rnorm(m, mean = 0, sd = sqrt(omega))
-groups_true <- as.integer(as.factor(as.numeric(beta1)))
+zeta <- matrix(rnorm(m * G, mean = 0, sd = omega), nrow = G, ncol = m)
+theta <- A[leaves, ] %*% zeta
+groups_true <- as.integer(as.factor(as.numeric(beta[ , 1])))
 table(groups_true)
 
 # Generate some data -----------------------------------------------------------------
-X <- matrix(rnorm(n * K_g), nrow = n)
+X <- Matrix::Matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
 outcomes <- sample(leaves, size = n, replace = T)
 
 # Create non-sparse design matrix
-W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
+if (m > 0) {
+  W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = 1)
+} else {
+  W <- NULL
+}
 
 # Get linear predictor
-lp <- W %*% theta
+lp <- numeric(n)
 for (v in leaves) {
   which_v <- outcomes == v
-  lp[which_v] <- lp[which_v] + X[which_v, ] %*% beta[v , ]
+  lp[which_v] <- lp[which_v] + X[which_v, ] %*% t(beta[v, , drop = F])
+  if (m > 0) {
+    lp[which_v] <- lp[which_v] + W[which_v, ] %*% t(theta[v, , drop = F])
+  }
 }
-lp <- as.numeric(lp)
 
 # Simulate outcomes
 if (family == "gaussian") {
@@ -72,7 +76,7 @@ if (family == "gaussian") {
 
 # Run algorithm ----------------------------------------------------------------------
 # Create MORETreeS design matrix
-mod <- moretrees(X = X, y = y, outcomes = outcomes, 
+mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes, 
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
@@ -106,9 +110,8 @@ plot(plot_start:plot_end,
 tapply(mod1$vi_params$prob, s_true, summary)
 plot(mod1$vi_params$prob, s_true)
 # compare estimated coefficients to true coefficients
-plot(beta_est[ , 1], beta1)
-abline(a = 0, b = 1, col = "red")
-plot(beta_est[ , 2], beta2)
+k <- 1
+plot(beta_est[ , k], beta[ , k])
 abline(a = 0, b = 1, col = "red")
 
 # Compare estimated groups to truth ---------------------------------------------------------
@@ -116,12 +119,11 @@ groups_est <- beta_est$group
 table(groups_est, groups_true)
 
 # Compare moretrees estimates to maximum likelihood -----------------------------------------
-plot(beta_ml$est1, beta_moretrees$est1)
+k <- 1
+clmn <- paste0("est", k)
+plot(beta_ml[, clmn], beta_moretrees[ , clmn])
 abline(a = 0, b = 1, col = "red")
-cbind(beta_ml$est1, beta_moretrees$est1)
-plot(beta_ml$est2, beta_moretrees$est2)
-abline(a = 0, b = 1, col = "red")
-cbind(beta_ml$est2, beta_moretrees$est2)
+cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {

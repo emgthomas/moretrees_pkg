@@ -23,14 +23,25 @@
 #' @param outcomes is a character vector of length n, where entry i
 #  tells us which outcome is represented by unit i
 #' @param tr is an igraph tree, where the leaves represent outcomes
+#' @param share_W = T if information about the effect of variables in W wil be shared
+#' across the outcomes according to the tree structure. If share_W = 0, the effect of
+#' W will be estimated separately for each outcome (no infromation sharing).
 #' @return A list containing the following elements:
-#' Xstar: a list of MOReTreeS design matrices
-#' y: re-ordered outcome vector
-#' A: ancestor matrix
+#' Xstar: a list of length p (number of nodes in tr) of MOReTreeS design matrices 
+#' for the exposure. Each element of the list will be a sparse Matrix of dimension
+#' n x p, where n is the number of rows in X. Note that the rows of Xstar[[i]] have
+#' been ordered according to the elements of outcomes, and so may have a different 
+#' ordering from X.
+#' Wstar: the MOReTreeS design matrices for covariates. If share_W = T, this will 
+#' be a sparse Matrix of dimension n x (p x m), where m is the number of columns of W. 
+#' If share_W = F, Wstar is just W with re-ordered rows. Wstar is NULL if W is NULL.
+#' y_reord: Re-ordered outcome vector.
+#' A: A sparse Matrix of dimension p x p, where p is the number of nodes in tr.
+#' A_ij = 1 if j = i or node j is an ancestor of node i; A_ij = 0 otherwise.
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr) {
+moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, share_W = TRUE) {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!is.igraph(tr)) stop("tr is not a graph object")
@@ -45,7 +56,6 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr) {
   
   # Extract relevant parameters
   p <- length(nodes)
-  pL <- length(leaves)
   K <- ncol(X)
   n <- nrow(X)
   A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -54,11 +64,11 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr) {
   
   # Sort by outcomes, where order is specified by ordering in tr
   ord <- order(ordered(outcomes, levels = leaves))
-  X <- X[ord, ]
+  X <- X[ord, , drop = F]
   y <- y[ord]
   outcomes <- outcomes[ord]
   
-  # Get list of MOReTreeS design matrices for each node
+  # Get list of MOReTreeS exposure design matrices for each node
   Xstar <- rep(list(Matrix::Matrix(0, nrow = n, ncol = K)), p)
   names(Xstar) <- nodes
   for (k in 1:K) {
@@ -76,8 +86,31 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr) {
     rm(Xstar_k)
   }
   
+  # Get covariate design matrix
+  if (!is.null(W)) {
+    W <- W[ord, , drop = F]
+    if (share_W) {
+      m <- ncol(W)
+      Wstar <- Matrix(0, nrow = n, ncol = p * m)
+      for (j in 1:m) {
+        # Get design matrix for variable k
+        Wsplt_j <- sapply(leaves, function(v) W[outcomes == v, j], simplify = F)
+        Wmat_j <- Matrix(0, nrow = n, ncol = p)
+        Wmat_j[ , nodes %in% leaves] <- Matrix::bdiag(Wsplt_j)
+        rm(Wsplt_j)
+        Wstar[ , (p * (j - 1) + 1):(p * j)] <- Wmat_j %*% A
+        rm(Wmat_j)
+      }
+    } else {
+      Wstar <- W
+    }
+    rm(W)
+  } else {
+    Wstar <- NULL
+  }
+  
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(Xstar = Xstar, y = y, A = A))
+  return(list(Xstar = Xstar, Wstar = Wstar, y_reord = y, A = A))
 }
