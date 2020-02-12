@@ -19,6 +19,8 @@
 #' Grouping of the outcomes will be based on their relationships with the variables in X.
 #' @param W Matrix of covariates of dimension n x m.
 #' Coefficients for these variables do not affect grouping of the outcomes.
+#' @param outcomes Character vector specifying which outcomes the elements of y/rows of 
+#' X and W correspond to. 
 #' @param family A string specifying the distribution of the outcomes: 
 #' either "bernoulli" (for classification) or "gaussian" (for regression)
 #' @param ci_level A number between 0 and 1 giving the desired credible interval.
@@ -36,12 +38,6 @@
 #' 2. outputs from variational inference algorithm
 #' @examples Add this later from test file.
 #' @family spike and slab functions
-#' 
-# X is an n x K matrix
-# y is a vector of outcomes (either continuous or binary)
-# outcomes is a character vector of length n, where entry i
-# tells us which outcome is represented by unit i
-# tr is an igraph tree, where the leaves represent outcomes
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
                       family = "bernoulli",
@@ -71,76 +67,22 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                 max_iter = max_iter,
                 hyperparams_init = hyperparams_init)
   
-  # Get betas from xis
-  p <- length(mod$vi_params$prob)
-  node_select <- mod$vi_params$prob >= 0.5
-  xi_est <- mapply(function(x, y) as.numeric(x * y),
-                   mod$vi_params$mu, node_select,
-                   SIMPLIFY = T) %>% t
-  K <- ncol(X)
-  if (K == 1) xi_est <- t(xi_est)
-  beta_est <- as.matrix(dsgn$A[names(V(tr))[V(tr)$leaf], ] %*% xi_est) %>%
-    as.data.frame
-  beta_names <- sapply(1:K, function(i) paste0("est",i))
-  colnames(beta_est) <- beta_names
-  
-  # Compute credible intervals
-  xi_var_est <- mapply(function(Sigma, node_select) diag(as.matrix(Sigma)) * node_select,
-                       mod$vi_params$Sigma, node_select, SIMPLIFY = T) %>% t
-  if (K == 1) xi_var_est <- t(xi_var_est)
-  beta_sd_est <- as.matrix(dsgn$A[names(V(tr))[V(tr)$leaf], ] %*% xi_var_est) %>%
-                             sqrt
-  z <- qnorm(ci_level + (1 - ci_level) / 2)
-  beta_ci_l <- beta_est - z * beta_sd_est
-  names(beta_ci_l) <- sapply(1:K, function(i) paste0("cil",i))
-  beta_ci_u <- beta_est + z * beta_sd_est
-  names(beta_ci_u) <- sapply(1:K, function(i) paste0("ciu",i))
-  beta_est <- cbind(beta_est, beta_ci_l, beta_ci_u)
-  beta_est$group <- as.numeric(beta_est$est1) %>%
-    as.factor %>% as.integer
-
-  # Get estimated coefficients and CIs by group
-  beta_moretrees <- beta_est[!duplicated(beta_est), ]
-  beta_moretrees <- beta_moretrees[order(beta_moretrees$group), ]
-  row.names(beta_moretrees) <- NULL
-  beta_moretrees$outcomes <- vector(mode = "list", length = nrow(beta_moretrees))
-  G <- nrow(beta_moretrees)
-  for (i in 1:G) {
-    beta_moretrees$outcomes[[i]] <- row.names(beta_est)[beta_est$group == i]
-  }
-  # re-order columns for readability
-  cols <- c("est", "cil", "ciu")
-  cols <- sapply(1:K, function(i) paste0(cols, i), simplify = T) %>%
-    as.vector
-  beta_moretrees <- beta_moretrees[ , c("group", cols, "outcomes")]
+  # Compute MOReTreeS exposure coefficient estimates from model output
+  betas <- moretrees_compute_betas(mod, ci_level, dsgn$A[names(V(tr))[V(tr)$leaf], ])
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {
-    beta_ml <- matrix(nrow = G, ncol = K * 3 + 1) %>%
-      as.data.frame
-    names(beta_ml) <- c("group", cols)
-    beta_ml$group <- 1:G
-    beta_ml$outcomes <- beta_moretrees$outcomes
-    if (is.null(W)) W <- matrix(nrow = nrow(X), ncol = 0)
-    if (family == "bernoulli") family <- "binomial"
-    for (g in 1:G) {
-      which_i <- outcomes %in% beta_moretrees$outcomes[[g]]
-      mod_ml <- glm(y[which_i] ~ 0 + as.matrix(X[which_i, ]) + 
-                      as.matrix(W[which_i, ]), 
-                    family = family)
-      suppressMessages(beta_ml_ci <- confint(mod_ml, level = ci_level))
-      if (K == 1) beta_ml_ci <- matrix(beta_ml_ci, nrow = K)
-      beta_ml[g, paste0("est", 1:K)] <- mod_ml$coefficients[1:K]
-      beta_ml[g, paste0("cil", 1:K)] <- beta_ml_ci[1:K , 1]
-      beta_ml[g, paste0("ciu", 1:K)] <- beta_ml_ci[1:K , 2]
-    }
+    beta_ml <- ml_by_group(X = X, W = W, y = y, outcomes = outcomes,
+                           outcome_groups = betas$beta_moretrees$outcomes,
+                           ci_level = ci_level,
+                           family = family)
   } else {
     beta_ml <- NULL
   }
   
   # Return results
-  return(list(beta_est = beta_est,
-              beta_moretrees = beta_moretrees,
+  return(list(beta_est = betas$beta_est,
+              beta_moretrees = betas$beta_moretrees,
               beta_ml = beta_ml, 
               mod = mod))
 }
