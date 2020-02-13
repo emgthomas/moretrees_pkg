@@ -24,6 +24,9 @@ beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
 n <- 500
+nrestarts <- 3
+doParallel::registerDoParallel(cores = nrestarts)
+
 # Generate some data -----------------------------------------------------------------
 X <- sapply(K, FUN = function(k) Matrix::Matrix(rnorm(k * n, sd = 0.5), nrow = n))
 W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
@@ -42,14 +45,18 @@ if(family == "bernoulli") {
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, W, family = family,
                        update_hyper = T, update_hyper_freq = 50,
-                              tol = 1E-8, max_iter = 5000)
-                              # hyperparams_init = list(omega = omega,
-                              #                         rho = rho,
-                              #                         tau = tau,
-                              #                         sigma2 = sigma2))
+                       tol = 1E-8, max_iter = 55,
+                       print_freq = 10,
+                       nrestarts = 3,
+                       log_dir = "./tests/")
 beta_est <- mod1$sparse_est
 theta_est <- mod1$nonsparse_est
+mod_restarts <- mod1$mod_restarts
 mod1 <- mod1$mod
+
+# Compare ELBOs for random restarts --------------------------------------------------
+c(mod1$ELBO_track[length(mod1$ELBO_track)],
+  sapply(mod_restarts, function(mod) mod$ELBO_track[length(mod$ELBO_track)]))
 
 # Plot results -----------------------------------------------------------------------
 
@@ -106,3 +113,4 @@ if (family == "gaussian") {
 } else {
   cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
 }
+

@@ -16,17 +16,22 @@
 #'   Each element of the list has dimension n x K_g
 #'   where n is the number of observations, and K_g is the number of variables in group g.
 #' @param W Matrix of non-sparse regression coefficients of dimension n x m
-#' @param tol Convergence tolerance for ELBO. Default = 1E-8.
+#' @param tol Convergence tolerance for ELBO.
+#' @param maxiter Maximum number of iterations of the VI algorithm.
 #' @param update_hyper Update hyperparameters? Default = TRUE.
 #' @param update_hyper_freq How frequently to update hyperparameters. Default = every 10 iterations.
 #' @return A list of variational parameters.
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-spike_and_slab_logistic <- function(y, X, W = NULL,
-                                  tol = 1E-4, max_iter = 1E5,
-                                  update_hyper = T, update_hyper_freq = 10,
-                                  hyperparams_init = NULL) {
+spike_and_slab_logistic <- function(y, X, W,
+                                  tol, max_iter,
+                                  update_hyper, 
+                                  update_hyper_freq,
+                                  hyper_fixed,
+                                  print_freq,
+                                  hyper_random_init,
+                                  vi_random_init) {
   if (is.null(W)) {
     W <- Matrix::Matrix(nrow = length(y), ncol = 0)
   }
@@ -36,14 +41,18 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
   K <- sapply(X, ncol)
   m <- ncol(W)
   # Initial hyperparameter values
-  eta <- abs(rnorm(n))
+  eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
   g_eta <- gfun(eta)
-  if (is.null(hyperparams_init)) {
-    hyperparams_init <- list(omega = 100,
-         tau = 100,
-         rho = 0.5)
+  if (update_hyper) {
+    # If hyperparameters will be updated, randomly initialise them
+    hyperparams <- list(omega = runif(1, 0, hyper_random_init$omega_max),
+                        tau = runif(1, 0, hyper_random_init$tau_max),
+                        rho = runif(1, 0, 1))
+  } else {
+    # Otherwise, use fixed values
+    hyperparams <- hyper_fixed
   }
-  hyperparams <- hyperparams_init
+  
   if (m == 0) {
     hyperparams$omega <- 1
   }
@@ -58,11 +67,11 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
                 A = A_eta)
   Sigma <- sapply(Sigma_inv, Matrix::solve)
   Sigma_det <- sapply(Sigma, Matrix::det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = 10, simplify = F)
+  mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
   mu <- sapply(mu, Matrix::Matrix, ncol = 1)
-  prob <- rep(rho, G)
+  prob <- runif(G, 0 , 1)
   tau_t <- rep(tau, G)
-  delta <- Matrix::Matrix(rnorm(m, sd = 10), ncol = 1)
+  delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
   Omega_inv <- 2 * Matrix::t(W) %*% A_eta %*% W + 
     Matrix::Diagonal(m, 1 / hyperparams$omega)
   if (m != 0) {
@@ -101,6 +110,7 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
   i <- 0
   repeat {
     i <- i + 1
+    if (i %% print_freq == 0) cat("Iteration", i, "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     vi_params <- update_vi_params_logistic(X = X, W = W,
                                          y = y, n = n, K = K, G = G, m = m,
@@ -172,14 +182,13 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
       ELBO_track[j + 1] <- hyperparams$ELBO
       ELBO_track2[i + 1] <- hyperparams$ELBO
       if (abs(ELBO_track[j + 1] - ELBO_track[j]) < tol) break
-    } 
-    if (i %% update_hyper_freq == 0) print(i)
-    if (i == max_iter) {
-      rlang::warn("Maximum number of iterations reached")
-      break
     }
   }
   j <- i %/% update_hyper_freq
+  if (i == max_iter) {
+    cat("Warning: Maximum number of iterations reached!\n")
+    break
+  }
   return(list(vi_params = vi_params, hyperparams = hyperparams,
               ELBO_track = ELBO_track2[1:(i + 1)]))
 }

@@ -2,6 +2,7 @@
 # -------- ssMOReTreeS for Gaussian and Bernoulli outcomes  ----------------------- #
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
+
 devtools::load_all() # Sources all files in R/
 
 require(igraph)
@@ -27,6 +28,8 @@ tau <- 3
 rho <- 0.5
 omega <- 2
 sigma2 <- 2
+nrestarts <- 1
+doParallel::registerDoParallel(cores = nrestarts)
 
 # Generate randomly grouped beta (groups follow tree)
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
@@ -39,7 +42,7 @@ xi <- mapply(function(gamma, s) matrix(gamma * s, nrow = 1),
              SIMPLIFY = T) %>% t
 if (K_g == 1) xi <- t(xi)
 beta <- A[leaves, ] %*% xi
-zeta <- matrix(rnorm(m * G, mean = 0, sd = omega), nrow = G, ncol = m)
+zeta <- matrix(rnorm(m * G, mean = 0, sd = sqrt(omega)), nrow = G, ncol = m)
 theta <- A[leaves, ] %*% zeta
 groups_true <- as.integer(as.factor(as.numeric(beta[ , 1])))
 table(groups_true)
@@ -81,12 +84,18 @@ mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
+                  nrestarts = nrestarts,
                   get_ml = T)
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml
 theta_est <- mod$theta_est
+mod_restarts <- mod$mod_restarts
 mod1 <- mod$mod
+
+# Compare ELBOs for random restarts --------------------------------------------------
+c(mod1$ELBO_track[length(mod1$ELBO_track)],
+  sapply(mod_restarts, function(mod) mod$ELBO_track[length(mod$ELBO_track)]))
 
 # Plot results -----------------------------------------------------------------------
 
@@ -100,7 +109,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 50
+plot_start <- 2
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
