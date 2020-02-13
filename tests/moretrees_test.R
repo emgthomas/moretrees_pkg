@@ -17,7 +17,7 @@ tr <- ccs_tree(group)$tr
 leaves <- names(V(tr)[V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- expm(Matrix::t(A))
-A[A > 0 ] <- 1 
+A[A > 0 ] <- 1
 G <- length(V(tr))
 n <- 500
 K_g <- 1 # number of variables
