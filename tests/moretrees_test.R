@@ -22,7 +22,7 @@ G <- length(V(tr))
 n <- 500
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 1
 tau <- 3
 rho <- 0.5
 omega <- 2
@@ -77,7 +77,7 @@ if (family == "gaussian") {
 # Run algorithm ----------------------------------------------------------------------
 # Create MORETreeS design matrix
 mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes, 
-                  W_method = "individual",
+                  W_method = "shared",
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
@@ -116,7 +116,7 @@ k <- 1
 clmn <- paste0("est", k)
 plot(beta_est[ , clmn <- paste0("est", k)], beta[ , k])
 abline(a = 0, b = 1, col = "red")
-j <- 2
+j <- 1
 clmn <- paste0("est", j)
 plot(theta_est[, clmn], theta[ , j])
 abline(a = 0, b = 1, col = "red")
@@ -141,14 +141,14 @@ if (family == "gaussian") {
 
 # ELBO when hyperparams updated
 plot_start <- 1
-plot(plot_start:length(mod1$ELBO_track),
-     mod1$ELBO_track[plot_start:length(mod1$ELBO_track)],
-     type = "l")
 plot(plot_start:length(mod1$rho_track),
      mod1$rho_track[plot_start:length(mod1$rho_track)],
      type = "l")
 plot(plot_start:length(mod1$tau_track),
      mod1$tau_track[plot_start:length(mod1$tau_track)],
+     type = "l")
+plot(plot_start:length(mod1$omega_track),
+     mod1$omega_track[plot_start:length(mod1$omega_track)],
      type = "l")
 if (family == "gaussian") {
   plot(plot_start:length(mod1$sigma2_track),

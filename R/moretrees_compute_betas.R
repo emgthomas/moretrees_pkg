@@ -31,7 +31,7 @@ moretrees_compute_betas <- function(mod, ci_level, A_leaves) {
   xi_est <- mapply(function(x, y) as.numeric(x * y),
                    mod$vi_params$mu, node_select,
                    SIMPLIFY = T) %>% t
-  K <- ncol(mod$vi_params$mu[[1]])
+  K <- nrow(mod$vi_params$mu[[1]])
   if (K == 1) xi_est <- t(xi_est)
   beta_est <- as.matrix(A_leaves %*% xi_est) %>%
     as.data.frame
