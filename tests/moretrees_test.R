@@ -22,7 +22,7 @@ G <- length(V(tr))
 n <- 500
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 1
+m <- 2
 tau <- 3
 rho <- 0.5
 omega <- 2
@@ -50,7 +50,7 @@ outcomes <- sample(leaves, size = n, replace = T)
 
 # Create non-sparse design matrix
 if (m > 0) {
-  W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = 1)
+  W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
 } else {
   W <- NULL
 }
@@ -59,9 +59,9 @@ if (m > 0) {
 lp <- numeric(n)
 for (v in leaves) {
   which_v <- outcomes == v
-  lp[which_v] <- lp[which_v] + X[which_v, ] %*% t(beta[v, , drop = F])
+  lp[which_v] <- lp[which_v] + X[which_v, , drop = F] %*% t(beta[v, , drop = F])
   if (m > 0) {
-    lp[which_v] <- lp[which_v] + W[which_v, ] %*% t(theta[v, , drop = F])
+    lp[which_v] <- lp[which_v] + W[which_v, , drop = F] %*% t(theta[v, , drop = F])
   }
 }
 
@@ -77,6 +77,7 @@ if (family == "gaussian") {
 # Run algorithm ----------------------------------------------------------------------
 # Create MORETreeS design matrix
 mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes, 
+                  W_method = "individual",
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
@@ -84,6 +85,7 @@ mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml
+theta_est <- mod$theta_est
 mod1 <- mod$mod
 
 # Plot results -----------------------------------------------------------------------
@@ -98,7 +100,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 100
+plot_start <- 3
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
@@ -111,7 +113,12 @@ tapply(mod1$vi_params$prob, s_true, summary)
 plot(mod1$vi_params$prob, s_true)
 # compare estimated coefficients to true coefficients
 k <- 1
-plot(beta_est[ , k], beta[ , k])
+clmn <- paste0("est", k)
+plot(beta_est[ , clmn <- paste0("est", k)], beta[ , k])
+abline(a = 0, b = 1, col = "red")
+j <- 2
+clmn <- paste0("est", j)
+plot(theta_est[, clmn], theta[ , j])
 abline(a = 0, b = 1, col = "red")
 
 # Compare estimated groups to truth ---------------------------------------------------------
@@ -131,7 +138,6 @@ if (family == "gaussian") {
 } else {
   cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
 }
-
 
 # ELBO when hyperparams updated
 plot_start <- 1

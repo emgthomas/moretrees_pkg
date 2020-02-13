@@ -23,8 +23,8 @@
 #' @param outcomes is a character vector of length n, where entry i
 #  tells us which outcome is represented by unit i
 #' @param tr is an igraph tree, where the leaves represent outcomes
-#' @param share_W = T if information about the effect of variables in W wil be shared
-#' across the outcomes according to the tree structure. If share_W = 0, the effect of
+#' @param W_method = "shared" if information about the effect of variables in W wil be shared
+#' across the outcomes according to the tree structure. If W_method = "individual", the effect of
 #' W will be estimated separately for each outcome (no infromation sharing).
 #' @return A list containing the following elements:
 #' Xstar: a list of length p (number of nodes in tr) of MOReTreeS design matrices 
@@ -41,11 +41,14 @@
 #' @examples Add this later from test file.
 #' @family spike and slab functions
 
-moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, share_W = TRUE) {
+moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!is.igraph(tr)) stop("tr is not a graph object")
-  if (!is.directed(tr)) stop("tr is not a directed graph object")
+  if (!is.directed(tr)) stop
+  if (!(W_method %in% c("shared", "individual"))) {
+    stop("W_method must be either \"shared\" or \"individual\"")
+  } 
   if (is.integer(y) & !(sum(y %in% c(0, 1)) == n)) 
     stop("y contains values other than zero or one")
   nodes <- names(V(tr))
@@ -89,7 +92,7 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, share_W = TRUE
   # Get covariate design matrix
   if (!is.null(W)) {
     W <- W[ord, , drop = F]
-    if (share_W) {
+    if (W_method == "shared") {
       m <- ncol(W)
       Wstar <- Matrix(0, nrow = n, ncol = p * m)
       for (j in 1:m) {
@@ -102,7 +105,8 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, share_W = TRUE
         rm(Wmat_j)
       }
     } else {
-      Wstar <- W
+      Wstar <- sapply(leaves, function(v) W[outcomes == v, ], simplify = F) %>%
+        bdiag
     }
     rm(W)
   } else {

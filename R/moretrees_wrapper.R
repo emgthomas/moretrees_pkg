@@ -3,14 +3,15 @@
 # --------------------------------------------------------------------------------- #
 
 #' Here's a brief description.
-#'   \code{spike_and_slab_normal} performs group variable selection via a spike
-#'   and slab prior. The posterior is approximated via variational inference.
-#'   This function returns coefficient estimates and 95% credible intervals.
+#'   \code{moretrees} Fits Multi-Outcome Regression with Tree-structured Shrinkage
+#'   (MOReTreeS) model to normally-distributed or binary outcome data.
+#'   The posterior is approximated via variational inference.
+#'   Returns coefficient estimates and 95% credible intervals.
 #' 
 #' All the details go here!
 #' 
 #' @section Model Description:
-#'   Describe group spike and slab prior and all parameters here.
+#' Describe MOReTreeS model and all parameters here.
 #' 
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
@@ -21,6 +22,9 @@
 #' Coefficients for these variables do not affect grouping of the outcomes.
 #' @param outcomes Character vector specifying which outcomes the elements of y/rows of 
 #' X and W correspond to. 
+#' @param W_method = "shared" if information about the effect of variables in W wil be shared
+#' across the outcomes according to the tree structure. If W_method = "individual", the effect of
+#' W will be estimated separately for each outcome (no infromation sharing).
 #' @param family A string specifying the distribution of the outcomes: 
 #' either "bernoulli" (for classification) or "gaussian" (for regression)
 #' @param ci_level A number between 0 and 1 giving the desired credible interval.
@@ -40,6 +44,7 @@
 #' @family spike and slab functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
+                      W_method = "shared",
                       family = "bernoulli",
                       ci_level = 0.95,
                       get_ml = FALSE,
@@ -57,7 +62,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   # Get MOReTreeS design matrices
   dsgn <- moretrees_design_matrix(X = X, W = W, y = y,
                                   outcomes = outcomes, tr = tr,
-                                  share_W = T)
+                                  W_method = W_method)
 
   # Run algorithm
   mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, W = dsgn$Wstar,
@@ -68,7 +73,14 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                 hyperparams_init = hyperparams_init)
   
   # Compute MOReTreeS exposure coefficient estimates from model output
-  betas <- moretrees_compute_betas(mod, ci_level, dsgn$A[names(V(tr))[V(tr)$leaf], ])
+  betas <- moretrees_compute_betas(mod = mod, ci_level = ci_level,
+                                   A_leaves = dsgn$A[names(V(tr))[V(tr)$leaf], ])
+  
+  # Compute MOReTreeS covariate coefficient estimates from model output
+  theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
+                                        m = ncol(W),
+                                        A_leaves = dsgn$A[names(V(tr))[V(tr)$leaf], ],
+                                        W_method = W_method)
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {
@@ -84,5 +96,6 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   return(list(beta_est = betas$beta_est,
               beta_moretrees = betas$beta_moretrees,
               beta_ml = beta_ml, 
+              theta_est = theta_est,
               mod = mod))
 }
