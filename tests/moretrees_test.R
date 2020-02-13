@@ -91,7 +91,7 @@ mod1 <- mod$mod
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track2
+ELBO_track <- mod1$ELBO_track
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -100,7 +100,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 3
+plot_start <- 50
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
@@ -137,22 +137,5 @@ if (family == "gaussian") {
   cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
 } else {
   cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
-}
-
-# ELBO when hyperparams updated
-plot_start <- 1
-plot(plot_start:length(mod1$rho_track),
-     mod1$rho_track[plot_start:length(mod1$rho_track)],
-     type = "l")
-plot(plot_start:length(mod1$tau_track),
-     mod1$tau_track[plot_start:length(mod1$tau_track)],
-     type = "l")
-plot(plot_start:length(mod1$omega_track),
-     mod1$omega_track[plot_start:length(mod1$omega_track)],
-     type = "l")
-if (family == "gaussian") {
-  plot(plot_start:length(mod1$sigma2_track),
-       mod1$sigma2_track[plot_start:length(mod1$sigma2_track)],
-       type = "l")
 }
 

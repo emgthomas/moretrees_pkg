@@ -97,12 +97,6 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
   ELBO_track[1] <- hyperparams$ELBO
   ELBO_track2 <- numeric(max_iter + 1)
   ELBO_track2[1] <- hyperparams$ELBO
-  omega_track <- numeric(max_iter %/% update_hyper_freq + 1)
-  omega_track[1] <- hyperparams$omega
-  rho_track <- numeric(max_iter %/% update_hyper_freq + 1)
-  rho_track[1] <- hyperparams$rho
-  tau_track <- numeric(max_iter %/% update_hyper_freq + 1)
-  tau_track[1] <- hyperparams$tau
   # Run algorithm -----------------------------------------------------------------
   i <- 0
   repeat {
@@ -177,9 +171,6 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
       j <- i %/% update_hyper_freq
       ELBO_track[j + 1] <- hyperparams$ELBO
       ELBO_track2[i + 1] <- hyperparams$ELBO
-      omega_track[j + 1] <- hyperparams$omega
-      rho_track[j + 1] <- hyperparams$rho
-      tau_track[j + 1] <- hyperparams$tau
       if (abs(ELBO_track[j + 1] - ELBO_track[j]) < tol) break
     } 
     if (i %% update_hyper_freq == 0) print(i)
@@ -190,7 +181,5 @@ spike_and_slab_logistic <- function(y, X, W = NULL,
   }
   j <- i %/% update_hyper_freq
   return(list(vi_params = vi_params, hyperparams = hyperparams,
-              ELBO_track = ELBO_track[1:(j + 1)], rho_track = rho_track[1:(j + 1)],
-              tau_track = tau_track[1:(j + 1)], omega_track = omega_track[1:(j + 1)],
-              ELBO_track2 = ELBO_track2[1:(i + 1)]))
+              ELBO_track = ELBO_track2[1:(i + 1)]))
 }

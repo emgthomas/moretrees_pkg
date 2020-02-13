@@ -7,8 +7,8 @@
 devtools::load_all() # Sources all files in R/
 
 # Pick one ---------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 G <- 4 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
@@ -54,7 +54,7 @@ mod1 <- mod1$mod
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track2
+ELBO_track <- mod1$ELBO_track
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -63,7 +63,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 7
+plot_start <- 100
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
@@ -106,16 +106,3 @@ if (family == "gaussian") {
 } else {
   cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
 }
-
-# hyperparameter updates
-plot_start <- 1
-plot(plot_start:length(mod1$rho_track),
-     mod1$rho_track[plot_start:length(mod1$rho_track)],
-     type = "l")
-plot(plot_start:length(mod1$tau_track),
-     mod1$tau_track[plot_start:length(mod1$tau_track)],
-     type = "l")
-plot(plot_start:length(mod1$sigma2_track),
-     mod1$sigma2_track[plot_start:length(mod1$sigma2_track)],
-     type = "l")
-
