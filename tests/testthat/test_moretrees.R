@@ -20,7 +20,7 @@ G <- length(V(tr))
 n <- 500
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
-m <- 1
+m <- 2
 tau <- 3
 rho <- 0.5
 omega <- 2

@@ -103,11 +103,10 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
       m <- ncol(W)
       Wstar <- Matrix(0, nrow = n, ncol = p * m)
       for (j in 1:m) {
-        # Get design matrix for variable k
-        Wsplt_j <- sapply(leaves, function(v) W[outcomes == v, j], simplify = F)
-        Wmat_j <- Matrix(0, nrow = n, ncol = p)
-        Wmat_j[ , nodes %in% leaves] <- Matrix::bdiag(Wsplt_j)
-        rm(Wsplt_j)
+        # Get design matrix for variable j
+        Wmat_j <- sapply(leaves, function(v) W[outcomes == v, j], simplify = F)
+        Wmat_j <- Matrix::bdiag(Wmat_kj)
+        Wmat_j <- cbind(Matrix::Matrix(nrow = n, ncol = p - pL), Wmat_j)
         Wstar[ , (p * (j - 1) + 1):(p * j)] <- Wmat_j %*% A
         rm(Wmat_j)
       }
