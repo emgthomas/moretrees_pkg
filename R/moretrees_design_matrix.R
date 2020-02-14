@@ -50,20 +50,27 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   if (!(W_method %in% c("shared", "individual"))) {
     stop("W_method must be either \"shared\" or \"individual\"")
   } 
-  if (is.integer(y) & !(sum(y %in% c(0, 1)) == n)) 
+  if (is.integer(y) & !(sum(y %in% c(0, 1)) == length(y))) 
     stop("y contains values other than zero or one")
+  
   nodes <- names(V(tr))
   leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
   if(!setequal(unique(outcomes), leaves)) {
     stop("Not all outcomes are leaves of tree")
   }
+  # Re-order nodes to have internal nodes first, then leaves
+  nodes <- c(nodes[!(nodes %in% leaves)], leaves)
   
   # Extract relevant parameters
   p <- length(nodes)
+  pL <- length(leaves)
   K <- ncol(X)
   n <- nrow(X)
+  
+  # Get ancestor matrix
   A <- igraph::as_adjacency_matrix(tr, sparse = T)
-  A <- expm(Matrix::t(A))
+  A <- A[nodes, nodes] # re-order rows/columns to mirror nodes
+  A <- Matrix::expm(Matrix::t(A))
   A[A > 0 ] <- 1 
   
   # Sort by outcomes, where order is specified by ordering in tr
@@ -77,10 +84,9 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   names(Xstar) <- nodes
   for (k in 1:K) {
     # Get design matrix for variable k
-    Xsplt_k <- sapply(leaves, function(v) X[outcomes == v, k], simplify = F)
-    Xmat_k <- Matrix(0, nrow = n, ncol = p)
-    Xmat_k[ , nodes %in% leaves] <- Matrix::bdiag(Xsplt_k)
-    rm(Xsplt_k)
+    Xmat_k <- sapply(leaves, function(v) X[outcomes == v, k], simplify = F)
+    Xmat_k <- Matrix::bdiag(Xmat_k)
+    Xmat_k <- cbind(Matrix::Matrix(nrow = n, ncol = p - pL), Xmat_k)
     Xstar_k <- Xmat_k %*% A
     rm(Xmat_k)
     # Split design matrix among nodes as appropriate
