@@ -10,6 +10,7 @@
 #' 
 #' All the details go here!
 #' 
+#' @export
 #' @section Model Description:
 #' Describe MOReTreeS model and all parameters here.
 #' 

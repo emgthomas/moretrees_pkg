@@ -9,6 +9,7 @@
 #' 
 #' @section Details
 #' 
+#' @export
 #' @param group character string specifying that only codes beginning with group 
 #' will be included in tree The default is NULL (returns full tree of CCS codes)
 #' @return A list containing the following elements:

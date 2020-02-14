@@ -14,6 +14,7 @@
 #' @section Model Description:
 #'   Describe group spike and slab prior and all parameters here.
 #' 
+#' @export
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 #' If family = "gaussian", y must be a numeric vector containing continuous data.

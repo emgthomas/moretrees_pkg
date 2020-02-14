@@ -9,6 +9,7 @@
 #' 
 #' All the details go here!
 #' 
+#' @export
 #' @section Model Description:
 #'   Describe group spike and slab prior and all parameters here.
 #' 
