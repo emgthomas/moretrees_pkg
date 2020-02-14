@@ -20,3 +20,5 @@ Imports:
     data.table (>= 1.12.6),
     stringr (>= 1.4.0)
 RoxygenNote: 6.1.1
+Suggests: 
+    testthat

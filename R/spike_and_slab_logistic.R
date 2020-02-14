@@ -21,7 +21,7 @@
 #' @param update_hyper Update hyperparameters? Default = TRUE.
 #' @param update_hyper_freq How frequently to update hyperparameters. Default = every 10 iterations.
 #' @return A list of variational parameters.
-#' @examples Add this later from test file.
+#' @examples
 #' @family spike and slab functions
 
 spike_and_slab_logistic <- function(y, X, W,

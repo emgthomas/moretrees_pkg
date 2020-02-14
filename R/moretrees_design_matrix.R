@@ -38,8 +38,8 @@
 #' y_reord: Re-ordered outcome vector.
 #' A: A sparse Matrix of dimension p x p, where p is the number of nodes in tr.
 #' A_ij = 1 if j = i or node j is an ancestor of node i; A_ij = 0 otherwise.
-#' @examples Add this later from test file.
-#' @family spike and slab functions
+#' @examples
+#' @family MOReTreeS functions
 
 moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
   # Some checks

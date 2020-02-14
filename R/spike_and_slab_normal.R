@@ -25,7 +25,7 @@
 #' Default = every 50 iterations.
 #' @param print_freq How often to print out iteration number. 
 #' @return A list of variational parameters.
-#' @examples Add this later from test file.
+#' @examples
 #' @family spike and slab functions
 
 spike_and_slab_normal <- function(y, X, W,

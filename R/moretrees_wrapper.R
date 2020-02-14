@@ -32,8 +32,8 @@
 #' W will be estimated separately for each outcome (no infromation sharing).
 #' @param family A string specifying the distribution of the outcomes: 
 #' either "bernoulli" (for classification) or "gaussian" (for regression)
-#' @param ci_level A number between 0 and 1 giving the desired credible interval.
-#' For example, ci_level = 0.95 (the default) returns a 95% credible interval.
+#' @param ci_level A number between 0 and 1 giving the desired credible interval. 
+#' For example, ci_level = 0.95 (the default) returns a 95\% credible interval
 #' @param get_ml If TRUE, moretrees will also return the maximum likelihood estimates of the
 #' coefficients for each outcome group discovered by the model. The default is FALSE.
 #' @param tol Convergence tolerance for ELBO. Default = 1E-8.
@@ -82,8 +82,8 @@
 #' @return A list containing the following elements:
 #' 1. estimated coefficients and credible intervals; 
 #' 2. outputs from variational inference algorithm
-#' @examples Add this later from test file.
-#' @family spike and slab functions
+#' @examples 
+#' @family MOReTreeS functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
                       W_method = "shared",

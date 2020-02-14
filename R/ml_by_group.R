@@ -30,9 +30,8 @@
 #' @return A list containing the following elements:
 #' 1. estimated coefficients and credible intervals; 
 #' 2. outputs from variational inference algorithm
-#' @examples Add this later from test file.
+#' @examples
 #' @family spike and slab functions
-#' 
 
 ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups, ci_level, family) {
   G <- length(outcome_groups)

@@ -9,8 +9,8 @@ require(igraph)
 require(Matrix)
 
 # Chose one --------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
