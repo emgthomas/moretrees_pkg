@@ -18,7 +18,9 @@ Imports:
     Matrix (>= 1.2-17),
     igraph (>= 1.2.4.1),
     data.table (>= 1.12.6),
-    stringr (>= 1.4.0)
+    stringr (>= 1.4.0),
+    magrittr (>= 1.5),
+    doParallel (>= 1.0.15)
 RoxygenNote: 6.1.1
 Suggests: 
     testthat

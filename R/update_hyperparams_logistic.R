@@ -2,6 +2,9 @@
 # --------------------- Computes the ELBO for Gaussian outcome  ------------------- #
 # --------------------------------------------------------------------------------- #
 
+#'   \code{update_hyperparams_logistic} Performs hyperparameter updates and computes 
+#'   current value of ELBO in VI algorithm for bernoulli outcomes.
+
 update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
                                 prob, mu, Sigma, Sigma_det, tau_t,
                                 delta, Omega, Omega_det, 

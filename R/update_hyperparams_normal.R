@@ -2,6 +2,9 @@
 # --------------------- Computes the ELBO for Gaussian outcome  ------------------- #
 # --------------------------------------------------------------------------------- #
 
+#'   \code{update_hyperparams_normal} Performs hyperparameter updates and computes 
+#'   current value of ELBO in VI algorithm for gaussian outcomes
+
 update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
                                 prob, mu, Sigma, Sigma_det, tau_t,
                                 delta, Omega, Omega_det, # variational params

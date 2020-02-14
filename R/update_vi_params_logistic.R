@@ -2,6 +2,8 @@
 # --------- Performs one step in VI optimization for Gaussian outcome  ------------ #
 # --------------------------------------------------------------------------------- #
 
+#'   \code{update_hyperparams_logistic} Performs variational updates for bernoulli outcomes.
+
 update_vi_params_logistic <- function(X, W, y, n, K, G, m, # data
                                     prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
                                     delta, Omega, Omega_inv, Omega_det, 

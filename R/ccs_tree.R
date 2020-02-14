@@ -2,12 +2,21 @@
 # --------------- Code for creating tree of outcomes for CCS codes ---------------- #
 # --------------------------------------------------------------------------------- #
 
-# group = character string specifying that only codes beginning with group 
-# should be considered
-# For example, group = "7" means only codes starting with 7 will be included on the tree
-# This is the subtree corresponding to cardiovascular disease
-# The default is NULL (returns full tree of CCS codes)
-require(magrittr)
+#' \code{ccs_tree} Produces tree of Clinical Classification Software (CCS) codes
+#' based on root node.
+#' 
+#' All the details go here!
+#' 
+#' @section Details
+#' 
+#' @param group character string specifying that only codes beginning with group 
+#' will be included in tree The default is NULL (returns full tree of CCS codes)
+#' @return A list containing the following elements:
+#' tr = directed igraph object; the tree of outcomes.
+#' ccs_icd_mapping = data frame specifying the ICD9 codes corresponding to each 
+#' CCS code. Useful for converting from ICD9 to CCS.
+#' @examples 
+#' @family tree functions
 
 ccs_tree <- function(group = NULL) {
   # Get data.frame showing mapping from ICD9 to multilevel CCS
