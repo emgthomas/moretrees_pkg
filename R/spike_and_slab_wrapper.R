@@ -115,10 +115,9 @@ spike_and_slab <- function(y, X, W = NULL,
   # Run algorithm
   mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
     if (log_restarts) {
-      log_file <- file(paste0(log_dir, "restart_", i, "_log.txt"), open = "wt")
-      sink(file = log_file, type = "output")
+      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+      cat("Initialising random restart", i, "...\n\n")
     }
-    cat("Initialising random restart", i, "...\n\n")
     mod <- ss_fun(y = y, X = X, W = W,
              tol = tol, max_iter = max_iter,
              update_hyper = update_hyper, 
@@ -127,8 +126,10 @@ spike_and_slab <- function(y, X, W = NULL,
              print_freq = print_freq,
              hyper_random_init = hyper_random_init,
              vi_random_init = vi_random_init)
-    cat("\nRestart", i, "complete.")
-    if (log_restarts) sink()
+    if (log_restarts) {
+      cat("\nRestart", i, "complete.")
+      sink()
+    }
     mod
   }
   

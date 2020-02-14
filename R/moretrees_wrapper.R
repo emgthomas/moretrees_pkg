@@ -43,6 +43,13 @@
 #' The default is 3.
 #' @param keep_restarts If TRUE, the results from all random restarts will be returned.
 #' If FALSE, only the restart with the highest ELBO is returned.
+#' @param parallel If TRUE, the random restarts will be run in parallel. It is recommended
+#' to first set the number of cores using doParallel::registerDoParallel(). Otherwise,
+#' the default number of cores specified by the doParallel package will be used.
+#' @param log_restarts If TRUE, progress of each random restart will be logged to a text
+#' file in log_dir.
+#' @param log_dir Directory for logging progress of random restarts.
+#' Default is the working directory.
 #' @param update_hyper Update hyperparameters? Default = TRUE.
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
@@ -90,6 +97,8 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                       nrestarts = 3,
                       keep_restarts = nrestarts > 1,
                       parallel = nrestarts > 1,
+                      log_restarts = nrestarts > 1,
+                      log_dir = getwd(),
                       hyper_random_init = list(omega_max = 100,
                                                tau_max = 100,
                                                sigma2_max = 100),
@@ -121,7 +130,11 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   
   # Run algorithm
   mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
-    ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, W = dsgn$Wstar,
+    if (log_restarts) {
+      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+      cat("Initialising random restart", i, "...\n\n")
+    }
+    mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, W = dsgn$Wstar,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
            print_freq = print_freq,
@@ -130,6 +143,11 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
            max_iter = max_iter,
            hyper_random_init = hyper_random_init,
            vi_random_init = vi_random_init)
+    if (log_restarts) {
+      cat("\nRestart", i, "complete.")
+      sink()
+    }
+    mod
   }
   
   # Select random restart that gave the highest ELBO

@@ -9,8 +9,8 @@ require(igraph)
 require(Matrix)
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
@@ -28,7 +28,7 @@ tau <- 3
 rho <- 0.5
 omega <- 2
 sigma2 <- 2
-nrestarts <- 1
+nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
 
 # Generate randomly grouped beta (groups follow tree)
@@ -85,7 +85,8 @@ mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                   update_hyper = T, update_hyper_freq = 10,
                   tol = 1E-8, max_iter = 1E5,
                   nrestarts = nrestarts,
-                  get_ml = T)
+                  get_ml = T,
+                 log_dir = "./tests/")
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml

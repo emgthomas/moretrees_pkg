@@ -45,8 +45,7 @@ if(family == "bernoulli") {
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, W, family = family,
                        update_hyper = T, update_hyper_freq = 50,
-                       tol = 1E-8, max_iter = 55,
-                       print_freq = 10,
+                       tol = 1E-8, max_iter = 1000,
                        nrestarts = 3,
                        log_dir = "./tests/")
 beta_est <- mod1$sparse_est

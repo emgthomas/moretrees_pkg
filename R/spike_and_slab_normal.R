@@ -110,6 +110,11 @@ spike_and_slab_normal <- function(y, X, W,
   # Run algorithm -----------------------------------------------------------------
   i <- 0
   repeat {
+    if (i >= max_iter) {
+      cat("Iteration", i, "complete.\n")
+      cat("\nWarning: Maximum number of iterations reached!\n")
+      break
+    }
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     update_hyper_im1 <- (i %% update_hyper_freq == 1) & update_hyper
@@ -155,6 +160,13 @@ spike_and_slab_normal <- function(y, X, W,
         if (!update_hyper) break
         # Otherwise, fill in results until next hyperparameter update
         i2 <- ceiling(i / update_hyper_freq) * update_hyper_freq
+        if (i2 >= max_iter) {
+          ELBO_track2[(i + 2):max_iter] <- hyperparams$ELBO
+          i <- max_iter
+          cat("Iteration", i, "complete.\n")
+          cat("\nWarning: Maximum number of iterations reached!\n")
+          break
+        }
         ELBO_track2[(i + 2):(i2 + 1)] <- hyperparams$ELBO
         i <- i2
         update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
@@ -185,13 +197,8 @@ spike_and_slab_normal <- function(y, X, W,
       ELBO_track2[i + 1] <- hyperparams$ELBO
       if (abs(ELBO_track[j + 1] - ELBO_track[j]) < tol) break
     } 
-    if (i %% print_freq == 0) cat(paste("Iteration", i, "complete.\n"))
-    if (i == max_iter) {
-      cat("Warning: Maximum number of iterations reached!\n")
-      break
-    }
+    if (i %% print_freq == 0) cat("Iteration", i, "complete.\n")
   }
-  j <- i %/% update_hyper_freq
   return(list(vi_params = vi_params, hyperparams = hyperparams,
               ELBO_track = ELBO_track2[1:(i + 1)]))
 }
