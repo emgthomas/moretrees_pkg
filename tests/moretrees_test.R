@@ -28,6 +28,8 @@ tau <- 3
 rho <- 0.5
 omega <- 2
 sigma2 <- 2
+hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
+if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
 
@@ -83,6 +85,7 @@ mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                   W_method = "shared",
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
+                  hyper_fixed = hyper_fixed,
                   tol = 1E-8, max_iter = 1E5,
                   nrestarts = nrestarts,
                   get_ml = T,

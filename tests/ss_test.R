@@ -7,8 +7,8 @@
 devtools::load_all() # Sources all files in R/
 
 # Pick one ---------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 G <- 4 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
@@ -26,6 +26,8 @@ sigma2 <- 2
 n <- 500
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
+hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
+if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 
 # Generate some data -----------------------------------------------------------------
 X <- sapply(K, FUN = function(k) Matrix::Matrix(rnorm(k * n, sd = 0.5), nrow = n))
@@ -45,9 +47,11 @@ if(family == "bernoulli") {
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, W, family = family,
                        update_hyper = T, update_hyper_freq = 50,
-                       tol = 1E-8, max_iter = 1000,
+                       print_freq = 10,
+                       tol = 1E-8, max_iter = 1E5,
                        nrestarts = 3,
-                       log_dir = "./tests/")
+                       log_dir = "./tests/",
+                       hyper_fixed = hyper_fixed)
 beta_est <- mod1$sparse_est
 theta_est <- mod1$nonsparse_est
 mod_restarts <- mod1$mod_restarts
@@ -69,7 +73,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 100
+plot_start <- 1
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
