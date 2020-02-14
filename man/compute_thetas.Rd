@@ -12,7 +12,7 @@ compute_thetas(mod, ci_level)
 \item{mod}{List containing outputs from spike and slab VI algorithm}
 
 \item{ci_level}{A number between 0 and 1 giving the desired credible interval.
-For example, ci_level = 0.95 (the default) returns a 95% credible interval.}
+For example, ci_level = 0.95 (the default) returns a 95\% credible interval.}
 }
 \value{
 A matrix containing estimated coefficients and credible intervals.
@@ -27,10 +27,6 @@ NA
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{ml_by_group}},
-  \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
-  \code{\link{moretrees}},
   \code{\link{spike_and_slab_logistic}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}

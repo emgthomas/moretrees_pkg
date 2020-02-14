@@ -48,10 +48,6 @@ All the details go here!
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}},
-  \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
-  \code{\link{moretrees}},
   \code{\link{spike_and_slab_logistic}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}

@@ -44,8 +44,8 @@ W will be estimated separately for each outcome (no infromation sharing).}
 \item{family}{A string specifying the distribution of the outcomes: 
 either "bernoulli" (for classification) or "gaussian" (for regression)}
 
-\item{ci_level}{A number between 0 and 1 giving the desired credible interval.
-For example, ci_level = 0.95 (the default) returns a 95% credible interval.}
+\item{ci_level}{A number between 0 and 1 giving the desired credible interval. 
+For example, ci_level = 0.95 (the default) returns a 95\% credible interval}
 
 \item{get_ml}{If TRUE, moretrees will also return the maximum likelihood estimates of the
 coefficients for each outcome group discovered by the model. The default is FALSE.}
@@ -128,13 +128,8 @@ Describe MOReTreeS model and all parameters here.
 }
 
 \seealso{
-Other spike and slab functions: \code{\link{compute_betas}},
-  \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
-  \code{\link{moretrees_compute_betas}},
+Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
-  \code{\link{spike_and_slab_logistic}},
-  \code{\link{spike_and_slab_normal}},
-  \code{\link{spike_and_slab}}
+  \code{\link{moretrees_design_matrix}}
 }
-\concept{spike and slab functions}
+\concept{MOReTreeS functions}

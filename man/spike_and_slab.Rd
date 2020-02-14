@@ -28,7 +28,7 @@ where n is the number of observations, and K_g is the number of variables in gro
 either "bernoulli" (for classification) or "gaussian" (for regression)}
 
 \item{ci_level}{A number between 0 and 1 giving the desired credible interval.
-For example, ci_level = 0.95 (the default) returns a 95% credible interval.}
+For example, ci_level = 0.95 (the default) returns a 95\% credible interval.}
 
 \item{tol}{Convergence tolerance for ELBO. Default = 1E-8.}
 
@@ -108,10 +108,6 @@ All the details go here!
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
-  \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
-  \code{\link{moretrees}},
   \code{\link{spike_and_slab_logistic}},
   \code{\link{spike_and_slab_normal}}
 }
