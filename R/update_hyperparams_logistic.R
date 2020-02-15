@@ -5,7 +5,7 @@
 #'   \code{update_hyperparams_logistic} Performs hyperparameter updates and computes 
 #'   current value of ELBO in VI algorithm for bernoulli outcomes.
 
-update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
+update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
                                 prob, mu, Sigma, Sigma_det, tau_t,
                                 delta, Omega, Omega_det, 
                                 eta, g_eta, # variational params
@@ -15,14 +15,14 @@ update_hyperparams_logistic <- function(X, W, y, n, K, G, m, # data
   # Expected linear predictor
   lp <- W %*% delta
   for (g in 1:G) {
-    lp <- lp + prob[g] * X[[g]] %*% mu[[g]]
+    lp <- lp + prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
   }
   # Expected linear predictor squared
   lp2 <- apply(W, MARGIN = 1, 
                FUN = function(w, Omega) as.numeric(t(w) %*% Omega %*% w),
                Omega = Omega)
   for (g in 1:G) {
-    lp2 <- lp2 + prob[g] * apply(X[[g]], MARGIN = 1, 
+    lp2 <- lp2 + prob[g] * apply( X[ , groups[[g]], drop = F], MARGIN = 1, 
           FUN = function(x, Sigma) as.numeric(t(x) %*% Sigma %*% x),
           Sigma = Sigma[[g]] + (1 - prob[g]) * mu[[g]] %*% Matrix::t(mu[[g]])) 
   }

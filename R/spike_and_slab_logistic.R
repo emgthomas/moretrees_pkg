@@ -12,9 +12,10 @@
 #'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param y Integer vector of length n containing outcomes; 1 = success, 0 = failure.
-#' @param X List of length G of design matrices for each variable group.
-#'   Each element of the list has dimension n x K_g
-#'   where n is the number of observations, and K_g is the number of variables in group g.
+#' @param X Matrix of dimension n x sum(K), where n is the number of units, and
+#' K[g] is the number of variables in group g.
+#' @param groups A list of length G (number of groups), where groups[[g]] is an integer
+#' vector specifying the columns of X that belong to group g.
 #' @param W Matrix of non-sparse regression coefficients of dimension n x m
 #' @param tol Convergence tolerance for ELBO.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
@@ -24,7 +25,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_logistic <- function(y, X, W,
+spike_and_slab_logistic <- function(y, X, groups, W,
                                   tol, max_iter,
                                   update_hyper, 
                                   update_hyper_freq,
@@ -36,9 +37,9 @@ spike_and_slab_logistic <- function(y, X, W,
     W <- Matrix::Matrix(nrow = length(y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
-  G <- length(X)
+  G <- length(groups)
   n <- length(y)
-  K <- sapply(X, ncol)
+  K <- sapply(groups, length)
   m <- ncol(W)
   # Initial hyperparameter values
   eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
@@ -60,9 +61,11 @@ spike_and_slab_logistic <- function(y, X, W,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   A_eta <- Matrix::Diagonal(n = n, g_eta)
-  Sigma_inv <- sapply(X = X, 
-                FUN = function(X, A, tau) 2 * Matrix::t(X) %*% A %*% X + 
-                Matrix::Diagonal(ncol(X), 1 / tau),
+  Sigma_inv <- sapply(X = groups, 
+                FUN = function(cols, Xg, A, tau) 2 * 
+                Matrix::crossprod(Xg[ , cols, drop = F], A) %*% Xg[ , cols, drop = F] + 
+                Matrix::Diagonal(length(cols), 1 / tau),
+                Xg = X,
                 tau = hyperparams$tau,
                 A = A_eta)
   Sigma <- sapply(Sigma_inv, Matrix::solve)
@@ -88,7 +91,7 @@ spike_and_slab_logistic <- function(y, X, W,
                     Omega = Omega, Omega_inv = Omega_inv,
                     Omega_det = Omega_det)
   # Compute initial ELBO
-  hyperparams <-  update_hyperparams_logistic(X = X, W = W,
+  hyperparams <-  update_hyperparams_logistic(X = X, groups = groups, W = W,
                                               y = y, n = n,
                                               K = K, G = G, m = m,
                                               prob = prob, mu = mu,
@@ -117,7 +120,7 @@ spike_and_slab_logistic <- function(y, X, W,
     i <- i + 1
     if (i %% print_freq == 0) cat("Iteration", i, "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-    vi_params <- update_vi_params_logistic(X = X, W = W,
+    vi_params <- update_vi_params_logistic(X = X, groups = groups, W = W,
                                          y = y, n = n, K = K, G = G, m = m,
                                          prob = vi_params$prob, 
                                          mu = vi_params$mu, 
@@ -135,7 +138,7 @@ spike_and_slab_logistic <- function(y, X, W,
                                          rho = hyperparams$rho, 
                                          tau = hyperparams$tau)
     if (!update_hyper_i) {
-      hyperparams <- update_hyperparams_logistic(X = X, W = W,
+      hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
                                                y = y, n = n,
                                                K = K, G = G, m = m,
                                                prob = vi_params$prob, 
@@ -173,7 +176,7 @@ spike_and_slab_logistic <- function(y, X, W,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <- update_hyperparams_logistic(X = X, W = W,
+      hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
                                                  y = y, n = n,
                                                  K = K, G = G, m = m,
                                                  prob = vi_params$prob, 

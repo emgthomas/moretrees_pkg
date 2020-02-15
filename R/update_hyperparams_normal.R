@@ -5,7 +5,7 @@
 #'   \code{update_hyperparams_normal} Performs hyperparameter updates and computes 
 #'   current value of ELBO in VI algorithm for gaussian outcomes
 
-update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
+update_hyperparams_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # data
                                 prob, mu, Sigma, Sigma_det, tau_t,
                                 delta, Omega, Omega_det, # variational params
                                 omega, sigma2, tau, rho, # hyperparameters
@@ -14,7 +14,7 @@ update_hyperparams_normal <- function(X, XtX, W, WtW, y, n, K, G, m, # data
   # Sum of squared residuals
   lp <- W %*% delta
   for (g in 1:G) {
-    lp <- lp + prob[g] * X[[g]] %*% mu[[g]]
+    lp <- lp + prob[g] * X[ , groups[[g]], drop = F] %*% mu[[g]]
   }
   ssr <- sum( (y - lp) ^ 2 )
   # Expected sum of squared residuals

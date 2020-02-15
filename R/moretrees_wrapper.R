@@ -135,7 +135,8 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
       sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
       cat("Initialising random restart", i, "...\n\n")
     }
-    mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, W = dsgn$Wstar,
+    mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, 
+           groups = dsgn$groups, W = dsgn$Wstar,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
            print_freq = print_freq,
@@ -164,13 +165,12 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   
   # Compute MOReTreeS exposure coefficient estimates from model output
   betas <- moretrees_compute_betas(mod = mod, ci_level = ci_level,
-                                   A_leaves = dsgn$A[names(V(tr))[V(tr)$leaf], ])
+              A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Compute MOReTreeS covariate coefficient estimates from model output
   theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
-                                        m = ncol(W),
-                                        A_leaves = dsgn$A[names(V(tr))[V(tr)$leaf], ],
-                                        W_method = W_method)
+              m = ncol(W), W_method = W_method,
+              A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {

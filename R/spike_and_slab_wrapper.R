@@ -18,9 +18,10 @@
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 #' If family = "gaussian", y must be a numeric vector containing continuous data.
-#' @param X List of length G of design matrices for each variable group.
-#'   Each element of the list has dimension n x K_g
-#'   where n is the number of observations, and K_g is the number of variables in group g.
+#' @param X Matrix of dimension n x sum(K), where n is the number of units, and
+#' K[g] is the number of variables in group g.
+#' @param groups A list of length G (number of groups), where groups[[g]] is an integer
+#' vector specifying the columns of X that belong to group g.
 #' @param W Matrix of data with non-sparse regression coefficients of dimension n x m
 #' @param family A string specifying the distribution of the outcomes: 
 #' either "bernoulli" (for classification) or "gaussian" (for regression)
@@ -75,7 +76,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab <- function(y, X, W = NULL, 
+spike_and_slab <- function(y, X, groups, W = NULL, 
                            family = "bernoulli",
                            ci_level = 0.95,
                            tol = 1E-4, max_iter = 1E5,
@@ -119,7 +120,7 @@ spike_and_slab <- function(y, X, W = NULL,
       sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
       cat("Initialising random restart", i, "...\n\n")
     }
-    mod <- ss_fun(y = y, X = X, W = W,
+    mod <- ss_fun(y = y, X = X, groups = groups, W = W,
              tol = tol, max_iter = max_iter,
              update_hyper = update_hyper, 
              update_hyper_freq = update_hyper_freq,

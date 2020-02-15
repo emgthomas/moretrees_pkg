@@ -3,20 +3,20 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-# devtools::load_all() # Sources all files in R/
+devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
 tr <- ccs_tree(group)$tr
-leaves <- names(V(tr)[V(tr)$leaf])
+leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
-A <- expm(Matrix::t(A))
+A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
-G <- length(V(tr))
+G <- length(igraph::V(tr))
 n <- 500
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
@@ -61,9 +61,9 @@ if (m > 0) {
 lp <- numeric(n)
 for (v in leaves) {
   which_v <- outcomes == v
-  lp[which_v] <- lp[which_v] + X[which_v, , drop = F] %*% t(beta[v, , drop = F])
+  lp[which_v] <- lp[which_v] + X[which_v, , drop = F] %*% Matrix::t(beta[v, , drop = F])
   if (m > 0) {
-    lp[which_v] <- lp[which_v] + W[which_v, , drop = F] %*% t(theta[v, , drop = F])
+    lp[which_v] <- lp[which_v] + W[which_v, , drop = F] %*% Matrix::t(theta[v, , drop = F])
   }
 }
 
@@ -74,7 +74,6 @@ if (family == "gaussian") {
   p_success <- expit(lp)
   y <- sapply(p_success, rbinom, n = 1, size = 1)
 }
-
 
 # Run algorithm ----------------------------------------------------------------------
 # Create MORETreeS design matrix

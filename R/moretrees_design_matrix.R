@@ -28,13 +28,13 @@
 #' across the outcomes according to the tree structure. If W_method = "individual", the effect of
 #' W will be estimated separately for each outcome (no infromation sharing).
 #' @return A list containing the following elements:
-#' Xstar: a list of length p (number of nodes in tr) of MOReTreeS design matrices 
-#' for the exposure. Each element of the list will be a sparse Matrix of dimension
-#' n x p, where n is the number of rows in X. Note that the rows of Xstar[[i]] have
-#' been ordered according to the elements of outcomes, and so may have a different 
-#' ordering from X.
+#' Xstar: a MOReTreeS design matrix of size n x (K * p) for the exposure. 
+#' Note that the rows of Xstar[[i]] have been ordered according to the elements
+#' of outcomes, and so may have a different ordering from X.
+#' groups: a list of length p indicating the columns of X which correspond to the same
+#' node on the tree. Used for spike and slab variable selection on the nodes.
 #' Wstar: the MOReTreeS design matrices for covariates. If share_W = T, this will 
-#' be a sparse Matrix of dimension n x (p x m), where m is the number of columns of W. 
+#' be a sparse Matrix of dimension n x (p * m), where m is the number of columns of W. 
 #' If share_W = F, Wstar is just W with re-ordered rows. Wstar is NULL if W is NULL.
 #' y_reord: Re-ordered outcome vector.
 #' A: A sparse Matrix of dimension p x p, where p is the number of nodes in tr.
@@ -45,15 +45,15 @@
 moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
-  if (!is.igraph(tr)) stop("tr is not a graph object")
-  if (!is.directed(tr)) stop
+  if (!igraph::is.igraph(tr)) stop("tr is not a graph object")
+  if (!igraph::is.directed(tr)) stop
   if (!(W_method %in% c("shared", "individual"))) {
     stop("W_method must be either \"shared\" or \"individual\"")
   } 
   if (is.integer(y) & !(sum(y %in% c(0, 1)) == length(y))) 
     stop("y contains values other than zero or one")
   
-  nodes <- names(V(tr))
+  nodes <- names(igraph::V(tr))
   leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
   if(!setequal(unique(outcomes), leaves)) {
     stop("Not all outcomes are leaves of tree")
@@ -80,39 +80,38 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   outcomes <- outcomes[ord]
   
   # Get list of MOReTreeS exposure design matrices for each node
-  Xstar <- rep(list(Matrix::Matrix(0, nrow = n, ncol = K)), p)
-  names(Xstar) <- nodes
+  Xstar <- Matrix::Matrix(nrow = n, ncol = 0)
+  groups <- list
+  # names(Xstar) <- nodes
   for (k in 1:K) {
     # Get design matrix for variable k
     Xmat_k <- sapply(leaves, function(v) X[outcomes == v, k], simplify = F)
     Xmat_k <- Matrix::bdiag(Xmat_k)
-    Xmat_k <- cbind(Matrix::Matrix(nrow = n, ncol = p - pL), Xmat_k)
-    Xstar_k <- Xmat_k %*% A
+    Xmat_k <- cbind(Matrix::Matrix(0, nrow = n, ncol = p - pL), Xmat_k)
+    Xstar <- cbind(Xstar, Xmat_k %*% A)
     rm(Xmat_k)
-    # Split design matrix among nodes as appropriate
-    for (v in 1:p) {
-      Xstar[[v]][ , k] <- Xstar_k[ , v]
-    }
-    rm(Xstar_k)
   }
+  # Get list of variable groups for selection
+  groups <- sapply(1:p, function(v) (1:K) * p - (p - v),simplify = F)
+  # Remove X
+  rm(X)
   
   # Get covariate design matrix
   if (!is.null(W)) {
     W <- W[ord, , drop = F]
     if (W_method == "shared") {
       m <- ncol(W)
-      Wstar <- Matrix(0, nrow = n, ncol = p * m)
+      Wstar <- Matrix::Matrix(nrow = n, ncol = 0)
       for (j in 1:m) {
         # Get design matrix for variable j
         Wmat_j <- sapply(leaves, function(v) W[outcomes == v, j], simplify = F)
-        Wmat_j <- Matrix::bdiag(Wmat_kj)
-        Wmat_j <- cbind(Matrix::Matrix(nrow = n, ncol = p - pL), Wmat_j)
-        Wstar[ , (p * (j - 1) + 1):(p * j)] <- Wmat_j %*% A
+        Wmat_j <- Matrix::bdiag(Wmat_j)
+        Wmat_j <- cbind(Matrix::Matrix(0, nrow = n, ncol = p - pL), Wmat_j)
+        Wstar <- cbind(Wstar, Wmat_j %*% A)
         rm(Wmat_j)
       }
     } else {
-      Wstar <- sapply(leaves, function(v) W[outcomes == v, ], simplify = F) %>%
-        bdiag
+      Wstar <- Matrix::bdiag(sapply(leaves, function(v) W[outcomes == v, ], simplify = F))
     }
     rm(W)
   } else {
@@ -122,5 +121,5 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(Xstar = Xstar, Wstar = Wstar, y_reord = y, A = A))
+  return(list(Xstar = Xstar, groups = groups, Wstar = Wstar, y_reord = y, A = A))
 }

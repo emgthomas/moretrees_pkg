@@ -12,9 +12,10 @@
 #'   Describe group spike and slab prior and all parameters here.
 #'   
 #' @param y Numeric vector of length n of outcome data
-#' @param X List of length G of design matrices for each variable group.
-#'   Each element of the list has dimension n x K_g
-#'   where n is the number of observations, and K_g is the number of variables in group g.
+#' @param X Matrix of dimension n x sum(K), where n is the number of units, and
+#' K[g] is the number of variables in group g.
+#' @param groups A list of length G (number of groups), where groups[[g]] is an integer
+#' vector specifying the columns of X that belong to group g.
 #' @param W Matrix of data with non-sparse regression coefficients of dimension n x m
 #' @param tol Convergence tolerance for ELBO.
 #' @param max_iter Maximum number of iterations of the VI algorithm.
@@ -28,7 +29,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_normal <- function(y, X, W,
+spike_and_slab_normal <- function(y, X, groups, W,
                                   tol, max_iter,
                                   update_hyper, 
                                   update_hyper_freq,
@@ -40,12 +41,12 @@ spike_and_slab_normal <- function(y, X, W,
     W <-  Matrix::Matrix(nrow = length(y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
-  G <- length(X)
+  G <- length(groups)
   n <- length(y)
-  K <- sapply(X, ncol)
+  K <- sapply(groups, length)
   m <- ncol(W)
   # Computing XtX and WtW so we don't have to do this repeatedly
-  XtX <- sapply(X, Matrix::crossprod)
+  XtX <- sapply(groups, function(cols) Matrix::crossprod(X[ , cols]))
   WtW <- Matrix::crossprod(W)
   # Initial hyperparameter values
   if (update_hyper) {
@@ -89,7 +90,7 @@ spike_and_slab_normal <- function(y, X, W,
                     Omega = Omega, Omega_inv = Omega_inv,
                     Omega_det = Omega_det)
   # Compute initial ELBO
-  hyperparams <-  update_hyperparams_normal(X = X, XtX = XtX, 
+  hyperparams <-  update_hyperparams_normal(X = X, XtX = XtX, groups = groups,
                                               W = W, WtW = WtW,
                                               y = y, n = n,
                                               K = K, G = G, m = m,
@@ -118,7 +119,7 @@ spike_and_slab_normal <- function(y, X, W,
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     update_hyper_im1 <- (i %% update_hyper_freq == 1) & update_hyper
-    vi_params <- update_vi_params_normal(X = X, XtX = XtX, 
+    vi_params <- update_vi_params_normal(X = X, groups = groups, XtX = XtX, 
                                          W = W, WtW = WtW,
                                          y = y, n = n, K = K, G = G, m = m,
                                          prob = vi_params$prob, 
@@ -137,7 +138,7 @@ spike_and_slab_normal <- function(y, X, W,
                                          tau = hyperparams$tau,
                                          update_hyper_last = update_hyper_im1)
     if (!update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, 
+      hyperparams <- update_hyperparams_normal(X = X, groups = groups, XtX = XtX, 
                                                W = W, WtW = WtW,
                                                y = y, n = n,
                                                K = K, G = G, m = m,
@@ -175,7 +176,7 @@ spike_and_slab_normal <- function(y, X, W,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, XtX = XtX, 
+      hyperparams <- update_hyperparams_normal(X = X, groups = groups, XtX = XtX, 
                                                W = W, WtW = WtW,
                                                y = y, n = n,
                                                K = K, G = G, m = m,
