@@ -10,32 +10,34 @@ devtools::load_all() # Sources all files in R/
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-group <- "7.3"
+group <- "7"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
-n <- 500
+n <- 1000
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2
 tau <- 3
-rho <- 0.5
+rho1 <- 0.6 # rho for internal nodes
+rho2 <- 0.05 # rho for leaf nodes
+rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
 omega <- 2
 sigma2 <- 2
 hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
-nrestarts <- 3
+nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
 
 # Generate randomly grouped beta (groups follow tree)
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
-# s_true <- rbinom(n = G, size = 1, prob = rho)
-# s_true[1] <- 1
-s_true <- rep(0, G)
-s_true[c(1, 2, 5)] <- 1
+p <- G
+pL <- sum(igraph::V(tr)$leaf)
+s_true <- c(1, rbinom(n = p - pL - 1, size = 1, prob = rho1), 
+            rbinom(n = pL, size = 1, prob = rho2))
 xi <- mapply(function(gamma, s) matrix(gamma * s, nrow = 1),
              gamma = gamma_true, s = s_true,
              SIMPLIFY = T) %>% t
@@ -82,7 +84,8 @@ mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                   tr = tr, family = family,
                   update_hyper = T, update_hyper_freq = 10,
                   hyper_fixed = hyper_fixed,
-                  tol = 1E-8, max_iter = 1E5,
+                  tol = 1E-8, max_iter = 100,
+                  print_freq = 1,
                   nrestarts = nrestarts,
                   get_ml = T,
                  log_dir = "./tests/")
