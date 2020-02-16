@@ -73,7 +73,7 @@ spike_and_slab_logistic <- function(y, X, groups, W,
   mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
   mu <- sapply(mu, Matrix::Matrix, ncol = 1)
   prob <- runif(G, 0 , 1)
-  tau_t <- rep(tau, G)
+  tau_t <- rep(hyperparams$tau, G)
   delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
   Omega_inv <- 2 * Matrix::t(W) %*% A_eta %*% W + 
     Matrix::Diagonal(m, 1 / hyperparams$omega)
