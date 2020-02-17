@@ -29,8 +29,8 @@
 #' W will be estimated separately for each outcome (no infromation sharing).
 #' @return A list containing the following elements:
 #' Xstar: a MOReTreeS design matrix of size n x (K * p) for the exposure. 
-#' Note that the rows of Xstar[[i]] have been ordered according to the elements
-#' of outcomes, and so may have a different ordering from X.
+#' Note that the rows of Xstar[[i]] have been ro-ordered according to the vector ord,
+#' and so may have a different ordering from X.
 #' groups: a list of length p indicating the columns of X which correspond to the same
 #' node on the tree. Used for spike and slab variable selection on the nodes.
 #' Wstar: the MOReTreeS design matrices for covariates. If share_W = T, this will 
@@ -39,6 +39,7 @@
 #' y_reord: Re-ordered outcome vector.
 #' A: A sparse Matrix of dimension p x p, where p is the number of nodes in tr.
 #' A_ij = 1 if j = i or node j is an ancestor of node i; A_ij = 0 otherwise.
+#' ord = integer vector indicating order of rows in Xstar relative to input matrix X.
 #' @examples
 #' @family MOReTreeS functions
 
@@ -121,5 +122,5 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(Xstar = Xstar, groups = groups, Wstar = Wstar, y_reord = y, A = A))
+  return(list(Xstar = Xstar, groups = groups, Wstar = Wstar, y_reord = y, A = A, ord = ord))
 }

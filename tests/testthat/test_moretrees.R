@@ -6,8 +6,8 @@
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7"
