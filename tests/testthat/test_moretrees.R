@@ -78,8 +78,8 @@ if (family == "gaussian") {
 }
 
 # Run algorithm ----------------------------------------------------------------------
-# require(profvis)
-# profvis(
+require(profvis)
+profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    W_method = "shared",
                    tr = tr, family = family,
@@ -90,7 +90,7 @@ if (family == "gaussian") {
                    nrestarts = nrestarts,
                    get_ml = F,
                    log_dir = "./tests/")
-# )
+)
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml

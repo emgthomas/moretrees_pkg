@@ -108,13 +108,11 @@ f2 <- function(X) {
 
 # Compare f1 & f0 
 require(microbenchmark)
-microbenchmark(f1(X), f0(X), times = 10)
+X2 <- Matrix::Matrix(X, sparse = F)
+microbenchmark(f0(X), f0(X2), times = 10)
 # f1 slightly better
 
 # Compare f1 & f2
-microbenchmark(f1(X), f2(X), times = 100)
+microbenchmark(f1(X), f2(X), times = 10)
 # f1 still faster! weird?
 
-# Compare f1 and f2 on sparse matrices
-microbenchmark(f1(X), f2(X), times = 10)
-# f2 is slight winner!

@@ -82,7 +82,6 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   
   # Get list of MOReTreeS exposure design matrices for each node
   Xstar <- Matrix::Matrix(nrow = n, ncol = 0, sparse = T)
-  groups <- list
   # names(Xstar) <- nodes
   for (k in 1:K) {
     # Get design matrix for variable k
