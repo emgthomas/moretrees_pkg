@@ -72,6 +72,7 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   A <- A[nodes, nodes] # re-order rows/columns to mirror nodes
   A <- Matrix::expm(Matrix::t(A))
   A[A > 0 ] <- 1 
+  A <- Matrix::Matrix(A, sparse = T)
   
   # Sort by outcomes, where order is specified by ordering in tr
   ord <- order(ordered(outcomes, levels = leaves))
@@ -80,7 +81,7 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   outcomes <- outcomes[ord]
   
   # Get list of MOReTreeS exposure design matrices for each node
-  Xstar <- Matrix::Matrix(nrow = n, ncol = 0)
+  Xstar <- Matrix::Matrix(nrow = n, ncol = 0, sparse = T)
   groups <- list
   # names(Xstar) <- nodes
   for (k in 1:K) {
@@ -101,7 +102,7 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
     W <- W[ord, , drop = F]
     if (W_method == "shared") {
       m <- ncol(W)
-      Wstar <- Matrix::Matrix(nrow = n, ncol = 0)
+      Wstar <- Matrix::Matrix(nrow = n, ncol = 0, sparse = T)
       for (j in 1:m) {
         # Get design matrix for variable j
         Wmat_j <- sapply(leaves, function(v) W[outcomes == v, j], simplify = F)

@@ -17,6 +17,8 @@ A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
+p <- G
+pL <- sum(igraph::V(tr)$leaf)
 n <- 1000
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
@@ -34,8 +36,6 @@ doParallel::registerDoParallel(cores = nrestarts)
 
 # Generate randomly grouped beta (groups follow tree)
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
-p <- G
-pL <- sum(igraph::V(tr)$leaf)
 s_true <- c(1, rbinom(n = p - pL - 1, size = 1, prob = rho1), 
             rbinom(n = pL, size = 1, prob = rho2))
 xi <- mapply(function(gamma, s) matrix(gamma * s, nrow = 1),
@@ -78,17 +78,19 @@ if (family == "gaussian") {
 }
 
 # Run algorithm ----------------------------------------------------------------------
-# Create MORETreeS design matrix
-mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                  W_method = "shared",
-                  tr = tr, family = family,
-                  update_hyper = T, update_hyper_freq = 10,
-                  hyper_fixed = hyper_fixed,
-                  tol = 1E-8, max_iter = 100,
-                  print_freq = 1,
-                  nrestarts = nrestarts,
-                  get_ml = T,
-                 log_dir = "./tests/")
+# require(profvis)
+# profvis(
+  mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   W_method = "shared",
+                   tr = tr, family = family,
+                   update_hyper = T, update_hyper_freq = 10,
+                   hyper_fixed = hyper_fixed,
+                   tol = 1E-8, max_iter = 100,
+                   print_freq = 1,
+                   nrestarts = nrestarts,
+                   get_ml = F,
+                   log_dir = "./tests/")
+# )
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml

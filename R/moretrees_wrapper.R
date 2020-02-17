@@ -129,13 +129,14 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
     `%doRestarts%` <- foreach::`%do%`
   }
   
-  # Run algorithm
-  mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
-    if (log_restarts) {
-      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
-      cat("Initialising random restart", i, "...\n\n")
-    }
-    mod <- ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, 
+  # # Run algorithm
+  # mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
+  #   if (log_restarts) {
+  #     sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+  #     cat("Initialising random restart", i, "...\n\n")
+  #   }
+  #   mod <- 
+  mod_restarts <- list(ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, 
            groups = dsgn$groups, W = dsgn$Wstar,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
@@ -144,13 +145,13 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
            tol = tol,
            max_iter = max_iter,
            hyper_random_init = hyper_random_init,
-           vi_random_init = vi_random_init)
-    if (log_restarts) {
-      cat("\nRestart", i, "complete.")
-      sink()
-    }
-    mod
-  }
+           vi_random_init = vi_random_init))
+  #   if (log_restarts) {
+  #     cat("\nRestart", i, "complete.")
+  #     sink()
+  #   }
+  #   mod
+  # }
   
   # Select random restart that gave the highest ELBO
   ELBO_restarts <- sapply(mod_restarts, FUN = function(mod) mod$ELBO_track[length(mod$ELBO_track)])
