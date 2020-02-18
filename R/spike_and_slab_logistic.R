@@ -26,6 +26,8 @@
 #' @family spike and slab functions
 
 spike_and_slab_logistic <- function(y, X, groups, W,
+                                  model = "ss",
+                                  tree_list = NULL,
                                   tol, max_iter,
                                   update_hyper, 
                                   update_hyper_freq,
@@ -92,7 +94,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
                     Omega_det = Omega_det)
   # Compute initial ELBO
   hyperparams <-  update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                              y = y, n = n,
+                                              y = y, model = model,
+                                              tree_list = tree_list, n = n,
                                               K = K, G = G, m = m,
                                               prob = prob, mu = mu,
                                               Sigma = Sigma, Sigma_det = Sigma_det,
@@ -139,7 +142,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
                                          tau = hyperparams$tau)
     if (!update_hyper_i) {
       hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                               y = y, n = n,
+                                               y = y,  model = model,
+                                               tree_list = tree_list, n = n,
                                                K = K, G = G, m = m,
                                                prob = vi_params$prob, 
                                                mu = vi_params$mu,
@@ -177,7 +181,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
     # Update hyperparameters
     if (update_hyper_i) {
       hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                                 y = y, n = n,
+                                                 y = y, model = model,
+                                                 tree_list = tree_list, n = n,
                                                  K = K, G = G, m = m,
                                                  prob = vi_params$prob, 
                                                  mu = vi_params$mu,

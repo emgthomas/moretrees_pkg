@@ -6,28 +6,63 @@
 #'   current value of ELBO in VI algorithm for bernoulli outcomes.
 
 update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
-                                prob, mu, Sigma, Sigma_det, tau_t,
-                                delta, Omega, Omega_det, 
-                                eta, g_eta, # variational params
-                                omega, tau, rho, # hyperparameters
-                                update_hyper = T) {
+                                        model = "ss", tree_list,
+                                        prob, mu, Sigma, Sigma_det, tau_t,
+                                        delta, Omega, Omega_det, 
+                                        eta, g_eta, # variational params
+                                        omega, tau, rho, # hyperparameters
+                                        update_hyper = T) {
   # Computing quantities needed for ELBO and hyperparameter updates ---------------
-  # Expected linear predictor
-  lp <- W %*% delta
-  for (g in 1:G) {
-    lp <- lp + prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
+  
+  # Matrix way --------------------------------------------------
+  if (model == "ss") {
+    # Expected linear predictor
+    lp <- W %*% delta
+    for (g in 1:G) {
+      lp <- lp + prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
+    }
+    # Expected linear predictor squared
+    lp2 <- apply(W, MARGIN = 1, 
+                 FUN = function(w, Omega) as.numeric(Matrix::crossprod(w, Omega) %*% w),
+                 Omega = Omega)
+    for (g in 1:G) {
+      lp2 <- lp2 + prob[g] * apply(X[ , groups[[g]], drop = F], MARGIN = 1,
+                                   FUN = function(x, Sigma) as.numeric(Matrix::crossprod(x, Sigma) %*% x),
+                                   Sigma = Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]]))
+    }
+    lp2 <- lp2 + as.numeric(lp) ^ 2
   }
-  # Expected linear predictor squared
-  lp2 <- apply(W, MARGIN = 1, 
-               FUN = function(w, Omega) as.numeric(Matrix::crossprod(w, Omega) %*% w),
-               Omega = Omega)
-  for (g in 1:G) {
-    lp2 <- lp2 + prob[g] * apply(X[ , groups[[g]], drop = F], MARGIN = 1,
-          FUN = function(x, Sigma) as.numeric(Matrix::crossprod(x, Sigma) %*% x),
-          Sigma = Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]]))
+  
+  # tree way -----------------------------------------------------
+  if (model == "moretrees") {
+    # Expected linear predictor
+    xi_u <- mapply(FUN = function(prob, mu) prob * mu,
+                   prob = prob, mu = mu, SIMPLIFY = F)
+    lp <- W %*% delta
+    for (v in 1:length(tree_list$ancestors)) {
+      beta_v <- Reduce(`+`, xi_u[tree_list$ancestors[[v]]])
+      lp[tree_list$outcomes_units[[v]]] <- lp[tree_list$outcomes_units[[v]]] +
+          tree_list$X0[tree_list$outcomes_units[[v]], ] %*% beta_v 
+    }
+    # Expected linear predictor squared
+    Sigma_u <- mapply(FUN = function(prob, Sigma, mu) prob * 
+                        (Sigma + (1 - prob) * Matrix::tcrossprod(mu)),
+                      prob = prob, Sigma = Sigma, mu = mu,
+                      SIMPLIFY = F)
+    lp2 <- apply(W, MARGIN = 1, 
+          FUN = function(w, Omega) as.numeric(Matrix::crossprod(w, Omega) %*% w),
+          Omega = Omega)
+    for (v in 1:length(tree_list$ancestors)) {
+      Sigma_v <- Reduce(`+`, Sigma_u[tree_list$ancestors[[v]]])
+      lp2[tree_list$outcomes_units[[v]]] <- lp2[tree_list$outcomes_units[[v]]] +
+        apply(tree_list$X0[tree_list$outcomes_units[[v]], , drop = F], 1,
+              FUN = function(x, Sigma) crossprod(x, as.matrix(Sigma)) %*% x,
+              Sigma = Sigma_v)
+    }
+    lp2 <- lp2 + as.numeric(lp) ^ 2
   }
-  lp2 <- lp2 + lp ^ 2
-
+  
+  # other stuff---------------------------------------------------
   # Expected sum of squared gammas
   expected_ss_gamma <- 0
   for (g in 1:G) {

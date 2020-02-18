@@ -87,6 +87,7 @@
 #' @family MOReTreeS functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
+                      model = "moretrees",
                       W_method = "shared",
                       family = "bernoulli",
                       ci_level = 0.95,
@@ -120,7 +121,8 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   # Get MOReTreeS design matrices
   dsgn <- moretrees_design_matrix(X = X, W = W, y = y,
                                   outcomes = outcomes, tr = tr,
-                                  W_method = W_method)
+                                  W_method = W_method,
+                                  tree_info = (model == "moretrees"))
   
   # Setting up parallelization
   if (parallel) {
@@ -138,6 +140,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   #   mod <- 
   mod_restarts <- list(ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, 
            groups = dsgn$groups, W = dsgn$Wstar,
+           model = model, tree_list = dsgn$tree_list,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
            print_freq = print_freq,

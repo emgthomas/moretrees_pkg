@@ -43,7 +43,8 @@
 #' @examples
 #' @family MOReTreeS functions
 
-moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
+moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "shared",
+                                    tree_info = TRUE) {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!igraph::is.igraph(tr)) stop("tr is not a graph object")
@@ -94,9 +95,7 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   }
   # Get list of variable groups for selection
   groups <- sapply(1:p, function(v) (1:K) * p - (p - v),simplify = F)
-  # Remove X
-  rm(X)
-  
+
   # Get covariate design matrix
   if (!is.null(W)) {
     W <- W[ord, , drop = F]
@@ -114,7 +113,6 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
     } else {
       Wstar <- Matrix::bdiag(sapply(leaves, function(v) W[outcomes == v, ], simplify = F))
     }
-    rm(W)
   } else {
     Wstar <- NULL
   }
@@ -122,5 +120,23 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(Xstar = Xstar, groups = groups, Wstar = Wstar, y_reord = y, A = A, ord = ord))
+  if (tree_info) {
+    # get lists of ancestors for each outcome
+    d <- igraph::diameter(tr)
+    ancestors <- igraph::ego(tr, order = d + 1, nodes = leaves, mode = "in")
+    ancestors <- sapply(ancestors, names)
+    ancestors <- sapply(ancestors, function(a, nodes) which(nodes %in% a), nodes = nodes)
+    names(ancestors) <- leaves
+    
+    # get lists of which units correspond to each outcom
+    outcomes_units <- sapply(leaves, function(v) which(outcomes == v), simplify = F)
+    names(outcomes_units) <- leaves
+    tree_list <-  list(X0 = X, W0 = W, outcomes_units = outcomes_units,
+                     ancestors = ancestors)
+  } else {
+    tree_list <- NULL
+  }
+  
+  return(list(Xstar = Xstar, groups = groups, Wstar = Wstar, y_reord = y, A = A, ord = ord,
+              tree_list = tree_list))
 }

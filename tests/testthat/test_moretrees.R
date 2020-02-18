@@ -6,8 +6,8 @@
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7"
@@ -19,7 +19,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1000
+n <- 1E5
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2
@@ -81,16 +81,38 @@ if (family == "gaussian") {
 require(profvis)
 profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   W_method = "shared",
+                   W_method = "shared", model = "moretrees",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 1,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 100,
+                   tol = 1E-8, max_iter = 10,
                    print_freq = 1,
                    nrestarts = nrestarts,
                    get_ml = F,
                    log_dir = "./tests/")
 )
+# require(microbenchmark)
+# microbenchmark(mod1 <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+#                                 W_method = "shared", model = "ss",
+#                                 tr = tr, family = family,
+#                                 update_hyper = T, update_hyper_freq = 10,
+#                                 hyper_fixed = hyper_fixed,
+#                                 tol = 1E-8, max_iter = 40,
+#                                 print_freq = 1,
+#                                 nrestarts = nrestarts,
+#                                 get_ml = F,
+#                                 log_dir = "./tests/"),
+#                mod2 <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+#                                 W_method = "shared", model = "moretrees",
+#                                 tr = tr, family = family,
+#                                 update_hyper = T, update_hyper_freq = 10,
+#                                 hyper_fixed = hyper_fixed,
+#                                 tol = 1E-8, max_iter = 40,
+#                                 print_freq = 1,
+#                                 nrestarts = nrestarts,
+#                                 get_ml = F,
+#                                 log_dir = "./tests/"), times = 1)
+
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml
