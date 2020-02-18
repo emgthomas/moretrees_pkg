@@ -92,8 +92,8 @@ f2 <- function(X) {
   lp2 <- numeric(n) + 0
   for (g in 1:G) {
     lp2 <- lp2 + apply(X[ , groups[[g]], drop = F], MARGIN = 1,
-                                 FUN = xT_Sigma_x,
-                                 Sigma = prob[g] * (Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]])))
+                       FUN = xT_Sigma_x,
+                       Sigma = prob[g] * (Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]])))
   }
   lp2
 }
@@ -103,8 +103,8 @@ f1 <- function(X) {
   lp2 <- numeric(n) + 0
   for (g in 1:G) {
     lp2 <- lp2 + apply(X[ , groups[[g]], drop = F], MARGIN = 1,
-                                 FUN = function(x, Sigma) as.numeric(Matrix::crossprod(x, Sigma) %*% x),
-                                 Sigma = prob[g] * (Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]])))
+                       FUN = function(x, Sigma) as.numeric(Matrix::crossprod(x, Sigma) %*% x),
+                       Sigma = prob[g] * (Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]])))
   }
   lp2
 }
@@ -127,8 +127,8 @@ f3 <- function(X1) {
   for (v in 1:length(ancestors)) {
     Sigma_v <- Reduce(`+`, Sigma_u[ancestors[[v]]])
     lp2[outcomes_list[[v]]] <- apply(X1[outcomes_list[[v]], ], 1,
-                      FUN = function(x, Sigma) crossprod(x, Sigma) %*% x,
-                      Sigma = Sigma_v)
+                                     FUN = function(x, Sigma) crossprod(x, Sigma) %*% x,
+                                     Sigma = Sigma_v)
   }
   lp2
 }
@@ -142,7 +142,6 @@ microbenchmark(f0(X), f0(X2), times = 1)
 # f1 slightly better
 
 # Compare f0 to f1
-require(microbenchmark)
 microbenchmark(f0(X), f1(X), times = 10)
 # f1 slightly better
 
@@ -154,7 +153,7 @@ microbenchmark(f1(X), f2(X), times = 10)
 lp2_1 <- f1(X)
 lp2_3 <- f3(X1)
 all.equal(lp2_1, lp2_3)
-microbenchmark(f1(X), f3(X1), times = 10)
+microbenchmark(f1(X), f3(X1), times = 1)
 # f3 (moretrees way) is about 10 times faster
 
 X2 <- Matrix::Matrix(X1, sparse = F)
@@ -178,7 +177,7 @@ f1 <- function(X, W) {
 # Expected linear predictor moretrees way
 f2 <- function(X1, W1) {
   xi_u <- mapply(FUN = function(prob, mu) prob * mu,
-                    prob = prob, mu = mu2, SIMPLIFY = F)
+                 prob = prob, mu = mu2, SIMPLIFY = F)
   lp <- numeric(n) + 0
   for (v in 1:length(ancestors)) {
     beta_v <- Reduce(`+`, xi_u[ancestors[[v]]])

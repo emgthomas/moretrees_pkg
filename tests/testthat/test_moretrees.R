@@ -19,7 +19,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1000
+n <- 500
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2

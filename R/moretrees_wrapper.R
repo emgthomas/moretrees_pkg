@@ -28,6 +28,9 @@
 #' represent outcome categories consisting of their leaf descendants. All nodes
 #' of tr must have unique names as given by names(V(tr)). The names of the leaves must 
 #' be equal to the unique elements of outcomes.
+#' @param method = "matrix" or "tree". "matrix" uses a transformation of the 
+#' design matrix to fit the MOReTreeS model; "tree" uses the information in tr. "matrix" may
+#' be more efficient for small trees; "tree" may be more efficient for large trees. (?)
 #' @param W_method = "shared" if information about the effect of variables in W wil be shared
 #' across the outcomes according to the tree structure. If W_method = "individual", the effect of
 #' W will be estimated separately for each outcome (no infromation sharing).
@@ -87,6 +90,7 @@
 #' @family MOReTreeS functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
+                      method = "tree",
                       W_method = "shared",
                       family = "bernoulli",
                       ci_level = 0.95,
@@ -110,17 +114,27 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   if (!(family %in% c("bernoulli", "gaussian"))) {
     stop("family must be a string (\"bernoulli\" or \"gaussian\")")
   }
-  if (family == "bernoulli") ss_fun <- spike_and_slab_logistic
-  if (family == "gaussian") ss_fun <- spike_and_slab_normal
+  if (family == "bernoulli" & method == "matrix") ss_fun <- spike_and_slab_logistic
+  if (family == "gaussian" & method == "matrix") ss_fun <- spike_and_slab_normal
+  if (family == "bernoulli" & method == "tree") ss_fun <- spike_and_slab_logistic_moretrees
+  if (family == "gaussian" & method == "tree") ss_fun <- spike_and_slab_normal_moretrees
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   if (!update_hyper & is.null(hyper_fixed)) {
     stop("Must supply fixed hyperparameter values if update_hyper = FALSE")
   }
   
-  # Get MOReTreeS design matrices
-  dsgn <- moretrees_design_matrix(X = X, W = W, y = y,
-                                  outcomes = outcomes, tr = tr,
-                                  W_method = W_method)
+  # Get MOReTreeS design elements
+  if (method == "matrix") {
+    dsgn <- moretrees_design_matrix(X = X, W = W, y = y,
+                                    outcomes = outcomes, tr = tr,
+                                    W_method = W_method)
+  }
+  if (method == "tree") {
+    dsgn <- moretrees_design_tree(X = X, W = W, y = y,
+                                    outcomes = outcomes, tr = tr,
+                                    W_method = W_method)
+  }
+  
   
   # Setting up parallelization
   if (parallel) {
@@ -136,8 +150,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   #     cat("Initialising random restart", i, "...\n\n")
   #   }
   #   mod <- 
-  mod_restarts <- list(ss_fun(y = dsgn$y_reord, X = dsgn$Xstar, 
-           groups = dsgn$groups, W = dsgn$Wstar,
+  mod_restarts <- list(ss_fun(design = dsgn,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
            print_freq = print_freq,
