@@ -70,6 +70,13 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, method = "tree",
   K <- ncol(X)
   n <- nrow(X)
   
+  # Get ancestor matrix
+  A <- igraph::as_adjacency_matrix(tr, sparse = T)
+  A <- A[nodes, nodes] # re-order rows/columns to mirror nodes
+  A <- Matrix::expm(Matrix::t(A))
+  A[A > 0 ] <- 1 
+  A <- Matrix::Matrix(A, sparse = T)
+  
   # Sort by outcomes, where order is specified by ordering in tr
   ord <- order(ordered(outcomes, levels = leaves))
   X <- X[ord, , drop = F]
@@ -97,7 +104,7 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, method = "tree",
   names(outcomes_nodes) <- nodes
   
   # return
-  return(list(y = y, X = as.matrix(X), W = as.matrix(W),
+  return(list(y = y, X = as.matrix(X), W = as.matrix(W), A = A,
               outcomes_units = outcomes_units, outcomes_nodes = outcomes_nodes,
               ancestors = ancestors))
   

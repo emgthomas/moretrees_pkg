@@ -28,10 +28,10 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   }
   # Expected linear predictor squared
   Sigma_u <- mapply(FUN = function(prob, Sigma, mu) prob * 
-                    (Sigma + (1 - prob) * Matrix::tcrossprod(mu)),
+                    (Sigma + (1 - prob) * tcrossprod(mu)),
                     prob = prob, Sigma = Sigma, mu = mu,
                     SIMPLIFY = F)
-
+  lp2 <- numeric(n) + 0
   for (v in 1:length(ancestors)) {
     Sigma_v <- Reduce(`+`, Sigma_u[ancestors[[v]]])
     Omega_v <- Reduce(`+`, Omega[ancestors[[v]]])

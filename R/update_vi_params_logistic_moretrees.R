@@ -4,56 +4,79 @@
 
 #' \code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.
 
-update_vi_params_logistic_moretrees <- function(X, W, y,
-                                      outcomes_nodes,
-                                      n, K, p, m, 
+update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
+                                      outcomes_nodes, outcomes_units,
+                                      ancestors,
+                                      n, p, pL, K, m, 
                                       prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
                                       delta, Omega, Omega_inv, Omega_det, 
                                       eta, g_eta, # variational params
                                       omega, rho, tau) { # hyperparams
   # Update sparse coefficients ------------------------------------------------------
-  pred_v <- Matrix::Matrix(0, nrow = n, ncol = p)
-  xi_u <- mapply(`*`, prob, mu, SIMPLIFY = F)
-  Wtheta <- numeric(n) + 0
-  for (v in 1:length(ancestors)) {
-    beta_v <- Reduce(`+`, xi_u[ancestors[[v]]])
-    theta_v <- Reduce(`+`, delta[ancestors[[v]]])
-    pred_v[outcomes_units[[v]], ] <- X[outcomes_units[[v]], ] %*% beta_v 
-    Wtheta[outcomes_units[[v]]] <-  W[outcomes_units[[v]], ] %*% theta_v
-  }
-  # Update Sigma_g and tau_t_g
+  xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
   xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
+  Wtheta <- numeric(n) + 0
+  for (u in 1:pL) {
+    theta_u <- Reduce(`+`, delta[ancestors[[u]]])
+    Wtheta[outcomes_units[[u]]] <- W[outcomes_units[[u]], ] %*% theta_u
+  }
   for (v in 1:p) {
-    Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[outcomes_nodes[[v]]]) + 
+    leaf_descendants <- outcomes_nodes[[v]]
+    # Update Sigma_v and tau_t_v
+    Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[leaf_descendants]) + 
       diag(1 / tau, nrow = K)
-    Sigma[[v]] <- Matrix::solve(Sigma_inv[[v]])
-    Sigma_det[v] <- Matrix::det(Sigma[[v]])
+    Sigma[[v]] <- solve(Sigma_inv[[v]])
+    Sigma_det[v] <- det(Sigma[[v]])
     tau_t[v] <- tau
-    # update mu_g
-    mu[[v]] <- Sigma[[v]] %*%
-      Matrix::crossprod( X[outcomes_nodes[[v]], , drop = F],
-             y / 2 - 2 * g_eta[outcomes_nodes[[v]]] * 
-            (Wtheta[outcomes_nodes[[v]]] + apply(pred_g[outcomes_nodes[[v]], -v, drop = F], 1, sum)))
-    # update prob_g (pi_g in manuscript)
-    u <- 0.5 * Matrix::crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] +
+    # Update mu_v
+    mu[[v]] <- mu[[v]] * 0
+    for (u in leaf_descendants) {
+      anc_u_mv <- setdiff(ancestors[[u]], v)
+      units_u <- outcomes_units[[u]]
+      beta_u_mv <- Reduce(`+`, xi[anc_u_mv])
+      mu[[v]] <- mu[[v]] + crossprod(X[units_u, ],
+        (y[units_u] / 2 - g_eta[units_u] * (X[units_u, ] %*% beta_u_mv + Wtheta[units_u]))
+        )
+    }
+    mu[[v]] <- Sigma[[v]] %*% mu[[v]]
+    # Update u_v
+    u_v <- 0.5 * crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] +
       0.5 * log(Sigma_det[v]) + log(rho / (1 - rho)) - 0.5 * K * log(tau_t[v])
-    prob[v] <- expit(u[1, 1])
-    # update pred_g
-    pred_g[, v] <- prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
+    prob[v] <- expit(u_v)
+    # Update xi
+    xi[[v]] <- prob[v] * mu[[v]]
   }
-  # Update non-sparse coefficients ---------------------------------------------------
-  # Update Omega only if hyperparameters were updated at last step
-  Omega_inv <- 2 * Matrix::crossprod(W, A_eta) %*% W + Matrix::Diagonal(m, 1 / omega)
-  if (m != 0) {
-    Omega <- solve(Omega_inv)
+  
+  
+  # Update non-sparse coefficients ----------------------------------------------------
+  if (m > 0) {
+    wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
+    Xbeta <- numeric(n) + 0
+    for (u in 1:pL) {
+      beta_u <- Reduce(`+`, xi[ancestors[[u]]])
+      Xbeta[outcomes_units[[u]]] <- X[outcomes_units[[u]], ] %*% beta_u
+    }
+    for (v in 1:p) {
+      leaf_descendants <- outcomes_nodes[[v]]
+      # Update Omega_v
+      Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) + 
+        diag(1 / omega, nrow = m)
+      Omega[[v]] <- solve(Omega_inv[[v]])
+      Omega_det[v] <- det(Sigma[[v]])
+      # Update delta_v
+      delta[[v]] <- delta[[v]] * 0
+      for (u in leaf_descendants) {
+        anc_u_mv <- setdiff(ancestors[[u]], v)
+        units_u <- outcomes_units[[u]]
+        theta_u_mv <- Reduce(`+`, delta[anc_u_mv])
+        delta[[v]] <- delta[[v]] + crossprod(W[units_u, ],
+                 (y[units_u] / 2 - g_eta[units_u] * (W[units_u, ] %*% theta_u_mv + Xbeta[units_u]))
+        )
+      }
+      delta[[v]] <- Omega[[v]] %*% delta[[v]]
+    }
   }
-  if (m == 1) {
-    Omega_det <- Omega[1, 1]
-  } else {
-    Omega_det <- Matrix::det(Omega)
-  }
-  # Update delta
-  delta <- Omega %*% Matrix::crossprod(W, y / 2 - 2 * g_eta * apply(pred_g, 1, sum))
+  
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,

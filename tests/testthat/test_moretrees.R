@@ -6,8 +6,8 @@
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7"
@@ -81,6 +81,7 @@ if (family == "gaussian") {
 require(profvis)
 profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,

@@ -24,6 +24,7 @@
 #' @family MOReTreeS functions
 
 moretrees_compute_thetas <- function(mod, ci_level, W_method = "shared",
+                                     method = "tree",
                                      m, A_leaves = NULL) {
   
   # Get thetas from xis
@@ -33,8 +34,14 @@ moretrees_compute_thetas <- function(mod, ci_level, W_method = "shared",
   for (j in 1:m) {
     # Get design matrix for variable k
     if (W_method == "shared") {
-      theta_est[ , j] <- as.numeric(A_leaves %*% 
-                                      mod$vi_params$delta[(p * (j - 1) + 1):(p * j)])
+      if(method == "matrix") {
+        theta_est[ , j] <- as.numeric(A_leaves %*% 
+                                        mod$vi_params$delta[(p * (j - 1) + 1):(p * j)])
+      }
+      if (method == "tree") {
+        theta_est[ , j] <- as.numeric(A_leaves %*%
+                                      sapply(mod$vi_params$delta, function(delta) delta[j , ]))
+      }
     }
     if (W_method == "individual") {
       theta_est[ , j] <- mod$vi_params$delta[(0:(pL-1)) * m + j]
@@ -44,16 +51,25 @@ moretrees_compute_thetas <- function(mod, ci_level, W_method = "shared",
   colnames(theta_est) <- theta_names
   
   # Compute credible intervals
-  zeta_var_est <- diag(mod$vi_params$Omega)
+  if (method == "matrix") {
+    delta_var_est <- diag(mod$vi_params$Omega)
+  }
   theta_sd_est <- matrix(nrow = pL, ncol = m)
   for (j in 1:m) {
     # Get design matrix for variable k
-    if (W_method == "shared") {
-      theta_sd_est[ , j] <- as.numeric(A_leaves %*% 
-                                         zeta_var_est[(p * (j - 1) + 1):(p * j)]) %>% sqrt
+    if (method == "matrix") {
+      if (W_method == "shared") {
+        theta_sd_est[ , j] <- as.numeric(A_leaves %*% 
+                                           delta_var_est[(p * (j - 1) + 1):(p * j)]) %>% sqrt
+      }
+      if (W_method == "individual") {
+        theta_sd_est[ , j] <- as.numeric(zeta_var_est[(0:(pL-1)) * m + j]) %>% sqrt
+      }
     }
-    if (W_method == "individual") {
-      theta_sd_est[ , j] <- as.numeric(zeta_var_est[(0:(pL-1)) * m + j]) %>% sqrt
+    if (method == "tree") {
+      theta_sd_est[ , j] <- as.numeric(A_leaves %*%
+                                      sapply(mod$vi_params$Omega,
+                                             function(Omega) diag(Omega)[j]))
     }
   }
   z <- qnorm(ci_level + (1 - ci_level) / 2)

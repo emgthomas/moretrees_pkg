@@ -45,12 +45,13 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                                               hyper_random_init,
                                               vi_random_init) {
   if (is.null(dsgn$W)) {
-    W <- Matrix::Matrix(nrow = length(dsgn$y), ncol = 0)
+    W <- matrix(nrow = length(dsgn$y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
   n <- length(dsgn$y)
   m <- ncol(dsgn$W)
   p <- length(unique(unlist(dsgn$ancestors)))
+  pL <- length(dsgn$ancestors)
   K <- ncol(dsgn$X)
   # Initial hyperparameter values
   eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
@@ -74,7 +75,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   # A_eta <- Matrix::Diagonal(n = n, g_eta)
   xxT <- plyr::alply(X, 1, tcrossprod)
   xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
-  Sigma_inv <- sapply(X = outcomes_nodes, 
+  Sigma_inv <- sapply(X = dsgn$outcomes_nodes, 
                       FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
                         diag(1 / tau, nrow = K),
                       x = xxT_g_eta,
@@ -90,7 +91,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   delta <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1),
                   simplify = F)
   wwT <- plyr::alply(W, 1, tcrossprod)
-  Omega_inv <- sapply(X = outcomes_nodes, 
+  Omega_inv <- sapply(X = dsgn$outcomes_nodes, 
                       FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
                         diag(1 / omega, nrow = m),
                       w = xxT_g_eta,
@@ -140,9 +141,12 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
     if (i %% print_freq == 0) cat("Iteration", i, "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     vi_params <- update_vi_params_logistic_moretrees(y = dsgn$y, X = dsgn$X,
-                                                     W = dsgn$W,
+                                                     W = dsgn$W, xxT = xxT,
+                                                     wwT = wwT,
                                                      outcomes_nodes = dsgn$outcomes_nodes,
-                                                     n = n, K = K, p = p, m = m,
+                                                     outcomes_units = dsgn$outcomes_units,
+                                                     ancestors = dsgn$ancestors,
+                                                     n = n, p = p, pL = pL, K = K, m = m,
                                                      prob = vi_params$prob, 
                                                      mu = vi_params$mu, 
                                                      Sigma = vi_params$Sigma, 
@@ -194,20 +198,20 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <-   hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
-                                                                             W = dsgn$W,
-                                                                             y = dsgn$y, 
-                                                                             outcomes_units = dsgn$outcomes_units,
-                                                                             ancestors = dsgn$ancestors,
-                                                                             n = n, K = K, p = p, m = m,
-                                                                             prob = prob, mu = mu,
-                                                                             Sigma = Sigma, Sigma_det = Sigma_det,
-                                                                             tau_t = tau_t, delta = delta,
-                                                                             Omega = Omega, Omega_det = Omega_det,
-                                                                             eta = hyperparams$eta, g_eta = hyperparams$g_eta,
-                                                                             omega = hyperparams$omega, tau = hyperparams$tau,
-                                                                             rho = hyperparams$rho,
-                                                                             update_hyper = T)
+      hyperparams <-   update_hyperparams_logistic_moretrees(X = dsgn$X, 
+                                                             W = dsgn$W,
+                                                             y = dsgn$y, 
+                                                             outcomes_units = dsgn$outcomes_units,
+                                                             ancestors = dsgn$ancestors,
+                                                             n = n, K = K, p = p, m = m,
+                                                             prob = prob, mu = mu,
+                                                             Sigma = Sigma, Sigma_det = Sigma_det,
+                                                             tau_t = tau_t, delta = delta,
+                                                             Omega = Omega, Omega_det = Omega_det,
+                                                             eta = hyperparams$eta, g_eta = hyperparams$g_eta,
+                                                             omega = hyperparams$omega, tau = hyperparams$tau,
+                                                             rho = hyperparams$rho,
+                                                             update_hyper = T)
       j <- i %/% update_hyper_freq
       ELBO_track[j + 1] <- hyperparams$ELBO
       ELBO_track2[i + 1] <- hyperparams$ELBO

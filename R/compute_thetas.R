@@ -18,7 +18,7 @@
 #' @examples 
 #' @family spike and slab functions
 
-compute_thetas <- function(mod, ci_level) {
+compute_thetas <- function(mod, ci_level, method, dsgn) {
   
   theta_est <- data.frame(est = as.numeric(mod$vi_params$delta))
   theta_sd <- as.matrix(mod$vi_params$Omega) %>%

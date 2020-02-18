@@ -150,7 +150,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   #     cat("Initialising random restart", i, "...\n\n")
   #   }
   #   mod <- 
-  mod_restarts <- list(ss_fun(design = dsgn,
+  mod_restarts <- list(ss_fun(dsgn = dsgn,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
            print_freq = print_freq,
@@ -183,7 +183,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   
   # Compute MOReTreeS covariate coefficient estimates from model output
   theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
-              m = ncol(W), W_method = W_method,
+              m = ncol(W), W_method = W_method, method = method,
               A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Get maximum likelihood estimates by group for comparison
