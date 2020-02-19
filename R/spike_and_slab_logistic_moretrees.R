@@ -87,7 +87,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   mu <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1),
                simplify = F)
   prob <- runif(p, 0 , 1)
-  tau_t <- rep(hyperparams$tau, G)
+  tau_t <- rep(hyperparams$tau, p)
   delta <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1),
                   simplify = F)
   if (m > 0) {
