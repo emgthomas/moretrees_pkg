@@ -34,7 +34,7 @@ moretrees_compute_thetas <- function(mod, ci_level, W_method = "shared",
   for (j in 1:m) {
     # Get design matrix for variable k
     if (W_method == "shared") {
-      if(method == "matrix") {
+      if (method == "matrix") {
         theta_est[ , j] <- as.numeric(A_leaves %*% 
                                         mod$vi_params$delta[(p * (j - 1) + 1):(p * j)])
       }

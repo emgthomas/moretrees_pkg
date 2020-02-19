@@ -80,6 +80,7 @@ if (family == "gaussian") {
 # Run algorithm ----------------------------------------------------------------------
 # require(profvis)
 # profvis(
+  require(gdata)
   keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, sure = T)
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    method = "tree",
