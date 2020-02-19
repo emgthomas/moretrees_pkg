@@ -85,7 +85,7 @@ profvis(
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 100,
+                   tol = 1E-8, max_iter = 1E4,
                    print_freq = 1,
                    nrestarts = nrestarts,
                    get_ml = F,
