@@ -19,10 +19,10 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 500
+n <- 10000
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 0
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
@@ -84,12 +84,12 @@ profvis(
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 20,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 100,
-                   print_freq = 1,
+                   tol = 1E-8, max_iter = 5E3,
+                   print_freq = 20,
                    nrestarts = nrestarts,
-                   get_ml = F,
+                   get_ml = T,
                    log_dir = "./tests/")
 )
 beta_est <- mod$beta_est

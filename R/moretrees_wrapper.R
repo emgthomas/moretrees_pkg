@@ -182,9 +182,14 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
               A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Compute MOReTreeS covariate coefficient estimates from model output
-  theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
-              m = ncol(W), W_method = W_method, method = method,
-              A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+  if (!is.null(W)) {
+    theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
+                                          m = ncol(W), W_method = W_method, method = method,
+                                          A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+  } else {
+    theta_est <- NULL
+  }
+  
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {

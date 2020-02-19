@@ -17,11 +17,11 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
                                         update_hyper = T) {
   # Computing quantities needed for ELBO and hyperparameter updates ---------------
   # Expected linear predictor
-  xi_u <- mapply(FUN = function(prob, mu) prob * mu,
+  xi <- mapply(FUN = function(prob, mu) prob * mu,
                  prob = prob, mu = mu, SIMPLIFY = F)
   lp <- numeric(n) + 0
   for (v in 1:length(ancestors)) {
-    beta_v <- Reduce(`+`, xi_u[ancestors[[v]]])
+    beta_v <- Reduce(`+`, xi[ancestors[[v]]])
     theta_v <- Reduce(`+`, delta[ancestors[[v]]])
     lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], ] %*% beta_v + 
       W[outcomes_units[[v]], ] %*% theta_v
@@ -56,17 +56,19 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   if (m == 0) {
     expected_ss_theta <- 0
   } else {
-    expected_ss_theta <- sum(mapply(FUN = 
-           function(Omega, delta) sum(diag(Omega)) + sum(delta ^ 2),
-           Omega = Omega, delta = delta))
+    expected_ss_theta <- 0
+    for (v in 1:p) {
+      expected_ss_theta <- expected_ss_theta +
+        (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
+    }
   }
   
   # Update hyperparameters ---------------------------------------------------------
   if (update_hyper) {
     if (m != 0) {
-      omega <- expected_ss_theta / m
+      omega <- expected_ss_theta / (m * p)
     }
-    tau <- expected_ss_gamma / sum(K)
+    tau <- expected_ss_gamma / (K * p)
     rho <- mean(prob)
   }
   # Update eta  --------------------------------------------------------------------
@@ -79,18 +81,16 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   line1 <- (1 / 2) * t(y) %*% lp + 
     sum(logexpit(eta)) - sum(eta) / 2 + g_eta %*% (eta ^ 2)
   line2 <- - g_eta %*% lp2
-  line3 <- - expected_ss_gamma / (2 * tau) - 
-    sum(K) * log(2 * pi * tau) / 2 + 
-    log(rho ^ sum(prob)) +
-    log((1 - rho) ^ (p - sum(prob)))
-  line4 <- - expected_ss_theta / (2 * omega) - 
-    (m / 2) * log(2 * pi * omega)
-  line5 <- (sum(K * prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
-  line6 <- (1 / 2) * sum(K * (1 - prob)) + 
-    (1 / 2) * sum(K * log(2 * pi * tau_t) * (1 - prob))
+  line3 <- - expected_ss_gamma / (2 * tau) - p * K * log(2 * pi * tau) / 2 + 
+    log(rho ^ sum(prob)) + log((1 - rho) ^ (p - sum(prob)))
+  line4 <- - expected_ss_theta / (2 * omega) - (m * p / 2) * log(2 * pi * omega)
+  line5 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
+  line6 <- (K / 2) * sum(1 - prob) + 
+    (K / 2) * sum(log(2 * pi * tau_t) * (1 - prob))
   line7 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
-  line8 <- sum(m + log(Omega_det) + m * log(2 * pi)) / 2
+  line8 <- (m * p + sum(log(Omega_det)) + m * p * log(2 * pi)) / 2
+  
   ELBO <- line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8
   # Return -------------------------------------------------------------------------
   return(list(ELBO = as.numeric(ELBO), omega = omega, tau = tau, rho = rho,

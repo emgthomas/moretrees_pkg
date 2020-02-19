@@ -25,7 +25,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_logistic <- function(y, X, groups, W,
+spike_and_slab_logistic <- function(dsgn,
                                   tol, max_iter,
                                   update_hyper, 
                                   update_hyper_freq,
@@ -33,14 +33,14 @@ spike_and_slab_logistic <- function(y, X, groups, W,
                                   print_freq,
                                   hyper_random_init,
                                   vi_random_init) {
-  if (is.null(W)) {
-    W <- Matrix::Matrix(nrow = length(y), ncol = 0)
+  if (is.null(dsgn$W)) {
+    W <- Matrix::Matrix(nrow = length(dsgn$y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
-  G <- length(groups)
-  n <- length(y)
-  K <- sapply(groups, length)
-  m <- ncol(W)
+  G <- length(dsgn$groups)
+  n <- length(dsgn$y)
+  K <- sapply(dsgn$groups, length)
+  m <- ncol(dsgn$W)
   # Initial hyperparameter values
   eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
   g_eta <- gfun(eta)
@@ -61,11 +61,11 @@ spike_and_slab_logistic <- function(y, X, groups, W,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   A_eta <- Matrix::Diagonal(n = n, g_eta)
-  Sigma_inv <- sapply(X = groups, 
+  Sigma_inv <- sapply(X = dsgn$groups, 
                 FUN = function(cols, Xg, A, tau) 2 * 
                 Matrix::crossprod(Xg[ , cols, drop = F], A) %*% Xg[ , cols, drop = F] + 
                 Matrix::Diagonal(length(cols), 1 / tau),
-                Xg = X,
+                Xg = dsgn$X,
                 tau = hyperparams$tau,
                 A = A_eta)
   Sigma <- sapply(Sigma_inv, Matrix::solve)
@@ -75,7 +75,7 @@ spike_and_slab_logistic <- function(y, X, groups, W,
   prob <- runif(G, 0 , 1)
   tau_t <- rep(hyperparams$tau, G)
   delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
-  Omega_inv <- 2 * Matrix::t(W) %*% A_eta %*% W + 
+  Omega_inv <- 2 * Matrix::t(dsgn$W) %*% A_eta %*% dsgn$W + 
     Matrix::Diagonal(m, 1 / hyperparams$omega)
   if (m != 0) {
     Omega <- Matrix::solve(Omega_inv)
@@ -91,8 +91,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
                     Omega = Omega, Omega_inv = Omega_inv,
                     Omega_det = Omega_det)
   # Compute initial ELBO
-  hyperparams <-  update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                              y = y, n = n,
+  hyperparams <-  update_hyperparams_logistic(X = dsgn$X, groups = dsgn$groups, W = dsgn$W,
+                                              y = dsgn$y, n = n,
                                               K = K, G = G, m = m,
                                               prob = prob, mu = mu,
                                               Sigma = Sigma, Sigma_det = Sigma_det,
@@ -120,8 +120,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
     i <- i + 1
     if (i %% print_freq == 0) cat("Iteration", i, "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-    vi_params <- update_vi_params_logistic(X = X, groups = groups, W = W,
-                                         y = y, n = n, K = K, G = G, m = m,
+    vi_params <- update_vi_params_logistic(X = dsgn$X, groups = dsgn$groups, W = dsgn$W,
+                                         y = dsgn$y, n = n, K = K, G = G, m = m,
                                          prob = vi_params$prob, 
                                          mu = vi_params$mu, 
                                          Sigma = vi_params$Sigma, 
@@ -138,8 +138,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
                                          rho = hyperparams$rho, 
                                          tau = hyperparams$tau)
     if (!update_hyper_i) {
-      hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                               y = y, n = n,
+      hyperparams <- update_hyperparams_logistic(X = dsgn$X, groups = dsgn$groups, W = dsgn$W,
+                                               y = dsgn$y, n = n,
                                                K = K, G = G, m = m,
                                                prob = vi_params$prob, 
                                                mu = vi_params$mu,
@@ -176,8 +176,8 @@ spike_and_slab_logistic <- function(y, X, groups, W,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <- update_hyperparams_logistic(X = X, groups = groups, W = W,
-                                                 y = y, n = n,
+      hyperparams <- update_hyperparams_logistic(X = dsgn$X, groups = dsgn$groups, W = dsgn$W,
+                                                 y = dsgn$y, n = n,
                                                  K = K, G = G, m = m,
                                                  prob = vi_params$prob, 
                                                  mu = vi_params$mu,

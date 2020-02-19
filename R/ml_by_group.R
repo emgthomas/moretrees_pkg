@@ -44,13 +44,17 @@ ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups, ci_level, fami
   names(beta_ml) <- c("group", cols)
   beta_ml$group <- 1:G
   beta_ml$outcomes <- outcome_groups
-  if (is.null(W)) W <- matrix(nrow = nrow(X), ncol = 0)
   if (family == "bernoulli") family <- "binomial"
   for (g in 1:G) {
     which_i <- outcomes %in% outcome_groups[[g]]
-    mod_ml <- glm(y[which_i] ~ 0 + as.matrix(X[which_i, ]) + 
-                    as.matrix(W[which_i, ]), 
-                  family = family)
+    if (!is.null(W)) {
+      mod_ml <- glm(y[which_i] ~ 0 + as.matrix(X[which_i, ]) + 
+                      as.matrix(W[which_i, ]), 
+                    family = family)
+    } else {
+      mod_ml <- glm(y[which_i] ~ 0 + as.matrix(X[which_i, ]), 
+                    family = family)
+    }
     suppressWarnings(suppressMessages(beta_ml_ci <- confint(mod_ml, level = ci_level)))
     if (K == 1) beta_ml_ci <- matrix(beta_ml_ci, nrow = K)
     beta_ml[g, paste0("est", 1:K)] <- mod_ml$coefficients[1:K]

@@ -42,14 +42,11 @@
 #' @examples
 #' @family MOReTreeS functions
 
-moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, method = "tree", W_method = "shared") {
+moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!igraph::is.igraph(tr)) stop("tr is not a graph object")
   if (!igraph::is.directed(tr)) stop
-  if (!(method %in% c("matrix", "tree"))) {
-    stop("method must be either \"matrix\" or \"tree\"")
-  } 
   if (!(W_method %in% c("shared", "individual"))) {
     stop("W_method must be either \"shared\" or \"individual\"")
   } 
@@ -80,6 +77,10 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, method = "tree",
   # Sort by outcomes, where order is specified by ordering in tr
   ord <- order(ordered(outcomes, levels = leaves))
   X <- X[ord, , drop = F]
+  if (!is.null(W)){
+    W <- as.matrix(W)
+    W <- W[ord, , drop = F]
+  } 
   y <- y[ord]
   outcomes <- outcomes[ord]
   
@@ -104,7 +105,7 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, method = "tree",
   names(outcomes_nodes) <- nodes
   
   # return
-  return(list(y = y, X = as.matrix(X), W = as.matrix(W), A = A,
+  return(list(y = y, X = as.matrix(X), W = W, A = A,
               outcomes_units = outcomes_units, outcomes_nodes = outcomes_nodes,
               ancestors = ancestors))
   

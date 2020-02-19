@@ -45,7 +45,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                                               hyper_random_init,
                                               vi_random_init) {
   if (is.null(dsgn$W)) {
-    W <- matrix(nrow = length(dsgn$y), ncol = 0)
+    dsgn$W <- matrix(nrow = length(dsgn$y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
   n <- length(dsgn$y)
@@ -73,7 +73,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   # A_eta <- Matrix::Diagonal(n = n, g_eta)
-  xxT <- plyr::alply(X, 1, tcrossprod)
+  xxT <- plyr::alply(dsgn$X, 1, tcrossprod)
   xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
   Sigma_inv <- sapply(X = dsgn$outcomes_nodes, 
                       FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
@@ -90,19 +90,21 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   tau_t <- rep(hyperparams$tau, G)
   delta <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1),
                   simplify = F)
-  wwT <- plyr::alply(W, 1, tcrossprod)
-  Omega_inv <- sapply(X = dsgn$outcomes_nodes, 
-                      FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
-                        diag(1 / omega, nrow = m),
-                      w = xxT_g_eta,
-                      m = m,
-                      omega = hyperparams$omega,
-                      simplify = F)
-  if (m != 0) {
+  if (m > 0) {
+    wwT <- plyr::alply(dsgn$W, 1, tcrossprod)
+    Omega_inv <- sapply(X = dsgn$outcomes_nodes, 
+                        FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
+                          diag(1 / omega, nrow = m),
+                        w = xxT_g_eta,
+                        m = m,
+                        omega = hyperparams$omega,
+                        simplify = F)
     Omega <- sapply(Omega_inv, solve, simplify = F)
     Omega_det <- sapply(Omega, det, simplify = T)
   } else {
+    wwT <- NULL
     Omega <- rep(list(matrix(nrow = 0, ncol = 0)), p)
+    Omega_inv <- rep(list(matrix(nrow = 0, ncol = 0)), p)
     Omega_det <- rep(1, p)
   }
   # Put VI parameters in list
@@ -169,10 +171,10 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                                                             outcomes_units = dsgn$outcomes_units,
                                                             ancestors = dsgn$ancestors,
                                                             n = n, K = K, p = p, m = m,
-                                                            prob = prob, mu = mu,
-                                                            Sigma = Sigma, Sigma_det = Sigma_det,
-                                                            tau_t = tau_t, delta = delta,
-                                                            Omega = Omega, Omega_det = Omega_det,
+                                                            prob = vi_params$prob, mu = vi_params$mu,
+                                                            Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
+                                                            tau_t = vi_params$tau_t, delta = vi_params$delta,
+                                                            Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
                                                             eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                             omega = hyperparams$omega, tau = hyperparams$tau,
                                                             rho = hyperparams$rho,
@@ -204,10 +206,10 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                                                              outcomes_units = dsgn$outcomes_units,
                                                              ancestors = dsgn$ancestors,
                                                              n = n, K = K, p = p, m = m,
-                                                             prob = prob, mu = mu,
-                                                             Sigma = Sigma, Sigma_det = Sigma_det,
-                                                             tau_t = tau_t, delta = delta,
-                                                             Omega = Omega, Omega_det = Omega_det,
+                                                             prob = vi_params$prob, mu = vi_params$mu,
+                                                             Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
+                                                             tau_t = vi_params$tau_t, delta = vi_params$delta,
+                                                             Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
                                                              eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                              omega = hyperparams$omega, tau = hyperparams$tau,
                                                              rho = hyperparams$rho,
