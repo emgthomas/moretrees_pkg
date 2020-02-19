@@ -92,10 +92,11 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                   simplify = F)
   if (m > 0) {
     wwT <- plyr::alply(dsgn$W, 1, tcrossprod)
+    wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
     Omega_inv <- sapply(X = dsgn$outcomes_nodes, 
                         FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
                           diag(1 / omega, nrow = m),
-                        w = xxT_g_eta,
+                        w = wwT_g_eta,
                         m = m,
                         omega = hyperparams$omega,
                         simplify = F)

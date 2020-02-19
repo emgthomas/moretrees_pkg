@@ -20,7 +20,7 @@ G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
 n <- 1E3
-K_g <- 2 # number of variables
+K_g <- 1 # number of variables
 K <- rep(K_g, G)
 m <- 2
 tau <- 3
@@ -78,20 +78,21 @@ if (family == "gaussian") {
 }
 
 # Run algorithm ----------------------------------------------------------------------
-require(profvis)
-profvis(
+# require(profvis)
+# profvis(
+  keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, sure = T)
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 20,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 5E3,
+                   tol = 1E-8, max_iter = 1E2,
                    print_freq = 1,
                    nrestarts = nrestarts,
-                   get_ml = T,
+                   get_ml = F,
                    log_dir = "./tests/")
-)
+# )
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml
