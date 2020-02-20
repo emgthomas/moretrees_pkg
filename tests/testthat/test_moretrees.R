@@ -49,12 +49,12 @@ groups_true <- as.integer(as.factor(as.numeric(beta[ , 1])))
 table(groups_true)
 
 # Generate some data -----------------------------------------------------------------
-X <- Matrix::Matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
+X <- matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
 outcomes <- sample(leaves, size = n, replace = T)
 
 # Create non-sparse design matrix
 if (m > 0) {
-  W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
+  W <- matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
 } else {
   W <- NULL
 }

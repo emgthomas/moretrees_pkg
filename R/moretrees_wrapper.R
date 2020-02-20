@@ -114,6 +114,8 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   if (!(family %in% c("bernoulli", "gaussian"))) {
     stop("family must be a string (\"bernoulli\" or \"gaussian\")")
   }
+  if (!is.matrix(X)) stop("X must be a matrix")
+  if (!is.null(W) & !(is.matrix(W))) stop("If W is not NULL, must be a matrix")
   if (family == "bernoulli" & method == "matrix") ss_fun <- spike_and_slab_logistic
   if (family == "gaussian" & method == "matrix") ss_fun <- spike_and_slab_normal
   if (family == "bernoulli" & method == "tree") ss_fun <- spike_and_slab_logistic_moretrees
