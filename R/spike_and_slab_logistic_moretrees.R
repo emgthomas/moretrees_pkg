@@ -72,14 +72,13 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   hyperparams$eta <- eta
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
-  xxT <- moretrees::rowOuterProds(dsgn$X)
   if (K == 1) {
     xxT <- dsgn$X ^ 2
-    xxT_g_eta <- xxT * g_eta
   } else {
-    xxT <- plyr::alply(dsgn$X, 1, tcrossprod)
-    xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
+    xxT <- rowOuterProds(dsgn$X)
   }
+  xxT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
+                      xxT = xxT, g_eta = g_eta, K = K)
   Sigma_inv <- lapply(X = dsgn$outcomes_nodes, 
                       FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
                         diag(1 / tau, nrow = K),
@@ -95,11 +94,11 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   if (m > 0) {
     if (m == 1) {
       wwT <- dsgn$W ^ 2
-      wwT_g_eta <- wwT * g_eta
     } else {
-      wwT <- plyr::alply(dsgn$W, 1, tcrossprod)
-      wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
+      wwT <- rowOuterProds(dsgn$W)
     }
+    wwT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
+                        xxT = wwT, g_eta = g_eta, K = m)
     Omega_inv <- lapply(X = dsgn$outcomes_nodes, 
                         FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
                           diag(1 / omega, nrow = m),

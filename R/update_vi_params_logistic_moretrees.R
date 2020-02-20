@@ -20,22 +20,8 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     theta_u <- Reduce(`+`, delta[ancestors[[u]]])
     Wtheta[outcomes_units[[u]]] <- W[outcomes_units[[u]], ] %*% theta_u
   }
-  if (K == 1) {
-    xxT_g_eta <- lapply(X = outcomes_units,
-                        FUN = function(units, x, g) Reduce(`+`, x[units] * g[units]),
-                        x = xxT, g = g_eta)
-  } else {
-    xxT_g_eta <- lapply(X = outcomes_units,
-                        FUN = function(units, x, g) {
-                          w <- mapply(`*`, x[units], g[units], SIMPLIFY = F)
-                          Reduce(`+`, x)
-                        },
-                        x = xxT, g = g_eta)
-    # xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
-    # xxT_g_eta <- lapply(X = outcomes_units,
-    #                     FUN = function(units, x) Reduce(`+`, x[units]),
-    #                     x = xxT_g_eta)
-  }
+  xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
+                        xxT = xxT, g_eta = g_eta, K = K)
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     # Update Sigma_v and tau_t_v
@@ -70,22 +56,8 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
       beta_u <- Reduce(`+`, xi[ancestors[[u]]])
       Xbeta[outcomes_units[[u]]] <- X[outcomes_units[[u]], ] %*% beta_u
     }
-    if (m == 1) {
-      wwT_g_eta <- lapply(X = outcomes_units,
-                          FUN = function(units, w, g) Reduce(`+`, w[units] * g[units]),
-                          w = wwT, g = g_eta)
-    } else {
-      wwT_g_eta <- lapply(X = outcomes_units,
-                          FUN = function(units, w, g) {
-                            w <- mapply(`*`, w[units], g[units], SIMPLIFY = F)
-                            Reduce(`+`, w)
-                          },
-                          w = wwT, g = g_eta)
-      # wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
-      # wwT_g_eta <- lapply(X = outcomes_units,
-      #                     FUN = function(units, w) Reduce(`+`, w[units]),
-      #                     w = wwT_g_eta)
-    }
+    wwT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
+                        xxT = wwT, g_eta = g_eta, K = m)
     for (v in 1:p) {
       # Update Omega_v
       leaf_descendants <- outcomes_nodes[[v]]

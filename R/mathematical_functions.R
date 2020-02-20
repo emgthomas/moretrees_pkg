@@ -39,3 +39,11 @@ gfun <- function(x) {
   # needed for normal approx to logistic likelihood
   (expit(x) - 1 / 2) / (2 * x)
 }
+
+xxT_g_eta_fun <- function(units, xxT, g_eta, K) {
+  vec <- g_eta[units] %*% xxT[units, ]
+  mat <- matrix(0, nrow = K, ncol = K)
+  mat[lower.tri(mat, diag = T)] <- vec
+  mat[upper.tri(mat)] <- mat[lower.tri(mat)] 
+  return(mat)
+}
