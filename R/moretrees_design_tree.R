@@ -24,9 +24,6 @@
 #' @param outcomes is a character vector of length n, where entry i
 #  tells us which outcome is represented by unit i
 #' @param tr is an igraph tree, where the leaves represent outcomes
-#' @param W_method = "shared" if information about the effect of variables in W wil be shared
-#' across the outcomes according to the tree structure. If W_method = "individual", the effect of
-#' W will be estimated separately for each outcome (no infromation sharing).
 #' @return A list containing the following elements:
 #' y: Re-ordered outcome vector.
 #' X: Re-ordered exposure matrix.
@@ -42,14 +39,11 @@
 #' @examples
 #' @family MOReTreeS functions
 
-moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, W_method = "shared") {
+moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   # Some checks
   if (!is.character(outcomes)) stop("outcomes is not a character object")
   if (!igraph::is.igraph(tr)) stop("tr is not a graph object")
   if (!igraph::is.directed(tr)) stop
-  if (!(W_method %in% c("shared", "individual"))) {
-    stop("W_method must be either \"shared\" or \"individual\"")
-  } 
   if (is.integer(y) & !(sum(y %in% c(0, 1)) == length(y))) 
     stop("y contains values other than zero or one")
   
@@ -90,18 +84,20 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr, W_method = "shar
   # get lists of ancestors for each outcome
   d <- igraph::diameter(tr)
   ancestors <- igraph::ego(tr, order = d + 1, nodes = leaves, mode = "in")
-  ancestors <- sapply(ancestors, names)
-  ancestors <- sapply(ancestors, function(a, nodes) which(nodes %in% a), nodes = nodes)
+  ancestors <- sapply(ancestors, names, simplify = F)
+  ancestors <- sapply(ancestors, function(a, nodes) which(nodes %in% a), nodes = nodes,
+                      simplify = F)
   names(ancestors) <- leaves
   
-  # get lists of which units correspond to each outcom
+  # get lists of which units correspond to each outcome
   outcomes_units <- sapply(leaves, function(v) which(outcomes == v), simplify = F)
   names(outcomes_units) <- leaves
   
   # get lists of outcomes are descendants of each node
   descendants <- igraph::ego(tr, order = d + 1, nodes = nodes, mode = "out")
   descendants <- sapply(descendants, names)
-  outcomes_nodes <- sapply(descendants, function(d, leaves) which(leaves %in% d), leaves = leaves)
+  outcomes_nodes <- sapply(descendants, function(d, leaves) which(leaves %in% d), leaves = leaves,
+                           simplify = F)
   names(outcomes_nodes) <- nodes
   
   # return

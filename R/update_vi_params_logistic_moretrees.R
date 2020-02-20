@@ -15,17 +15,19 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
-  xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
   Wtheta <- numeric(n) + 0
   for (u in 1:pL) {
     theta_u <- Reduce(`+`, delta[ancestors[[u]]])
     Wtheta[outcomes_units[[u]]] <- W[outcomes_units[[u]], ] %*% theta_u
   }
+  xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
+  xxT_g_eta <- lapply(X = outcomes_units,
+                      FUN = function(units, x) Reduce(`+`, x[units]),
+                      x = xxT_g_eta)
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
-    units_v <- unlist(outcomes_units[leaf_descendants])
     # Update Sigma_v and tau_t_v
-    Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[units_v]) + 
+    Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[leaf_descendants]) + 
       diag(1 / tau, nrow = K)
     Sigma[[v]] <- solve(Sigma_inv[[v]])
     Sigma_det[v] <- det(Sigma[[v]])
@@ -51,17 +53,19 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   
   # Update non-sparse coefficients ----------------------------------------------------
   if (m > 0) {
-    wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
     Xbeta <- numeric(n) + 0
     for (u in 1:pL) {
       beta_u <- Reduce(`+`, xi[ancestors[[u]]])
       Xbeta[outcomes_units[[u]]] <- X[outcomes_units[[u]], ] %*% beta_u
     }
+    wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
+    wwT_g_eta <- lapply(X = outcomes_units,
+                        FUN = function(units, w) Reduce(`+`, w[units]),
+                        w = wwT_g_eta)
     for (v in 1:p) {
       # Update Omega_v
       leaf_descendants <- outcomes_nodes[[v]]
-      units_v <- unlist(outcomes_units[leaf_descendants])
-      Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[units_v]) +
+      Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) +
         diag(1 / omega, nrow = m)
       Omega[[v]] <- solve(Omega_inv[[v]])
       Omega_det[v] <- det(Omega[[v]])

@@ -131,8 +131,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   }
   if (method == "tree") {
     dsgn <- moretrees_design_tree(X = X, W = W, y = y,
-                                    outcomes = outcomes, tr = tr,
-                                    W_method = W_method)
+                                    outcomes = outcomes, tr = tr)
   }
   
   
