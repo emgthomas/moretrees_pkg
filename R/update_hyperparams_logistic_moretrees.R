@@ -35,12 +35,8 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   for (v in 1:length(ancestors)) {
     Sigma_v <- Reduce(`+`, Sigma_u[ancestors[[v]]])
     Omega_v <- Reduce(`+`, Omega[ancestors[[v]]])
-    lp2[outcomes_units[[v]]] <- apply(W[outcomes_units[[v]], , drop = F], MARGIN = 1, 
-                  FUN = function(w, Omega) crossprod(w, Omega) %*% w,
-                  Omega = Omega_v) +
-        apply(X[outcomes_units[[v]], , drop = F], 1,
-                 FUN = function(x, Sigma) crossprod(x, Sigma) %*% x,
-                 Sigma = Sigma_v)
+    lp2[outcomes_units[[v]]] <- emulator::quad.tdiag(Omega_v, as.matrix(W[outcomes_units[[v]], , drop = F])) +
+      emulator::quad.tdiag(Sigma_v, as.matrix(X[outcomes_units[[v]], , drop = F]))
   }
   lp2 <- lp2 + lp ^ 2
   
