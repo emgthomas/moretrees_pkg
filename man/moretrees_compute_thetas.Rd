@@ -6,8 +6,8 @@
 \code{moretrees_compute_thetas} Computes MOReTreeS estimates and credible
   intervals for covariate effects from model output}
 \usage{
-moretrees_compute_thetas(mod, ci_level, W_method = "shared", m,
-  A_leaves = NULL)
+moretrees_compute_thetas(mod, ci_level, W_method = "shared",
+  method = "tree", m, A_leaves = NULL)
 }
 \arguments{
 \item{mod}{List containing outputs from spike and slab VI algorithm}
@@ -36,6 +36,7 @@ NA
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_design_matrix}},
+  \code{\link{moretrees_design_tree}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}

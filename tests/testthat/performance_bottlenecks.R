@@ -202,4 +202,53 @@ W2 <- Matrix::Matrix(W1, sparse = F)
 microbenchmark(f2(X1, W1), f2(X2, W2), times = 10)
 # about 20 times faster with non-sparse matrix (but this won't have a huge overall impact)
 
+########################### computing x %*% t(X) for each row of x #######################
+
+require(Rcpp)
+
+cppFunction('NumericMatrix rowOuterProds(NumericMatrix X) {
+  int n = X.rows();
+  int K = X.cols();
+  int J = K * (K + 1) / 2;
+  NumericMatrix out(n , J);
+  
+  int col = 0;
+  
+  for(int i = 0; i < n; i++) {
+    col = 0;
+    for(int j = 0; j < K; j++) {
+        for(int k = j; k < K; k++) {
+          out(i, col) = X(i, j) * X(i, k);
+          col = col + 1;
+        }
+    }
+  }
+  
+  return out;
+}')
+
+col <- 0
+for(j in 1:K) {
+  for(k in j:K ) {
+    col <- col + 1
+  }
+}
+col
+
+n <- 1E4
+K <- 3
+X <- matrix(rnorm(n * K), ncol = K)
+g_eta <- rnorm(n)
+out <- rowOuterProds(X)
+test <- g_eta %*% out
+xxT_g_eta <- matrix(0, nrow = K, ncol = K)
+xxT_g_eta[lower.tri(xxT_g_eta, diag = T)] <- test
+xxT_g_eta[upper.tri(xxT_g_eta)] <- xxT_g_eta[lower.tri(xxT_g_eta)] 
+
+xxT_g_eta2 <- matrix(0, nrow = K, ncol = K)
+for(i in 1:n) {
+  xxT_g_eta2 <- xxT_g_eta2 + X[i,] %*% t(X[i,]) * g_eta[i]
+}
+
+all.equal(xxT_g_eta, xxT_g_eta2)
 

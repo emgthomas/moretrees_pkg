@@ -6,7 +6,7 @@
 \code{compute_thetas} Computes non-sparse effect estimates and credible
   intervals from spike & slba model output}
 \usage{
-compute_thetas(mod, ci_level)
+compute_thetas(mod, ci_level, method, dsgn)
 }
 \arguments{
 \item{mod}{List containing outputs from spike and slab VI algorithm}
@@ -27,6 +27,7 @@ NA
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{ml_by_group}},
+  \code{\link{spike_and_slab_logistic_moretrees}},
   \code{\link{spike_and_slab_logistic}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}

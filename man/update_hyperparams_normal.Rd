@@ -5,9 +5,9 @@
 \title{\code{update_hyperparams_normal} Performs hyperparameter updates and computes 
   current value of ELBO in VI algorithm for gaussian outcomes}
 \usage{
-update_hyperparams_normal(X, XtX, W, WtW, y, n, K, G, m, prob, mu, Sigma,
-  Sigma_det, tau_t, delta, Omega, Omega_det, omega, sigma2, tau, rho,
-  update_hyper = T)
+update_hyperparams_normal(X, groups, XtX, W, WtW, y, n, K, G, m, prob, mu,
+  Sigma, Sigma_det, tau_t, delta, Omega, Omega_det, omega, sigma2, tau,
+  rho, update_hyper = T)
 }
 \description{
 \code{update_hyperparams_normal} Performs hyperparameter updates and computes 

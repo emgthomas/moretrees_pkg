@@ -72,7 +72,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   hyperparams$eta <- eta
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
-  # A_eta <- Matrix::Diagonal(n = n, g_eta)
+  xxT <- moretrees::rowOuterProds(dsgn$X)
   if (K == 1) {
     xxT <- dsgn$X ^ 2
     xxT_g_eta <- xxT * g_eta

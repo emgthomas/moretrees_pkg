@@ -4,24 +4,26 @@
 \alias{spike_and_slab_logistic}
 \title{Group spike and slab variable selection with Gaussian outcome}
 \usage{
-spike_and_slab_logistic(y, X, W, tol, max_iter, update_hyper,
+spike_and_slab_logistic(dsgn, tol, max_iter, update_hyper,
   update_hyper_freq, hyper_fixed, print_freq, hyper_random_init,
   vi_random_init)
 }
 \arguments{
-\item{y}{Integer vector of length n containing outcomes; 1 = success, 0 = failure.}
-
-\item{X}{List of length G of design matrices for each variable group.
-Each element of the list has dimension n x K_g
-where n is the number of observations, and K_g is the number of variables in group g.}
-
-\item{W}{Matrix of non-sparse regression coefficients of dimension n x m}
-
 \item{tol}{Convergence tolerance for ELBO.}
 
 \item{update_hyper}{Update hyperparameters? Default = TRUE.}
 
 \item{update_hyper_freq}{How frequently to update hyperparameters. Default = every 10 iterations.}
+
+\item{y}{Integer vector of length n containing outcomes; 1 = success, 0 = failure.}
+
+\item{X}{Matrix of dimension n x sum(K), where n is the number of units, and
+K[g] is the number of variables in group g.}
+
+\item{groups}{A list of length G (number of groups), where groups[[g]] is an integer
+vector specifying the columns of X that belong to group g.}
+
+\item{W}{Matrix of non-sparse regression coefficients of dimension n x m}
 
 \item{maxiter}{Maximum number of iterations of the VI algorithm.}
 }
@@ -46,6 +48,7 @@ All the details go here!
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
+  \code{\link{spike_and_slab_logistic_moretrees}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}
 }

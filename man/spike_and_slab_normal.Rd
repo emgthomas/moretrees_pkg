@@ -4,16 +4,18 @@
 \alias{spike_and_slab_normal}
 \title{Group spike and slab variable selection with Gaussian outcome}
 \usage{
-spike_and_slab_normal(y, X, W, tol, max_iter, update_hyper,
+spike_and_slab_normal(y, X, groups, W, tol, max_iter, update_hyper,
   update_hyper_freq, hyper_fixed, print_freq, hyper_random_init,
   vi_random_init)
 }
 \arguments{
 \item{y}{Numeric vector of length n of outcome data}
 
-\item{X}{List of length G of design matrices for each variable group.
-Each element of the list has dimension n x K_g
-where n is the number of observations, and K_g is the number of variables in group g.}
+\item{X}{Matrix of dimension n x sum(K), where n is the number of units, and
+K[g] is the number of variables in group g.}
+
+\item{groups}{A list of length G (number of groups), where groups[[g]] is an integer
+vector specifying the columns of X that belong to group g.}
 
 \item{W}{Matrix of data with non-sparse regression coefficients of dimension n x m}
 
@@ -52,6 +54,7 @@ All the details go here!
 \seealso{
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
+  \code{\link{spike_and_slab_logistic_moretrees}},
   \code{\link{spike_and_slab_logistic}},
   \code{\link{spike_and_slab}}
 }

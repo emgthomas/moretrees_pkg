@@ -7,9 +7,9 @@
 \title{moretrees: A package for fitting Multi-Outcome Regression with 
 Tree-structured Shrinkage (MOReTreeS)}
 \usage{
-moretrees(X, W = NULL, y, outcomes, tr, W_method = "shared",
-  family = "bernoulli", ci_level = 0.95, get_ml = FALSE,
-  update_hyper = T, update_hyper_freq = 50,
+moretrees(X, W = NULL, y, outcomes, tr, method = "tree",
+  W_method = "shared", family = "bernoulli", ci_level = 0.95,
+  get_ml = FALSE, update_hyper = T, update_hyper_freq = 50,
   print_freq = update_hyper_freq, hyper_fixed = NULL, tol = 1e-08,
   max_iter = 5000, nrestarts = 3, keep_restarts = nrestarts > 1,
   parallel = nrestarts > 1, log_restarts = nrestarts > 1,
@@ -36,6 +36,10 @@ among the outcomes. The leaves represent individual outcomes, and internal nodes
 represent outcome categories consisting of their leaf descendants. All nodes
 of tr must have unique names as given by names(V(tr)). The names of the leaves must 
 be equal to the unique elements of outcomes.}
+
+\item{method}{= "matrix" or "tree". "matrix" uses a transformation of the 
+design matrix to fit the MOReTreeS model; "tree" uses the information in tr. "matrix" may
+be more efficient for small trees; "tree" may be more efficient for large trees. (?)}
 
 \item{W_method}{= "shared" if information about the effect of variables in W wil be shared
 across the outcomes according to the tree structure. If W_method = "individual", the effect of
@@ -130,6 +134,7 @@ Describe MOReTreeS model and all parameters here.
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}}
+  \code{\link{moretrees_design_matrix}},
+  \code{\link{moretrees_design_tree}}
 }
 \concept{MOReTreeS functions}

@@ -53,6 +53,8 @@ table(groups_true)
 X <- matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
 outcomes <- sample(leaves, size = n, replace = T)
 
+xxT <- moretrees::rowOuterProds(X)
+
 # Create non-sparse design matrix
 if (m > 0) {
   W <- matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)

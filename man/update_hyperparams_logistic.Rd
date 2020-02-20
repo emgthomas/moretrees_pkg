@@ -5,7 +5,7 @@
 \title{\code{update_hyperparams_logistic} Performs hyperparameter updates and computes 
   current value of ELBO in VI algorithm for bernoulli outcomes.}
 \usage{
-update_hyperparams_logistic(X, W, y, n, K, G, m, prob, mu, Sigma,
+update_hyperparams_logistic(X, groups, W, y, n, K, G, m, prob, mu, Sigma,
   Sigma_det, tau_t, delta, Omega, Omega_det, eta, g_eta, omega, tau, rho,
   update_hyper = T)
 }
