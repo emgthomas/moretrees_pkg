@@ -100,8 +100,12 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
                            simplify = F)
   names(outcomes_nodes) <- nodes
   
+  # Change outcomes to integers
+  outcomes <- sapply(outcomes, function(o) which(leaves == o))
+  
   # return
   return(list(y = y, X = as.matrix(X), W = W, A = A,
+              outcomes = outcomes,
               outcomes_units = outcomes_units, outcomes_nodes = outcomes_nodes,
               ancestors = ancestors))
   

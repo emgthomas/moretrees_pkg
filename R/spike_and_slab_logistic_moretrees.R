@@ -73,33 +73,39 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   # A_eta <- Matrix::Diagonal(n = n, g_eta)
-  xxT <- plyr::alply(dsgn$X, 1, tcrossprod)
-  xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
-  Sigma_inv <- sapply(X = dsgn$outcomes_nodes, 
+  if (K == 1) {
+    xxT <- dsgn$X ^ 2
+    xxT_g_eta <- xxT * g_eta
+  } else {
+    xxT <- plyr::alply(dsgn$X, 1, tcrossprod)
+    xxT_g_eta <- mapply(`*`, xxT, g_eta, SIMPLIFY = F)
+  }
+  Sigma_inv <- lapply(X = dsgn$outcomes_nodes, 
                       FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
                         diag(1 / tau, nrow = K),
                       x = xxT_g_eta,
                       K = K,
-                      tau = hyperparams$tau,
-                      simplify = F)
-  Sigma <- sapply(Sigma_inv, solve, simplify = F)
-  Sigma_det <- sapply(Sigma, det, simplify = T)
-  mu <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1),
-               simplify = F)
+                      tau = hyperparams$tau)
+  Sigma <- lapply(Sigma_inv, solve)
+  Sigma_det <- sapply(Sigma, det)
+  mu <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1))
   prob <- runif(p, 0 , 1)
   tau_t <- rep(hyperparams$tau, p)
-  delta <- sapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1),
-                  simplify = F)
+  delta <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1))
   if (m > 0) {
-    wwT <- plyr::alply(dsgn$W, 1, tcrossprod)
-    wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
-    Omega_inv <- sapply(X = dsgn$outcomes_nodes, 
+    if (m == 1) {
+      wwT <- dsgn$W ^ 2
+      wwT_g_eta <- wwT * g_eta
+    } else {
+      wwT <- plyr::alply(dsgn$W, 1, tcrossprod)
+      wwT_g_eta <- mapply(`*`, wwT, g_eta, SIMPLIFY = F)
+    }
+    Omega_inv <- lapply(X = dsgn$outcomes_nodes, 
                         FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
                           diag(1 / omega, nrow = m),
                         w = wwT_g_eta,
                         m = m,
-                        omega = hyperparams$omega,
-                        simplify = F)
+                        omega = hyperparams$omega)
     Omega <- sapply(Omega_inv, solve, simplify = F)
     Omega_det <- sapply(Omega, det, simplify = T)
   } else {
