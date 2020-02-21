@@ -106,6 +106,8 @@ spike_and_slab <- function(y, X, groups, W = NULL,
   if (!update_hyper & is.null(hyper_fixed)) {
     stop("Must supply fixed hyperparameter values if update_hyper = FALSE")
   }
+  if (!is.matrix(X)) stop("X must be a matrix")
+  if (!is.null(W) & !(is.matrix(W))) stop("If W is not NULL, must be a matrix")
   
   # Setting up parallelization
   if (parallel) {
@@ -115,25 +117,25 @@ spike_and_slab <- function(y, X, groups, W = NULL,
   }
   
   # Run algorithm
-  mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
-    if (log_restarts) {
-      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
-      cat("Initialising random restart", i, "...\n\n")
-    }
-    mod <- ss_fun(y = y, X = X, groups = groups, W = W,
+  # mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
+  #   if (log_restarts) {
+  #     sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+  #     cat("Initialising random restart", i, "...\n\n")
+  #   }
+    mod_restarts <- list(ss_fun(dsgn = list(y = y, X = X, groups = groups, W = W),
              tol = tol, max_iter = max_iter,
              update_hyper = update_hyper, 
              update_hyper_freq = update_hyper_freq,
              hyper_fixed = hyper_fixed,
              print_freq = print_freq,
              hyper_random_init = hyper_random_init,
-             vi_random_init = vi_random_init)
-    if (log_restarts) {
-      cat("\nRestart", i, "complete.")
-      sink()
-    }
-    mod
-  }
+             vi_random_init = vi_random_init))
+  #   if (log_restarts) {
+  #     cat("\nRestart", i, "complete.")
+  #     sink()
+  #   }
+  #   mod
+  # }
   
   # Select random restart that gave the highest ELBO
   ELBO_restarts <- sapply(mod_restarts, FUN = function(mod) mod$ELBO_track[length(mod$ELBO_track)])

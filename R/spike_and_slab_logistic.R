@@ -12,11 +12,11 @@
 #'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param y Integer vector of length n containing outcomes; 1 = success, 0 = failure.
-#' @param X Matrix of dimension n x sum(K), where n is the number of units, and
+#' @param X matrix of dimension n x sum(K), where n is the number of units, and
 #' K[g] is the number of variables in group g.
 #' @param groups A list of length G (number of groups), where groups[[g]] is an integer
 #' vector specifying the columns of X that belong to group g.
-#' @param W Matrix of non-sparse regression coefficients of dimension n x m
+#' @param W matrix of non-sparse regression coefficients of dimension n x m
 #' @param tol Convergence tolerance for ELBO.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
 #' @param update_hyper Update hyperparameters? Default = TRUE.
@@ -34,7 +34,7 @@ spike_and_slab_logistic <- function(dsgn,
                                   hyper_random_init,
                                   vi_random_init) {
   if (is.null(dsgn$W)) {
-    W <- Matrix::Matrix(nrow = length(dsgn$y), ncol = 0)
+    W <- matrix(nrow = length(dsgn$y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
   G <- length(dsgn$groups)
@@ -60,28 +60,25 @@ spike_and_slab_logistic <- function(dsgn,
   hyperparams$eta <- eta
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
-  A_eta <- Matrix::Diagonal(n = n, g_eta)
-  Sigma_inv <- sapply(X = dsgn$groups, 
-                FUN = function(cols, Xg, A, tau) 2 * 
-                Matrix::crossprod(Xg[ , cols, drop = F], A) %*% Xg[ , cols, drop = F] + 
-                Matrix::Diagonal(length(cols), 1 / tau),
-                Xg = dsgn$X,
-                tau = hyperparams$tau,
-                A = A_eta)
-  Sigma <- sapply(Sigma_inv, Matrix::solve)
-  Sigma_det <- sapply(Sigma, Matrix::det)
+  xxT <- lapply(X = dsgn$groups, FUN = xxT_ss_fun, dat = dsgn$X)
+  xxT_g_eta <- mapply(FUN = xxT_g_eta_fun_ss, xxT = xxT, K = K, MoreArgs = list(g_eta = g_eta))
+  Sigma_inv <- mapply(FUN = function(x, K, tau) 2 * x + diag(x = 1 / tau, nrow = K),
+                      x = xxT_g_eta, K = K, MoreArgs = list(tau = hyperparams$tau))
+  Sigma <- sapply(Sigma_inv, solve)
+  Sigma_det <- sapply(Sigma, det)
   mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
-  mu <- sapply(mu, Matrix::Matrix, ncol = 1)
+  mu <- sapply(mu, matrix, ncol = 1)
   prob <- runif(G, 0 , 1)
   tau_t <- rep(hyperparams$tau, G)
-  delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
-  Omega_inv <- 2 * Matrix::t(dsgn$W) %*% A_eta %*% dsgn$W + 
-    Matrix::Diagonal(m, 1 / hyperparams$omega)
+  delta <- matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
+  wwT <- rowOuterProds(dsgn$W)
+  wwT_g_eta <- xxT_g_eta_fun_ss(wwT, m, g_eta)
+  Omega_inv <- 2 * wwT_g_eta + diag(1 / hyperparams$omega, m)
   if (m != 0) {
-    Omega <- Matrix::solve(Omega_inv)
-    Omega_det <- Matrix::det(Omega)
+    Omega <- solve(Omega_inv)
+    Omega_det <- det(Omega)
   } else {
-    Omega <- Matrix::Matrix(nrow = 0, ncol = 0)
+    Omega <- matrix(nrow = 0, ncol = 0)
     Omega_det <- 1
   }
   # Put VI parameters in list
@@ -121,7 +118,8 @@ spike_and_slab_logistic <- function(dsgn,
     if (i %% print_freq == 0) cat("Iteration", i, "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     vi_params <- update_vi_params_logistic(X = dsgn$X, groups = dsgn$groups, W = dsgn$W,
-                                         y = dsgn$y, n = n, K = K, G = G, m = m,
+                                         y = dsgn$y, xxT = xxT, wwT = wwT,
+                                         n = n, K = K, G = G, m = m,
                                          prob = vi_params$prob, 
                                          mu = vi_params$mu, 
                                          Sigma = vi_params$Sigma, 

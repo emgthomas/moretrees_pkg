@@ -17,14 +17,12 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
   for (g in 1:G) {
     lp <- lp + prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
   }
+  lp <- as.numeric(lp)
   # Expected linear predictor squared
-  lp2 <- apply(W, MARGIN = 1, 
-               FUN = function(w, Omega) as.numeric(Matrix::crossprod(w, Omega) %*% w),
-               Omega = Omega)
+  lp2 <- emulator::quad.tdiag(Omega, W)
   for (g in 1:G) {
-    lp2 <- lp2 + prob[g] * apply(X[ , groups[[g]], drop = F], MARGIN = 1,
-          FUN = function(x, Sigma) as.numeric(Matrix::crossprod(x, Sigma) %*% x),
-          Sigma = Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]]))
+    Sigma_g <- Sigma[[g]] + (1 - prob[g]) * tcrossprod(mu[[g]])
+    lp2 <- lp2 + prob[g] * emulator::quad.tdiag(Sigma_g, X[, groups[[g]], drop = F])
   }
   lp2 <- lp2 + lp ^ 2
 
@@ -32,7 +30,7 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
   expected_ss_gamma <- 0
   for (g in 1:G) {
     expected_ss_gamma <- expected_ss_gamma + prob[g] *
-      (sum(Matrix::diag(Sigma[[g]])) + sum(mu[[g]] ^ 2))
+      (sum(diag(Sigma[[g]])) + sum(mu[[g]] ^ 2))
   }
   expected_ss_gamma <- as.numeric(expected_ss_gamma + sum(K * tau_t * (1 - prob)))
   
@@ -40,7 +38,7 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
   if (m == 0) {
     expected_ss_theta <- 0
   } else {
-    expected_ss_theta <- sum(Matrix::diag(Omega)) + sum(delta ^ 2)
+    expected_ss_theta <- sum(diag(Omega)) + sum(delta ^ 2)
   }
   
   # Update hyperparameters ---------------------------------------------------------
@@ -52,8 +50,8 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
     rho <- mean(prob)
   }
   # Update eta  --------------------------------------------------------------------
-  eta <- as.numeric(sqrt(lp2))
-  g_eta <- as.numeric(gfun(eta))
+  eta <- sqrt(lp2)
+  g_eta <- gfun(eta)
   
   # Compute ELBO -------------------------------------------------------------------
   # See pg 13 of "variational inference for spike & slab model" document -
