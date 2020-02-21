@@ -11,7 +11,7 @@ devtools::load_all() # Sources all files in R/
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-group <- "7"
+group <- "7.3"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -20,7 +20,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E6
+n <- 1E4
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
 m <- 2
@@ -82,20 +82,20 @@ if (family == "gaussian") {
 require(gdata)
 keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, 
      s_true, groups_true, beta, theta, hyper_fixed, sure = T)
-require(profvis)
-profvis(
+# require(profvis)
+# profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "tree",
+                   method = "matrix",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = F, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 10,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E4,
                    print_freq = 1,
                    nrestarts = nrestarts,
                    get_ml = F,
                    log_dir = "./tests/")
-)
+# )
 beta_est <- mod$beta_est
 beta_moretrees <- mod$beta_moretrees
 beta_ml <- mod$beta_ml
