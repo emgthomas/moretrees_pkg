@@ -122,5 +122,5 @@ moretrees_design_matrix <- function(y, X, W = NULL, outcomes, tr, W_method = "sh
   # Replace y = 0 with y = -1 for compatibility with moretrees algorithm
   if (is.integer(y)) y[y == 0] <- -1
   
-  return(list(X = Xstar, groups = groups, W = Wstar, y = y, A = A))
+  return(list(X = as.matrix(Xstar), groups = groups, W = as.matrix(Wstar), y = y, A = A))
 }

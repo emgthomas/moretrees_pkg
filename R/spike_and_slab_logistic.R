@@ -61,13 +61,15 @@ spike_and_slab_logistic <- function(dsgn,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   xxT <- lapply(X = dsgn$groups, FUN = xxT_ss_fun, dat = dsgn$X)
-  xxT_g_eta <- mapply(FUN = xxT_g_eta_fun_ss, xxT = xxT, K = K, MoreArgs = list(g_eta = g_eta))
+  xxT_g_eta <- mapply(FUN = xxT_g_eta_fun_ss, xxT = xxT, K = K, MoreArgs = list(g_eta = g_eta),
+                      SIMPLIFY = F)
   Sigma_inv <- mapply(FUN = function(x, K, tau) 2 * x + diag(x = 1 / tau, nrow = K),
-                      x = xxT_g_eta, K = K, MoreArgs = list(tau = hyperparams$tau))
-  Sigma <- sapply(Sigma_inv, solve)
+                      x = xxT_g_eta, K = K, MoreArgs = list(tau = hyperparams$tau),
+                      SIMPLIFY = F)
+  Sigma <- lapply(Sigma_inv, solve)
   Sigma_det <- sapply(Sigma, det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
-  mu <- sapply(mu, matrix, ncol = 1)
+  mu <- lapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd)
+  mu <- lapply(mu, matrix, ncol = 1)
   prob <- runif(G, 0 , 1)
   tau_t <- rep(hyperparams$tau, G)
   delta <- matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)

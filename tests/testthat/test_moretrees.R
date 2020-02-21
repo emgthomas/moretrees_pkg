@@ -85,7 +85,7 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
 # require(profvis)
 # profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "tree",
+                   method = "matrix",
                    W_method = "shared",
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,
