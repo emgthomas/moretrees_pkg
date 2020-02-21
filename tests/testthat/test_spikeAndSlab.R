@@ -23,14 +23,14 @@ s_true <- sample(c(0, 0, 1, 1), size = )
 beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
-n <- 100
+n <- 1E4
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
 hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 
 # Generate some data -----------------------------------------------------------------
-X <- Matrix::Matrix(rnorm(sum(K) * n, sd = 0.5), nrow = n)
+X <- matrix(rnorm(sum(K) * n, sd = 0.5), nrow = n)
 groups <- sapply(1:length(K), function(i) {
   if ( i == 1) {
     1:K[i]
@@ -38,7 +38,7 @@ groups <- sapply(1:length(K), function(i) {
     (1:K[i] + sum(K[1:(i-1)]))
   }
 })
-W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
+W <- matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
 for (g in 1:G) {
   lp <- lp + X[ , groups[[g]], drop = F] %*% beta[[g]]

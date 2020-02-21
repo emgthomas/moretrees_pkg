@@ -85,15 +85,15 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
 # require(profvis)
 # profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "matrix",
+                   method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E4,
-                   print_freq = 1,
+                   print_freq = 10,
                    nrestarts = nrestarts,
-                   get_ml = F,
+                   get_ml = T,
                    log_dir = "./tests/")
 # )
 beta_est <- mod$beta_est
