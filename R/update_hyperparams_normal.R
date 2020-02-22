@@ -23,7 +23,7 @@ update_hyperparams_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # d
   for (g in 1:G) {
     prob_tr <- prob_tr + prob[g] * trace_prod(Sigma[[g]], XtX[[g]])
     ssr_corr <- ssr_corr + 
-      prob[g] * (1 - prob[g]) * Matrix::t(mu[[g]]) %*% XtX[[g]] %*% mu[[g]]
+      prob[g] * (1 - prob[g]) * t(mu[[g]]) %*% XtX[[g]] %*% mu[[g]]
   }
   expected_ssr <- as.numeric(trace_prod(WtW, Omega) + prob_tr + ssr + ssr_corr)
   
@@ -31,7 +31,7 @@ update_hyperparams_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # d
   expected_ss_gamma <- 0
   for (g in 1:G) {
     expected_ss_gamma <- expected_ss_gamma + prob[g] *
-      (sum(Matrix::diag(Sigma[[g]])) + sum(mu[[g]] ^ 2))
+      (sum(diag(Sigma[[g]])) + sum(mu[[g]] ^ 2))
   }
   expected_ss_gamma <- as.numeric(expected_ss_gamma + sum(K * tau_t * (1 - prob)))
   
@@ -39,7 +39,7 @@ update_hyperparams_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # d
   if (m == 0) {
     expected_ss_theta <- 0
   } else {
-    expected_ss_theta <- sum(Matrix::diag(Omega)) + sum(delta ^ 2)
+    expected_ss_theta <- sum(diag(Omega)) + sum(delta ^ 2)
   }
   
   # Update hyperparameters ---------------------------------------------------------

@@ -8,8 +8,8 @@ rm(list = ls())
 devtools::load_all() # Sources all files in R/
 
 # Pick one ---------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
@@ -51,6 +51,10 @@ if(family == "bernoulli") {
 } else {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 }
+
+require(gdata)
+keep(X, W, y, groups, family, hyper_fixed, nrestarts, 
+     s_true, beta, theta, hyper_fixed, sure = T)
 
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, groups, W, family = family,
@@ -116,8 +120,8 @@ abline(a = 0, b = 1, col = "red")
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
 } else {
-  cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
 }
 

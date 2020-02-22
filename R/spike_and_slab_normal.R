@@ -29,7 +29,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_normal <- function(y, X, groups, W,
+spike_and_slab_normal <- function(dsgn,
                                   tol, max_iter,
                                   update_hyper, 
                                   update_hyper_freq,
@@ -37,17 +37,17 @@ spike_and_slab_normal <- function(y, X, groups, W,
                                   print_freq,
                                   hyper_random_init,
                                   vi_random_init) {
-  if (is.null(W)) {
-    W <-  Matrix::Matrix(nrow = length(y), ncol = 0)
+  if (is.null(dsgn$W)) {
+    W <-  matrix(nrow = length(dsgn$y), ncol = 0)
   }
   # Prepare for running algorithm ---------------------------------------------------
-  G <- length(groups)
-  n <- length(y)
-  K <- sapply(groups, length)
-  m <- ncol(W)
+  G <- length(dsgn$groups)
+  n <- length(dsgn$y)
+  K <- sapply(dsgn$groups, length)
+  m <- ncol(dsgn$W)
   # Computing XtX and WtW so we don't have to do this repeatedly
-  XtX <- sapply(groups, function(cols) Matrix::crossprod(X[ , cols]))
-  WtW <- Matrix::crossprod(W)
+  XtX <- sapply(dsgn$groups, function(cols) crossprod(dsgn$X[ , cols]))
+  WtW <- crossprod(dsgn$W)
   # Initial hyperparameter values
   if (update_hyper) {
     # If hyperparameters will be updated, randomly initialise them
@@ -63,23 +63,23 @@ spike_and_slab_normal <- function(y, X, groups, W,
     hyperparams$omega <- 1
   }
   # Variational parameter initial values
-  Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
-                      Matrix::Diagonal(ncol(XtX), 1 / tau),
+  Sigma_inv <- lapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
+                      diag(x = 1 / tau, nrow = ncol(XtX)),
                       tau = hyperparams$tau, 
                       sigma2 = hyperparams$sigma2)  
-  Sigma <- sapply(Sigma_inv, Matrix::solve)
-  Sigma_det <- sapply(Sigma, Matrix::det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
-  mu <- sapply(mu, Matrix::Matrix, ncol = 1, simplify = F)
+  Sigma <- lapply(Sigma_inv, solve)
+  Sigma_det <- sapply(Sigma, det)
+  mu <- lapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd)
+  mu <- lapply(mu, matrix, ncol = 1)
   prob <- runif(G, 0, 1)
-  tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
-  delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
-  Omega_inv <- WtW / hyperparams$sigma2 + Matrix::Diagonal(m, 1 / hyperparams$omega)
+  tau_t <- rep(hyperparams$tau, G) # this should not be changed; tau_t = tau according to algorithm
+  delta <- matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
+  Omega_inv <- WtW / hyperparams$sigma2 + diag(x = 1 / hyperparams$omega, nrow = m)
   if (m != 0) {
-    Omega <- Matrix::solve(Omega_inv)
-    Omega_det <- Matrix::det(Omega)
+    Omega <- solve(Omega_inv)
+    Omega_det <- det(Omega)
   } else {
-    Omega <- Matrix::Matrix(nrow = 0, ncol = 0)
+    Omega <- matrix(nrow = 0, ncol = 0)
     Omega_det <- 1
   }
   
@@ -90,9 +90,10 @@ spike_and_slab_normal <- function(y, X, groups, W,
                     Omega = Omega, Omega_inv = Omega_inv,
                     Omega_det = Omega_det)
   # Compute initial ELBO
-  hyperparams <-  update_hyperparams_normal(X = X, XtX = XtX, groups = groups,
-                                              W = W, WtW = WtW,
-                                              y = y, n = n,
+  hyperparams <-  update_hyperparams_normal(X = dsgn$X, XtX = XtX, 
+                                              groups = dsgn$groups,
+                                              W = dsgn$W, WtW = WtW,
+                                              y = dsgn$y, n = n,
                                               K = K, G = G, m = m,
                                               prob = prob, mu = mu,
                                               Sigma = Sigma, Sigma_det = Sigma_det,
@@ -119,9 +120,9 @@ spike_and_slab_normal <- function(y, X, groups, W,
     i <- i + 1
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     update_hyper_im1 <- (i %% update_hyper_freq == 1) & update_hyper
-    vi_params <- update_vi_params_normal(X = X, groups = groups, XtX = XtX, 
-                                         W = W, WtW = WtW,
-                                         y = y, n = n, K = K, G = G, m = m,
+    vi_params <- update_vi_params_normal(X = dsgn$X, groups = dsgn$groups,
+                                         XtX = XtX, W = dsgn$W, WtW = WtW,
+                                         y = dsgn$y, n = n, K = K, G = G, m = m,
                                          prob = vi_params$prob, 
                                          mu = vi_params$mu, 
                                          Sigma = vi_params$Sigma, 
@@ -138,9 +139,9 @@ spike_and_slab_normal <- function(y, X, groups, W,
                                          tau = hyperparams$tau,
                                          update_hyper_last = update_hyper_im1)
     if (!update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, groups = groups, XtX = XtX, 
-                                               W = W, WtW = WtW,
-                                               y = y, n = n,
+      hyperparams <- update_hyperparams_normal(X = dsgn$X, groups = dsgn$groups,
+                                               XtX = XtX, W = dsgn$W, WtW = WtW,
+                                               y = dsgn$y, n = n,
                                                K = K, G = G, m = m,
                                                prob = vi_params$prob, 
                                                mu = vi_params$mu,
@@ -176,9 +177,9 @@ spike_and_slab_normal <- function(y, X, groups, W,
     }
     # Update hyperparameters
     if (update_hyper_i) {
-      hyperparams <- update_hyperparams_normal(X = X, groups = groups, XtX = XtX, 
-                                               W = W, WtW = WtW,
-                                               y = y, n = n,
+      hyperparams <- update_hyperparams_normal(X = dsgn$X, groups = dsgn$groups,
+                                               XtX = XtX, W = dsgn$W, WtW = WtW,
+                                               y = dsgn$y, n = n,
                                                K = K, G = G, m = m,
                                                prob = vi_params$prob, 
                                                mu = vi_params$mu,
