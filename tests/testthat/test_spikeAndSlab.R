@@ -12,15 +12,15 @@ devtools::load_all() # Sources all files in R/
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-G <- 100 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 K <- sample(1:4, size = G, replace = T)
 m <- 20
 tau <- 3
 rho <- 0.5
 omega <- 2
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
-# s_true <- rbinom(n = G, size = 1, prob = rho)
-s_true <- sample(c(0, 0, 1, 1), size = )
+s_true <- rbinom(n = G, size = 1, prob = rho)
+# s_true <- sample(c(0, 0, 1, 1), size = )
 beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
@@ -81,7 +81,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 140
+plot_start <- 1
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,

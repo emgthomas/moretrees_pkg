@@ -23,7 +23,7 @@ pL <- sum(igraph::V(tr)$leaf)
 n <- 1E4
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 3
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
@@ -85,7 +85,7 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
 # require(profvis)
 # profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "matrix",
+                   method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,
@@ -153,8 +153,8 @@ cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
 } else {
-  cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
 }
 

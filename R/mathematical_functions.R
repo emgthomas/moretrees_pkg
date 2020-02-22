@@ -65,3 +65,5 @@ xxT_g_eta_fun_ss <- function(xxT, K, g_eta) {
   mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)] 
   return(mat)
 }
+
+quadFormByRow <- function(Sigma, X) rowSums(tcrossprod(X, Sigma) * X)
