@@ -7,8 +7,8 @@ rm(list = ls())
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7.3"
@@ -84,7 +84,19 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
      s_true, groups_true, beta, theta, hyper_fixed, sure = T)
 # require(profvis)
 # profvis(
-  mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   method = "tree",
+                   W_method = "shared",
+                   tr = tr, family = family,
+                   update_hyper = T, update_hyper_freq = 30,
+                   hyper_fixed = hyper_fixed,
+                   tol = 1E-8, max_iter = 22,
+                   print_freq = 30,
+                   nrestarts = nrestarts,
+                   get_ml = T,
+                   log_dir = "./tests/")
+  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   initial_values = mod_start$mod,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
@@ -96,12 +108,12 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
 # )
-beta_est <- mod$beta_est
-beta_moretrees <- mod$beta_moretrees
-beta_ml <- mod$beta_ml
-theta_est <- mod$theta_est
-mod_restarts <- mod$mod_restarts
-mod1 <- mod$mod
+beta_est <- mod_end$beta_est
+beta_moretrees <- mod_end$beta_moretrees
+beta_ml <- mod_end$beta_ml
+theta_est <- mod_end$theta_est
+mod_restarts <- mod_end$mod_restarts
+mod1 <- mod_end$mod
 
 # Compare ELBOs for random restarts --------------------------------------------------
 c(mod1$ELBO_track[length(mod1$ELBO_track)],
@@ -110,7 +122,7 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)

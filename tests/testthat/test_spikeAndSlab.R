@@ -57,17 +57,25 @@ keep(X, W, y, groups, family, hyper_fixed, nrestarts,
      s_true, beta, theta, hyper_fixed, sure = T)
 
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- spike_and_slab(y, X, groups, W, family = family,
+mod_start <- spike_and_slab(y, X, groups, W, family = family,
+                       update_hyper = T, update_hyper_freq = 10,
+                       print_freq = 10,
+                       tol = 1E-8, max_iter = 22,
+                       nrestarts = nrestarts,
+                       log_dir = "./tests/",
+                       hyper_fixed = hyper_fixed)
+mod_end <- spike_and_slab(y, X, groups, W, family = family,
+                       initial_values = mod_start$mod,
                        update_hyper = T, update_hyper_freq = 10,
                        print_freq = 10,
                        tol = 1E-8, max_iter = 1E5,
                        nrestarts = nrestarts,
                        log_dir = "./tests/",
                        hyper_fixed = hyper_fixed)
-beta_est <- mod1$sparse_est
-theta_est <- mod1$nonsparse_est
-mod_restarts <- mod1$mod_restarts
-mod1 <- mod1$mod
+beta_est <- mod_end$sparse_est
+theta_est <- mod_end$nonsparse_est
+mod_restarts <- mod_end$mod_restarts
+mod1 <- mod_end$mod
 
 # Compare ELBOs for random restarts --------------------------------------------------
 c(mod1$ELBO_track[length(mod1$ELBO_track)],
@@ -76,7 +84,7 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
