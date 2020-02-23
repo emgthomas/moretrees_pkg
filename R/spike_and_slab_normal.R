@@ -46,7 +46,7 @@ spike_and_slab_normal <- function(dsgn,
   K <- sapply(dsgn$groups, length)
   m <- ncol(dsgn$W)
   # Computing XtX and WtW so we don't have to do this repeatedly
-  XtX <- sapply(dsgn$groups, function(cols) crossprod(dsgn$X[ , cols]))
+  XtX <- lapply(dsgn$groups, function(cols) crossprod(dsgn$X[ , cols]))
   WtW <- crossprod(dsgn$W)
   # Initial hyperparameter values
   if (update_hyper) {

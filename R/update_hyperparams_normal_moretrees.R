@@ -7,7 +7,7 @@
 
 update_hyperparams_normal_moretrees <- function(X, groups, XtX, W, WtW, y,
                                 outcomes_units, ancestors,
-                                n, K, p, m, # data
+                                n, K, p, pL, m, # data
                                 prob, mu, Sigma, Sigma_det, tau_t,
                                 delta, Omega, Omega_det, # variational params
                                 omega, sigma2, tau, rho, # hyperparameters
@@ -17,7 +17,7 @@ update_hyperparams_normal_moretrees <- function(X, groups, XtX, W, WtW, y,
   xi <- mapply(FUN = function(prob, mu) prob * mu,
                prob = prob, mu = mu, SIMPLIFY = F)
   lp <- numeric(n) + 0
-  for (v in 1:length(ancestors)) {
+  for (v in 1:pL) {
     beta_v <- Reduce(`+`, xi[ancestors[[v]]])
     theta_v <- Reduce(`+`, delta[ancestors[[v]]])
     lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], ] %*% beta_v + 
@@ -27,7 +27,7 @@ update_hyperparams_normal_moretrees <- function(X, groups, XtX, W, WtW, y,
   # Expected sum of squared residuals
   prob_tr <- 0
   ssr_corr <- 0
-  for (v in 1:length(ancestors)) {
+  for (v in 1:p) {
     prob_tr <- prob_tr + prob[v] * trace_prod(Sigma[[v]], XtX[[v]]) +
       trace_prod(Omega[[v]], WtW[[v]])
     ssr_corr <- ssr_corr + 
@@ -60,12 +60,13 @@ update_hyperparams_normal_moretrees <- function(X, groups, XtX, W, WtW, y,
     }
     tau <- expected_ss_gamma / (K * p)
     rho <- mean(prob)
+    sigma2 <- expected_ssr / n
   }
   # Compute ELBO -------------------------------------------------------------------
   # See pg 5 of "variational inference for spike & slab model" document -
   # line numbers correspond to lines in equation
   line1 <- - 1 / (2 * sigma2) * expected_ssr - (n / 2) * log(2 * pi * sigma2)
-  line2 <- - expected_ss_gamma / (2 * tau) - sum(K) * log(2 * pi * tau) / 2 + 
+  line2 <- - expected_ss_gamma / (2 * tau) - K * p * log(2 * pi * tau) / 2 + 
     log(rho ^ sum(prob)) + log((1 - rho) ^ (p - sum(prob)))
   line3 <- - expected_ss_theta / (2 * omega) - (m * p / 2) * log(2 * pi * omega)
   line4 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2

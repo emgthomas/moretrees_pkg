@@ -33,7 +33,7 @@ update_vi_params_normal_moretrees <- function(X, groups, XtX, W, WtW, y, n, K, p
       beta_u_mv <- Reduce(`+`, xi[anc_u_mv])
       units_u <- outcomes_units[[u]]
       mu[[v]] <- mu[[v]] + crossprod(X[units_u, ],
-        (y[units_u] - (X[units_u, ] %*% beta_u_mv + Wtheta[units_u])))
+                y[units_u] - (X[units_u, ] %*% beta_u_mv + Wtheta[units_u]))
     }
     mu[[v]] <- (1 / sigma2) * Sigma[[v]] %*% mu[[v]]
     # update prob_g (pi_g in manuscript)
@@ -63,12 +63,12 @@ update_vi_params_normal_moretrees <- function(X, groups, XtX, W, WtW, y, n, K, p
       delta[[v]] <- delta[[v]] * 0
       for (u in leaf_descendants) {
         anc_u_mv <- setdiff(ancestors[[u]], v)
-        units_u <- outcomes_units[[u]]
         theta_u_mv <- Reduce(`+`, delta[anc_u_mv])
+        units_u <- outcomes_units[[u]]
         delta[[v]] <- delta[[v]] + crossprod(W[units_u, ],
-             (y[units_u] - (W[units_u, ] %*% theta_u_mv + Xbeta[units_u])))
+             y[units_u] - (W[units_u, ] %*% theta_u_mv + Xbeta[units_u]))
       }
-      delta[[v]] <- Omega[[v]] %*% delta[[v]]
+      delta[[v]] <- (1 / sigma2) * Omega[[v]] %*% delta[[v]]
     }
   }
   # Return ---------------------------------------------------------------------------

@@ -88,10 +88,10 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 30,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E4,
-                   print_freq = 10,
+                   print_freq = 30,
                    nrestarts = nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
@@ -119,7 +119,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 2
+plot_start <- 90
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
