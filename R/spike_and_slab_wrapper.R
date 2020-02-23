@@ -77,6 +77,7 @@
 #' @family spike and slab functions
 
 spike_and_slab <- function(y, X, groups, W = NULL, 
+                           initial_values = NULL,
                            family = "bernoulli",
                            ci_level = 0.95,
                            tol = 1E-4, max_iter = 1E5,
@@ -123,6 +124,7 @@ spike_and_slab <- function(y, X, groups, W = NULL,
   #     cat("Initialising random restart", i, "...\n\n")
   #   }
     mod_restarts <- list(ss_fun(dsgn = list(y = y, X = X, groups = groups, W = W),
+             initial_values = initial_values,
              tol = tol, max_iter = max_iter,
              update_hyper = update_hyper, 
              update_hyper_freq = update_hyper_freq,

@@ -23,7 +23,7 @@ pL <- sum(igraph::V(tr)$leaf)
 n <- 1E4
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 3
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
@@ -84,24 +84,36 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
      s_true, groups_true, beta, theta, hyper_fixed, sure = T)
 # require(profvis)
 # profvis(
-  mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "matrix",
+  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 30,
+                   hyper_fixed = hyper_fixed,
+                   tol = 1E-8, max_iter = 22,
+                   print_freq = 30,
+                   nrestarts = nrestarts,
+                   get_ml = T,
+                   log_dir = "./tests/")
+  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   initial_values = mod_start$mod,
+                   method = "tree",
+                   W_method = "shared",
+                   tr = tr, family = family,
+                   update_hyper = T, update_hyper_freq = 30,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E4,
-                   print_freq = 1,
+                   print_freq = 30,
                    nrestarts = nrestarts,
-                   get_ml = F,
+                   get_ml = T,
                    log_dir = "./tests/")
 # )
-beta_est <- mod$beta_est
-beta_moretrees <- mod$beta_moretrees
-beta_ml <- mod$beta_ml
-theta_est <- mod$theta_est
-mod_restarts <- mod$mod_restarts
-mod1 <- mod$mod
+beta_est <- mod_end$beta_est
+beta_moretrees <- mod_end$beta_moretrees
+beta_ml <- mod_end$beta_ml
+theta_est <- mod_end$theta_est
+mod_restarts <- mod_end$mod_restarts
+mod1 <- mod_end$mod
 
 # Compare ELBOs for random restarts --------------------------------------------------
 c(mod1$ELBO_track[length(mod1$ELBO_track)],
@@ -110,7 +122,7 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -119,7 +131,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 2
+plot_start <- 90
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
@@ -153,8 +165,8 @@ cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
 } else {
-  cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
 }
 

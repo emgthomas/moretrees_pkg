@@ -36,7 +36,7 @@
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_logistic_moretrees <- function(dsgn,
+spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                                               tol, max_iter,
                                               update_hyper, 
                                               update_hyper_freq,
@@ -53,90 +53,101 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   p <- length(unique(unlist(dsgn$ancestors)))
   pL <- length(dsgn$ancestors)
   K <- ncol(dsgn$X)
-  # Initial hyperparameter values
-  eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
-  g_eta <- gfun(eta)
-  if (update_hyper) {
-    # If hyperparameters will be updated, randomly initialise them
-    hyperparams <- list(omega = runif(1, 0, hyper_random_init$omega_max),
-                        tau = runif(1, 0, hyper_random_init$tau_max),
-                        rho = runif(1, 0, 1))
-  } else {
-    # Otherwise, use fixed values
-    hyperparams <- hyper_fixed
-  }
-  
-  if (m == 0) {
-    hyperparams$omega <- 1
-  }
-  hyperparams$eta <- eta
-  hyperparams$g_eta <- g_eta
-  # Variational parameter initial values
   if (K == 1) {
     xxT <- dsgn$X ^ 2
   } else {
     xxT <- rowOuterProds(dsgn$X)
   }
-  xxT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
-                      xxT = xxT, g_eta = g_eta, K = K)
-  Sigma_inv <- lapply(X = dsgn$outcomes_nodes, 
-                      FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
-                        diag(1 / tau, nrow = K),
-                      x = xxT_g_eta,
-                      K = K,
-                      tau = hyperparams$tau)
-  Sigma <- lapply(Sigma_inv, solve)
-  Sigma_det <- sapply(Sigma, det)
-  mu <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1))
-  prob <- runif(p, 0 , 1)
-  tau_t <- rep(hyperparams$tau, p)
-  delta <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1))
   if (m > 0) {
     if (m == 1) {
       wwT <- dsgn$W ^ 2
     } else {
       wwT <- rowOuterProds(dsgn$W)
     }
-    wwT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
-                        xxT = wwT, g_eta = g_eta, K = m)
-    Omega_inv <- lapply(X = dsgn$outcomes_nodes, 
-                        FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
-                          diag(1 / omega, nrow = m),
-                        w = wwT_g_eta,
-                        m = m,
-                        omega = hyperparams$omega)
-    Omega <- sapply(Omega_inv, solve, simplify = F)
-    Omega_det <- sapply(Omega, det, simplify = T)
   } else {
     wwT <- NULL
-    Omega <- rep(list(matrix(nrow = 0, ncol = 0)), p)
-    Omega_inv <- rep(list(matrix(nrow = 0, ncol = 0)), p)
-    Omega_det <- rep(1, p)
   }
-  # Put VI parameters in list
-  vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
-                    Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
-                    tau_t = tau_t, delta = delta,
-                    Omega = Omega, Omega_inv = Omega_inv,
-                    Omega_det = Omega_det)
-  # Compute initial ELBO
-  hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
-                                                        W = dsgn$W,
-                                                        y = dsgn$y, 
-                                                        outcomes_units = dsgn$outcomes_units,
-                                                        ancestors = dsgn$ancestors,
-                                                        n = n, K = K, p = p, m = m,
-                                                        prob = prob, mu = mu,
-                                                        Sigma = Sigma, Sigma_det = Sigma_det,
-                                                        tau_t = tau_t, delta = delta,
-                                                        Omega = Omega, Omega_det = Omega_det,
-                                                        eta = hyperparams$eta, g_eta = hyperparams$g_eta,
-                                                        omega = hyperparams$omega, tau = hyperparams$tau,
-                                                        rho = hyperparams$rho, update_hyper = F)
+  # Initial hyperparameter values
+  if (is.null(initial_values)) {
+    eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
+    g_eta <- gfun(eta)
+    if (update_hyper) {
+      # If hyperparameters will be updated, randomly initialise them
+      hyperparams <- list(omega = runif(1, 0, hyper_random_init$omega_max),
+                          tau = runif(1, 0, hyper_random_init$tau_max),
+                          rho = runif(1, 0, 1))
+    } else {
+      # Otherwise, use fixed values
+      hyperparams <- hyper_fixed
+    }
+    
+    if (m == 0) {
+      hyperparams$omega <- 1
+    }
+    hyperparams$eta <- eta
+    hyperparams$g_eta <- g_eta
+    # Variational parameter initial values
+    xxT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
+                        xxT = xxT, g_eta = g_eta, K = K)
+    Sigma_inv <- lapply(X = dsgn$outcomes_nodes, 
+                        FUN = function(outcomes, x, K, tau) 2 * Reduce(`+`, x[outcomes]) + 
+                          diag(1 / tau, nrow = K),
+                        x = xxT_g_eta,
+                        K = K,
+                        tau = hyperparams$tau)
+    Sigma <- lapply(Sigma_inv, solve)
+    Sigma_det <- sapply(Sigma, det)
+    mu <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1))
+    prob <- runif(p, 0 , 1)
+    tau_t <- rep(hyperparams$tau, p)
+    delta <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1))
+    if (m > 0) {
+      wwT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = xxT_g_eta_fun,
+                          xxT = wwT, g_eta = g_eta, K = m)
+      Omega_inv <- lapply(X = dsgn$outcomes_nodes, 
+                          FUN = function(outcomes, w, m, omega) 2 * Reduce(`+`, w[outcomes]) + 
+                            diag(1 / omega, nrow = m),
+                          w = wwT_g_eta,
+                          m = m,
+                          omega = hyperparams$omega)
+      Omega <- sapply(Omega_inv, solve, simplify = F)
+      Omega_det <- sapply(Omega, det, simplify = T)
+    } else {
+      Omega <- rep(list(matrix(nrow = 0, ncol = 0)), p)
+      Omega_inv <- rep(list(matrix(nrow = 0, ncol = 0)), p)
+      Omega_det <- rep(1, p)
+    }
+    # Put VI parameters in list
+    vi_params <- list(mu = mu, prob = prob, Sigma = Sigma,
+                      Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
+                      tau_t = tau_t, delta = delta,
+                      Omega = Omega, Omega_inv = Omega_inv,
+                      Omega_det = Omega_det)
+    # Compute initial ELBO
+    hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
+                                                          W = dsgn$W,
+                                                          y = dsgn$y, 
+                                                          outcomes_units = dsgn$outcomes_units,
+                                                          ancestors = dsgn$ancestors,
+                                                          n = n, K = K, p = p, m = m,
+                                                          prob = prob, mu = mu,
+                                                          Sigma = Sigma, Sigma_det = Sigma_det,
+                                                          tau_t = tau_t, delta = delta,
+                                                          Omega = Omega, Omega_det = Omega_det,
+                                                          eta = hyperparams$eta, g_eta = hyperparams$g_eta,
+                                                          omega = hyperparams$omega, tau = hyperparams$tau,
+                                                          rho = hyperparams$rho, update_hyper = F)
+    initial_ELBO <- hyperparams$ELBO
+  } else {
+    # Otherwise, if initial values were supplied
+    vi_params <- initial_values$vi_params
+    hyperparams <- initial_values$hyperparams
+    initial_ELBO <- initial_values$ELBO_track[length(initial_values$ELBO_track)]
+  }
   ELBO_track <- numeric(max_iter %/% update_hyper_freq + 1)
-  ELBO_track[1] <- hyperparams$ELBO
+  ELBO_track[1] <- initial_ELBO
   ELBO_track2 <- numeric(max_iter + 1)
-  ELBO_track2[1] <- hyperparams$ELBO
+  ELBO_track2[1] <- initial_ELBO
   # Run algorithm -----------------------------------------------------------------
   i <- 0
   repeat {

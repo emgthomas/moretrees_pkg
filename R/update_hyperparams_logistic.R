@@ -22,7 +22,7 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
   lp2 <- emulator::quad.tdiag(Omega, W)
   for (g in 1:G) {
     Sigma_g <- Sigma[[g]] + (1 - prob[g]) * tcrossprod(mu[[g]])
-    lp2 <- lp2 + prob[g] * emulator::quad.tdiag(Sigma_g, X[, groups[[g]], drop = F])
+    lp2 <- lp2 + prob[g] * quadFormByRow(Sigma_g, X[, groups[[g]], drop = F])
   }
   lp2 <- lp2 + lp ^ 2
 

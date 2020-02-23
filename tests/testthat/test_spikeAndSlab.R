@@ -4,33 +4,34 @@
 # --------------------------------------------------------------------------------- #
 
 # set.seed(98647)
+rm(list = ls())
 devtools::load_all() # Sources all files in R/
 
 # Pick one ---------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-G <- 4 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+G <- 20 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 K <- sample(1:4, size = G, replace = T)
-m <- 4
+m <- 20
 tau <- 3
 rho <- 0.5
 omega <- 2
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
-# s_true <- rbinom(n = G, size = 1, prob = rho)
-s_true <- sample(c(0, 0, 1, 1), size = )
+s_true <- rbinom(n = G, size = 1, prob = rho)
+# s_true <- sample(c(0, 0, 1, 1), size = )
 beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
-n <- 100
+n <- 2 * 1E3
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
 hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 
 # Generate some data -----------------------------------------------------------------
-X <- Matrix::Matrix(rnorm(sum(K) * n, sd = 0.5), nrow = n)
+X <- matrix(rnorm(sum(K) * n, sd = 0.5), nrow = n)
 groups <- sapply(1:length(K), function(i) {
   if ( i == 1) {
     1:K[i]
@@ -38,7 +39,7 @@ groups <- sapply(1:length(K), function(i) {
     (1:K[i] + sum(K[1:(i-1)]))
   }
 })
-W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
+W <- matrix(rnorm(m * n, sd = 0.5), nrow = n)
 lp <- W %*% theta
 for (g in 1:G) {
   lp <- lp + X[ , groups[[g]], drop = F] %*% beta[[g]]
@@ -51,18 +52,30 @@ if(family == "bernoulli") {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 }
 
+require(gdata)
+keep(X, W, y, groups, family, hyper_fixed, nrestarts, 
+     s_true, beta, theta, hyper_fixed, sure = T)
+
 # Run algorithm ----------------------------------------------------------------------
-mod1 <- spike_and_slab(y, X, groups, W, family = family,
+mod_start <- spike_and_slab(y, X, groups, W, family = family,
+                       update_hyper = T, update_hyper_freq = 10,
+                       print_freq = 10,
+                       tol = 1E-8, max_iter = 22,
+                       nrestarts = nrestarts,
+                       log_dir = "./tests/",
+                       hyper_fixed = hyper_fixed)
+mod_end <- spike_and_slab(y, X, groups, W, family = family,
+                       initial_values = mod_start$mod,
                        update_hyper = T, update_hyper_freq = 10,
                        print_freq = 10,
                        tol = 1E-8, max_iter = 1E5,
                        nrestarts = nrestarts,
                        log_dir = "./tests/",
                        hyper_fixed = hyper_fixed)
-beta_est <- mod1$sparse_est
-theta_est <- mod1$nonsparse_est
-mod_restarts <- mod1$mod_restarts
-mod1 <- mod1$mod
+beta_est <- mod_end$sparse_est
+theta_est <- mod_end$nonsparse_est
+mod_restarts <- mod_end$mod_restarts
+mod1 <- mod_end$mod
 
 # Compare ELBOs for random restarts --------------------------------------------------
 c(mod1$ELBO_track[length(mod1$ELBO_track)],
@@ -71,7 +84,7 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -115,8 +128,8 @@ abline(a = 0, b = 1, col = "red")
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
 } else {
-  cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
 }
 
