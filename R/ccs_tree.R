@@ -10,7 +10,7 @@
 #' @section Details
 #' 
 #' @export
-#' @importFrom magrittr `%>%`
+#' @importFrom magrittr %>%
 #' @param group character string specifying that only codes beginning with group 
 #' will be included in tree The default is NULL (returns full tree of CCS codes)
 #' @return A list containing the following elements:
@@ -64,9 +64,9 @@ ccs_tree <- function(group = NULL) {
     group_length <- length(stringr::str_split(group, "\\.")[[1]])
     group_lvl <- paste0("l", group_length)
     ccs <- ccs[ccs[ , group_lvl] == group, ]
-  }
-  if (group_length > 1) {
-    ccs <- ccs[ , sapply(group_length:4, function(x) paste0("l", x))]
+  } else {
+    ccs <- cbind(l0 = "0", ccs)
+    group_length <- 0
   }
   
   # Add zeros
@@ -79,7 +79,11 @@ ccs_tree <- function(group = NULL) {
   }
   
   # Make tree
-  ccs_mat <- as.matrix(ccs_zeros)
+  ccs_mat <- ccs_zeros
+  if (group_length > 1) {
+    ccs_mat <- ccs_mat[ , sapply(group_length:4, function(x) paste0("l", x))]
+  }
+  ccs_mat <- as.matrix(ccs_mat)
   edges <- ccs_mat[ , c(1, 2)]
   if (ncol(ccs_mat) > 2) {
     for (i in 3:ncol(ccs_mat)) {
@@ -113,6 +117,6 @@ ccs_tree <- function(group = NULL) {
   ccs_icd <- ccs_icd[ , c("icd", "l4", "l4_0")]
   names(ccs_icd)[names(ccs_icd) == "l4"] <- "ccs_original"
   names(ccs_icd)[names(ccs_icd) == "l4_0"] <- "ccs_added_zeros"
-
+  
   return(list(tr = tr, ccs_icd_mapping = ccs_icd))
 }
