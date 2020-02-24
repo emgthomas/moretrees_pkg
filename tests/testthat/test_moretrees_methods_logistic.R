@@ -3,6 +3,7 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
+rm(list = ls())
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
@@ -103,6 +104,7 @@ hyperparams$eta <- eta
 hyperparams$g_eta <- g_eta
 # Variational parameter initial values
 X <- dsgn_mat$X
+xxT <- lapply(X = dsgn_mat$groups, FUN = xxT_ss_fun, dat = dsgn_mat$X)
 xxT_g_eta <- mapply(FUN = xxT_g_eta_fun_ss, xxT = xxT, K = K, MoreArgs = list(g_eta = g_eta),
                     SIMPLIFY = F)
 Sigma_inv_mat <- mapply(FUN = function(x, K, tau) 2 * x + diag(x = 1 / tau, nrow = K),
@@ -111,13 +113,14 @@ Sigma_inv_mat <- mapply(FUN = function(x, K, tau) 2 * x + diag(x = 1 / tau, nrow
 Sigma_mat <- lapply(Sigma_inv_mat, solve)
 Sigma_det_mat <- sapply(Sigma_mat, det)
 mu_mat <- lapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd)
-mu_mat <- lapply(mu, matrix, ncol = 1)
+mu_mat <- lapply(mu_mat, matrix, ncol = 1)
 prob <- runif(G, 0 , 1)
 tau_t <- rep(hyperparams$tau, G)
+m <- ncol(dsgn_mat$W)
 delta_mat <- matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
 wwT <- rowOuterProds(dsgn_mat$W)
-wwT_g_eta <- xxT_g_eta_fun_ss(wwT, m, g_eta)
-Omega_inv_mat <- 2 * wwT_g_eta + diag(1 / hyperparams$omega, m)
+wwT_g_eta_mat <- xxT_g_eta_fun_ss(wwT, m, g_eta)
+Omega_inv_mat <- 2 * wwT_g_eta_mat + diag(1 / hyperparams$omega, m)
 Omega_mat <- solve(Omega_inv_mat)
 Omega_det_mat <- det(Omega_mat)
 
@@ -166,7 +169,10 @@ hyper_mat <-  update_hyperparams_logistic(X = X, groups = groups, W = W,
 X <- dsgn_tr$X
 xxT <- rowOuterProds(dsgn_tr$X)
 W <- dsgn_tr$W
-wwT <- rowOuterProds(dsgn_tr$W)
+wwT_tr <- rowOuterProds(dsgn_tr$W)
+wwT <- wwT_tr
+wwT_g_eta_tr <- lapply(X = dsgn_tr$outcomes_units, FUN = xxT_g_eta_fun,
+                       xxT = wwT, g_eta = g_eta, K = m)
 y <- dsgn_tr$y
 outcomes_units <- dsgn_tr$outcomes_units
 outcomes_nodes <- dsgn_tr$outcomes_nodes
@@ -234,7 +240,7 @@ for (v in 1:p) {
 delta_vi_mat <- vi_mat$delta
 delta_vi_mat <- lapply(c(1:(p-1), 0), 
                         FUN = function(v) delta_vi_mat[1:(m * p) %% p == v])
-check_delta <- 0 + (all.equal(unlist(delta_vi_mat), unlist(vi_tr$delta)) == TRUE)
+check_delta <- as.integer(all.equal(unlist(delta_vi_mat), unlist(vi_tr$delta)) != TRUE)
 
 check_mu == 0
 check_sigma == 0
@@ -243,3 +249,5 @@ all.equal(vi_mat$prob, vi_tr$prob)
 
 
 plot(unlist(delta_vi_mat), unlist(vi_tr$delta))
+
+

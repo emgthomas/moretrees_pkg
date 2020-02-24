@@ -11,7 +11,7 @@ devtools::load_all() # Sources all files in R/
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-group <- "7.3"
+group <- "7"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -20,10 +20,10 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 17 * 1E6
+n <- 1E4
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 20
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
