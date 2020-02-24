@@ -11,7 +11,7 @@ devtools::load_all() # Sources all files in R/
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-group <- "7"
+group <- "7.3"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -20,8 +20,8 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E4
-K_g <- 2 # number of variables
+n <- 1E6
+K_g <- 1 # number of variables
 K <- rep(K_g, G)
 m <- 2
 tau <- 3
@@ -75,11 +75,13 @@ if (family == "gaussian") {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 } else {
   p_success <- expit(lp)
-  y <- sapply(p_success, rbinom, n = 1, size = 1)
+  y <- runif(n)
+  y <- as.integer(y <= p_success)
 }
 
 require(gdata)
-keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts)
+keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, sure = T,
+     s_true, beta, theta, groups_true)
 
 # Run algorithm ----------------------------------------------------------------------
 require(profvis)
@@ -87,7 +89,7 @@ profvis(
   mod <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 10,
+                   update_hyper = T, update_hyper_freq = 2,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 10,
                    print_freq = 1,
@@ -118,7 +120,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 2
+plot_start <- 970
 plot_end <- length(ELBO_track)
 # plot_end <- 240
 plot(plot_start:plot_end,
