@@ -92,9 +92,9 @@ profvis(
                    update_hyper = T, update_hyper_freq = 2,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 5,
-                   print_freq = 30,
+                   print_freq = 1,
                    nrestarts = nrestarts,
-                   get_ml = T,
+                   get_ml = F,
                    log_dir = "./tests/")
   # mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
   #                  initial_values = mod_start$mod,

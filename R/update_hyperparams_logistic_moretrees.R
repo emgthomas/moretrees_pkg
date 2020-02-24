@@ -74,8 +74,7 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   # Compute ELBO -------------------------------------------------------------------
   # See pg 13 of "variational inference for spike & slab model" document -
   # line numbers correspond to lines in equation
-  line1 <- (1 / 2) * t(y) %*% lp + 
-    sum(logexpit(eta)) - sum(eta) / 2 + g_eta %*% (eta ^ 2)
+  line1 <- (1 / 2) * crossprod(y, lp) + sum(logexpit(eta)) - sum(eta) / 2 + g_eta %*% (eta ^ 2)
   line2 <- - g_eta %*% lp2
   line3 <- - expected_ss_gamma / (2 * tau) - p * K * log(2 * pi * tau) / 2 + 
     log(rho ^ sum(prob)) + log((1 - rho) ^ (p - sum(prob)))
