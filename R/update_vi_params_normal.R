@@ -10,9 +10,9 @@ update_vi_params_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # dat
                                  omega, sigma2, rho, tau, # hyperparams
                                  update_hyper_last) { 
   # Update sparse coefficients ------------------------------------------------------
-  pred_g <- Matrix::Matrix(0, nrow = n, ncol = G)
-  for (g in 2:G) {
-    pred_g[, g] <- prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
+  xi <- Matrix::Matrix(0, nrow = sum(K), ncol = 1)
+  for (g in 1:G) {
+    xi[groups[[g]], ] <- prob[g] * mu[[g]]
   }
   Wdelta <- W %*% delta
   for (g in 1:G) {
@@ -25,13 +25,14 @@ update_vi_params_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # dat
     }
     # update mu_g
     mu[[g]] <- (1 / sigma2) * Sigma[[g]] %*%
-      Matrix::crossprod( X[ , groups[[g]], drop = F], y - Wdelta - Matrix::rowSums(pred_g[, -g, drop = F]))
+      Matrix::crossprod( X[ , groups[[g]], drop = F],
+      y - Wdelta - X[ , -groups[[g]], drop = F] %*% xi[-groups[[g]]])
     # update prob_g (pi_g in manuscript)
     u <- 0.5 * Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
       0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
     prob[g] <- expit(u[1, 1])
-    # update pred_g
-    pred_g[, g] <- prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
+    # update xi
+    xi[groups[[g]]] <- prob[g] *  mu[[g]]
   }
   # Update non-sparse coefficients ---------------------------------------------------
   # Update Omega only if hyperparameters were updated at last step
@@ -47,7 +48,7 @@ update_vi_params_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # dat
     }
   }
   # Update delta
-  delta <- (1 / sigma2) * Omega %*% Matrix::t(W) %*% (y - Matrix::rowSums(pred_g))
+  delta <- (1 / sigma2) * Omega %*% Matrix::t(W) %*% (y - X %*% xi)
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,

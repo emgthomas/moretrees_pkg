@@ -46,7 +46,7 @@ spike_and_slab_normal <- function(y, X, groups, W,
   K <- sapply(groups, length)
   m <- ncol(W)
   # Computing XtX and WtW so we don't have to do this repeatedly
-  XtX <- sapply(groups, function(cols) Matrix::crossprod(X[ , cols]))
+  XtX <- lapply(groups, function(cols) Matrix::crossprod(X[ , cols]))
   WtW <- Matrix::crossprod(W)
   # Initial hyperparameter values
   if (update_hyper) {
@@ -63,16 +63,16 @@ spike_and_slab_normal <- function(y, X, groups, W,
     hyperparams$omega <- 1
   }
   # Variational parameter initial values
-  Sigma_inv <- sapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
+  Sigma_inv <- lapply(XtX, FUN = function(XtX, tau, sigma2) XtX / sigma2 + 
                       Matrix::Diagonal(ncol(XtX), 1 / tau),
                       tau = hyperparams$tau, 
                       sigma2 = hyperparams$sigma2)  
-  Sigma <- sapply(Sigma_inv, Matrix::solve)
+  Sigma <- lapply(Sigma_inv, Matrix::solve)
   Sigma_det <- sapply(Sigma, Matrix::det)
-  mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
-  mu <- sapply(mu, Matrix::Matrix, ncol = 1, simplify = F)
+  mu <- lapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd)
+  mu <- lapply(mu, Matrix::Matrix, ncol = 1)
   prob <- runif(G, 0, 1)
-  tau_t <- rep(tau, G) # this should not be changed; tau_t = tau according to algorithm
+  tau_t <- rep(hyperparams$tau, G) # this should not be changed; tau_t = tau according to algorithm
   delta <- Matrix::Matrix(rnorm(m, sd = vi_random_init$delta_sd), ncol = 1)
   Omega_inv <- WtW / hyperparams$sigma2 + Matrix::Diagonal(m, 1 / hyperparams$omega)
   if (m != 0) {
