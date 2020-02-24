@@ -20,10 +20,10 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E4
+n <- 17 * 1E6
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
-m <- 3
+m <- 2
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
@@ -75,39 +75,40 @@ if (family == "gaussian") {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 } else {
   p_success <- expit(lp)
-  y <- sapply(p_success, rbinom, n = 1, size = 1)
+  y <- runif(n)
+  y <- as.integer(y <= p_success)
 }
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
 keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, 
      s_true, groups_true, beta, theta, hyper_fixed, sure = T)
-# require(profvis)
-# profvis(
-  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   method = "tree",
-                   W_method = "shared",
-                   tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 30,
-                   hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 22,
-                   print_freq = 30,
-                   nrestarts = nrestarts,
-                   get_ml = T,
-                   log_dir = "./tests/")
+require(profvis)
+profvis(
   mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   initial_values = mod_start$mod,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 30,
+                   update_hyper = T, update_hyper_freq = 2,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 1E4,
+                   tol = 1E-8, max_iter = 5,
                    print_freq = 30,
                    nrestarts = nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
-# )
+  # mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+  #                  initial_values = mod_start$mod,
+  #                  method = "tree",
+  #                  W_method = "shared",
+  #                  tr = tr, family = family,
+  #                  update_hyper = T, update_hyper_freq = 30,
+  #                  hyper_fixed = hyper_fixed,
+  #                  tol = 1E-8, max_iter = 1E4,
+  #                  print_freq = 30,
+  #                  nrestarts = nrestarts,
+  #                  get_ml = T,
+  #                  log_dir = "./tests/")
+)
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
 beta_ml <- mod_end$beta_ml

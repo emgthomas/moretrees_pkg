@@ -46,8 +46,9 @@ for (g in 1:G) {
 }
 lp <- as.numeric(lp)
 if(family == "bernoulli") {
-  expit <- 1 / (1 + exp(-lp))
-  y <- sapply(expit, rbinom, n = 1, size = 1)
+  p_success <- expit(lp)
+  y <- runif(n)
+  y <- as.integer(y <= p_success)
 } else {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 }
