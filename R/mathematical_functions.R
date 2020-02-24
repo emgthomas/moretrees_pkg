@@ -39,3 +39,5 @@ gfun <- function(x) {
   # needed for normal approx to logistic likelihood
   (expit(x) - 1 / 2) / (2 * x)
 }
+
+quadFormByRow <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)

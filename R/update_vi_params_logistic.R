@@ -27,7 +27,7 @@ update_vi_params_logistic <- function(X, groups, W, y, n, K, G, m, # data
     # update mu_g
     mu[[g]] <- Sigma[[g]] %*%
       Matrix::crossprod( X[ , groups[[g]], drop = F],
-                y / 2 - 2 * g_eta * (Wdelta + apply(pred_g[, -g, drop = F], 1, sum)))
+                y / 2 - 2 * g_eta * (Wdelta + Matrix::rowSums(pred_g[, -g, drop = F])))
     # update prob_g (pi_g in manuscript)
     u <- 0.5 * Matrix::crossprod(mu[[g]], Sigma_inv[[g]]) %*% mu[[g]] +
       0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
@@ -47,7 +47,7 @@ update_vi_params_logistic <- function(X, groups, W, y, n, K, G, m, # data
     Omega_det <- Matrix::det(Omega)
   }
   # Update delta
-  delta <- Omega %*% Matrix::crossprod(W, y / 2 - 2 * g_eta * apply(pred_g, 1, sum))
+  delta <- Omega %*% Matrix::crossprod(W, y / 2 - 2 * g_eta * Matrix::rowSums(pred_g))
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,

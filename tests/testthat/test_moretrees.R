@@ -3,11 +3,12 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
+rm(list = ls())
 devtools::load_all() # Sources all files in R/
 
 # Chose one --------------------------------------------------------------------------
-family <- "gaussian"
-# family <- "bernoulli"
+# family <- "gaussian"
+family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
 group <- "7"
@@ -19,7 +20,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1000
+n <- 1E4
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2
@@ -77,6 +78,9 @@ if (family == "gaussian") {
   y <- sapply(p_success, rbinom, n = 1, size = 1)
 }
 
+require(gdata)
+keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts)
+
 # Run algorithm ----------------------------------------------------------------------
 require(profvis)
 profvis(
@@ -85,7 +89,7 @@ profvis(
                    tr = tr, family = family,
                    update_hyper = T, update_hyper_freq = 10,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 1E4,
+                   tol = 1E-8, max_iter = 10,
                    print_freq = 1,
                    nrestarts = nrestarts,
                    get_ml = F,
@@ -148,8 +152,8 @@ cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(omega, sigma2, tau, rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
 } else {
-  cbind(mod1$hyperparams[2:4], c(omega, tau, rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
 }
 

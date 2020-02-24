@@ -25,7 +25,7 @@ update_vi_params_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # dat
     }
     # update mu_g
     mu[[g]] <- (1 / sigma2) * Sigma[[g]] %*%
-      Matrix::crossprod( X[ , groups[[g]], drop = F], y - Wdelta - apply(pred_g[, -g, drop = F], 1, sum))
+      Matrix::crossprod( X[ , groups[[g]], drop = F], y - Wdelta - Matrix::rowSums(pred_g[, -g, drop = F]))
     # update prob_g (pi_g in manuscript)
     u <- 0.5 * Matrix::t(mu[[g]]) %*% Sigma_inv[[g]] %*% mu[[g]] +
       0.5 * log(Sigma_det[g]) + log(rho / (1 - rho)) - 0.5 * K[g] * log(tau_t[g])
@@ -47,7 +47,7 @@ update_vi_params_normal <- function(X, groups, XtX, W, WtW, y, n, K, G, m, # dat
     }
   }
   # Update delta
-  delta <- (1 / sigma2) * Omega %*% Matrix::t(W) %*% (y - apply(pred_g, 1, sum))
+  delta <- (1 / sigma2) * Omega %*% Matrix::t(W) %*% (y - Matrix::rowSums(pred_g))
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,
