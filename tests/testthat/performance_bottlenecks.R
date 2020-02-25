@@ -204,3 +204,97 @@ microbenchmark(f2(X1, W1), f2(X2, W2), times = 10)
 # about 20 times faster with non-sparse matrix (but this won't have a huge overall impact)
 
 
+# --------------------------- quadFormByRow -------------------------
+
+require(RcppEigen)
+
+transCpp <- "using Eigen::Map;
+using Eigen::MatrixXi;
+// Map the integer matrix AA from R
+const Map<MatrixXi> A(as<Map<MatrixXi> >(AA));
+// evaluate and return the transpose of A
+const MatrixXi At(A.transpose());
+return wrap(At);"
+
+ftrans <- inline::cxxfunction(signature(AA="matrix"), transCpp, plugin="RcppEigen")
+A <- matrix(1:6, ncol = 2)
+(At <- ftrans(A))
+
+crossprodCpp <- "using Eigen::Map;
+using Eigen::MatrixXd;
+const Map<MatrixXd> B(as<Map<MatrixXd> >(BB));
+const Map<MatrixXd> C(as<Map<MatrixXd> >(CC));
+return wrap(B.adjoint() * C);"
+
+ftrans <- inline::cxxfunction(signature(BB = "matrix", CC = "matrix"), crossprodCpp, plugin="RcppEigen")
+K <- 1000
+B <- matrix(rnorm(K ^ 2), ncol = K)
+C <- matrix(rnorm(K ^ 2), ncol = K)
+# B <- matrix(sample(1:K, K ^ 2, replace = T), ncol = K)
+# C <- matrix(sample(1:K, K ^ 2, replace = T), ncol = K)
+cp <- ftrans(B, C)
+cp2 <- crossprod(B, C)
+all.equal(cp, cp2)
+microbenchmark::microbenchmark(ftrans(B, C), crossprod(B, C), times = 10)
+
+quadFormByRow <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)
+quadFormByRow2 <- function(Sigma, X) Matrix::rowSums((X %*% Sigma) * X)
+
+quadFormByRowCpp <- "using Eigen::Map;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+const Map<MatrixXd> X(as<Map<MatrixXd> >(XX));
+const Map<MatrixXd> S(as<Map<MatrixXd> >(SS));
+return wrap(((X * S).cwiseProduct(X)).rowwise().sum());"
+
+ftrans <- inline::cxxfunction(signature(XX = "matrix", SS = "matrix"), 
+                              quadFormByRowCpp, plugin="RcppEigen")
+
+K <- 200
+n <- 10000
+X <- Matrix::Matrix(rnorm(K * n) * rbinom(1, K * n, prob = 0.8), ncol = K)
+Xmat <- as.matrix(X)
+S <- Matrix::Matrix(rnorm(K ^ 2), ncol = K)
+S <- Matrix::crossprod(S)
+Smat <- as.matrix(S)
+
+l1 <- quadFormByRow(S, X)
+l2 <- ftrans(Xmat, Smat)
+all.equal(l1, l2)
+
+microbenchmark::microbenchmark(quadFormByRow(S, X), ftrans(Xmat, Smat), times = 10)
+
+quadFormByRowCpp_sparse <- "using Eigen::Map;
+using Eigen::MatrixXd;
+using Eigen::MappedSparseMatrix;
+using Eigen::SparseMatrix;
+using Eigen::VectorXd;
+const MappedSparseMatrix<double> X(as<MappedSparseMatrix<double> >(XX));
+const Map<MatrixXd> S(as<Map<MatrixXd> >(SS));
+return wrap(((X * S).cwiseProduct(X)) * VectorXd::Ones(X.cols()));"
+
+ftrans_sparse <- inline::cxxfunction(signature(XX = "dgCMatrix", SS = "matrix"), 
+                              quadFormByRowCpp_sparse, plugin="RcppEigen")
+
+l3 <- ftrans_sparse(X, Smat)
+all.equal(l2, l3)
+microbenchmark::microbenchmark(ftrans(Xmat, Smat), ftrans_sparse(X, Smat), times = 100)
+
+quadFormByRowCpp_sparse2 <- "using Eigen::Map;
+using Eigen::MatrixXd;
+using Eigen::MappedSparseMatrix;
+using Eigen::SparseMatrix;
+using Eigen::VectorXd;
+const MappedSparseMatrix<double> X(as<MappedSparseMatrix<double> >(XX));
+const MappedSparseMatrix<double> S(as<MappedSparseMatrix<double> >(SS));
+return wrap(((X * S).cwiseProduct(X)) * VectorXd::Ones(X.cols()));"
+
+ftrans_sparse2 <- inline::cxxfunction(signature(XX = "dgCMatrix", SS = "dgCmatrix"), 
+                                     quadFormByRowCpp_sparse2, plugin="RcppEigen")
+class(S) <- "dgCMatrix"
+microbenchmark::microbenchmark(quadFormByRow(S, X), ftrans_sparse2(X, S), times = 100)
+
+
+
+
+
