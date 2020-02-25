@@ -20,7 +20,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E4
+n <- 1E5
 K_g <- 1 # number of variables
 K <- rep(K_g, G)
 m <- 20
@@ -30,7 +30,7 @@ rho2 <- 0.05 # rho for leaf nodes
 rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
 omega <- 2
 sigma2 <- 2
-hyper_fixed <- list(tau = tau, rho = rho, omega = omega)
+hyper_fixed <- list(tau = tau, omega = omega)
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
@@ -83,32 +83,32 @@ if (family == "gaussian") {
 require(gdata)
 keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, 
      s_true, groups_true, beta, theta, hyper_fixed, sure = T)
-require(profvis)
-profvis(
-  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+# require(profvis)
+# profvis(
+  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 2,
+                   update_hyper = T, update_hyper_freq = 20,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 5,
+                   tol = 1E-8, max_iter = 1E3,
                    print_freq = 1,
                    nrestarts = nrestarts,
                    get_ml = F,
                    log_dir = "./tests/")
-  # mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-  #                  initial_values = mod_start$mod,
-  #                  method = "tree",
-  #                  W_method = "shared",
-  #                  tr = tr, family = family,
-  #                  update_hyper = T, update_hyper_freq = 30,
-  #                  hyper_fixed = hyper_fixed,
-  #                  tol = 1E-8, max_iter = 1E4,
-  #                  print_freq = 30,
-  #                  nrestarts = nrestarts,
-  #                  get_ml = T,
-  #                  log_dir = "./tests/")
-)
+  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   initial_values = mod_start$mod,
+                   method = "tree",
+                   W_method = "shared",
+                   tr = tr, family = family,
+                   update_hyper = T, update_hyper_freq = 20,
+                   hyper_fixed = hyper_fixed,
+                   tol = 1E-8, max_iter = 1E4,
+                   print_freq = 20,
+                   nrestarts = nrestarts,
+                   get_ml = T,
+                   log_dir = "./tests/")
+# )
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
 beta_ml <- mod_end$beta_ml
@@ -123,7 +123,8 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
+ELBO_track <- mod1$ELBO_track
+# ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -132,11 +133,10 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 90
+plot_start <- 1000
 plot_end <- length(ELBO_track)
-# plot_end <- 240
-plot(plot_start:plot_end,
-     ELBO_track[plot_start:plot_end],
+# plot_end <- 4020
+plot(ELBO_track[plot_start:plot_end],
      type = "l")
 
 # Compare sparse effect estimates to truth --------------------------------------------------
@@ -166,8 +166,8 @@ cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 # Compare hyperparameter estimates to truth -------------------------------------------------
 if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau, hyper_fixed$rho))
+  cbind(mod1$hyperparams[2:5], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau))
 } else {
-  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau, hyper_fixed$rho))
+  cbind(mod1$hyperparams[2:4], c(hyper_fixed$omega, hyper_fixed$tau))
 }
 

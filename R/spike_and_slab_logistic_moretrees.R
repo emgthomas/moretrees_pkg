@@ -74,8 +74,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
     if (update_hyper) {
       # If hyperparameters will be updated, randomly initialise them
       hyperparams <- list(omega = runif(1, 0, hyper_random_init$omega_max),
-                          tau = runif(1, 0, hyper_random_init$tau_max),
-                          rho = runif(1, 0, 1))
+                          tau = runif(1, 0, hyper_random_init$tau_max))
     } else {
       # Otherwise, use fixed values
       hyperparams <- hyper_fixed
@@ -99,6 +98,9 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
     Sigma_det <- sapply(Sigma, det)
     mu <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1))
     prob <- runif(p, 0 , 1)
+    a_rho <- 1 + sum(prob) # need to initialise a_rho and b_rho using VI updates
+    b_rho <- 1 + p - sum(prob) # so that terms cancel in ELBO.
+    # otherwise first ELBO will be wrong
     tau_t <- rep(hyperparams$tau, p)
     delta <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1))
     if (m > 0) {
@@ -122,7 +124,8 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                       Sigma_inv = Sigma_inv, Sigma_det = Sigma_det,
                       tau_t = tau_t, delta = delta,
                       Omega = Omega, Omega_inv = Omega_inv,
-                      Omega_det = Omega_det)
+                      Omega_det = Omega_det,
+                      a_rho = a_rho, b_rho = b_rho)
     # Compute initial ELBO
     hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
                                                           W = dsgn$W,
@@ -136,7 +139,8 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                                                           Omega = Omega, Omega_det = Omega_det,
                                                           eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                           omega = hyperparams$omega, tau = hyperparams$tau,
-                                                          rho = hyperparams$rho, update_hyper = F)
+                                                          a_rho = a_rho, b_rho = b_rho,
+                                                          update_hyper = F)
     initial_ELBO <- hyperparams$ELBO
   } else {
     # Otherwise, if initial values were supplied
@@ -172,14 +176,15 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                                                      Sigma_inv = vi_params$Sigma_inv, 
                                                      Sigma_det = vi_params$Sigma_det, 
                                                      tau_t = vi_params$tau_t,
+                                                     a_rho = vi_params$a_rho,
+                                                     b_rho = vi_params$b_rho,
                                                      delta = vi_params$delta, 
                                                      Omega = vi_params$Omega,
                                                      Omega_inv = vi_params$Omega_inv, 
                                                      Omega_det = vi_params$Omega_det,
                                                      eta = hyperparams$eta,
                                                      g_eta = hyperparams$g_eta,
-                                                     omega = hyperparams$omega, 
-                                                     rho = hyperparams$rho, 
+                                                     omega = hyperparams$omega,
                                                      tau = hyperparams$tau)
     if (!update_hyper_i) {
       hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
@@ -192,9 +197,9 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                                                             Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
                                                             tau_t = vi_params$tau_t, delta = vi_params$delta,
                                                             Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
+                                                            a_rho = vi_params$a_rho, b_rho = vi_params$b_rho,
                                                             eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                             omega = hyperparams$omega, tau = hyperparams$tau,
-                                                            rho = hyperparams$rho,
                                                             update_hyper = F)
       ELBO_track2[i + 1] <- hyperparams$ELBO
       if (abs(ELBO_track2[i + 1] - ELBO_track2[i]) < tol) {
@@ -227,9 +232,9 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
                                                              Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
                                                              tau_t = vi_params$tau_t, delta = vi_params$delta,
                                                              Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
+                                                             a_rho = vi_params$a_rho, b_rho = vi_params$b_rho,
                                                              eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                              omega = hyperparams$omega, tau = hyperparams$tau,
-                                                             rho = hyperparams$rho,
                                                              update_hyper = T)
       j <- i %/% update_hyper_freq
       ELBO_track[j + 1] <- hyperparams$ELBO
