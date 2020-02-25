@@ -4,9 +4,9 @@
 \alias{update_vi_params_normal}
 \title{\code{update_hyperparams_logistic} Performs variational updates for bernoulli outcomes.}
 \usage{
-update_vi_params_normal(X, XtX, W, WtW, y, n, K, G, m, prob, mu, Sigma,
-  Sigma_inv, Sigma_det, tau_t, delta, Omega, Omega_inv, Omega_det, omega,
-  sigma2, rho, tau, update_hyper_last)
+update_vi_params_normal(X, groups, XtX, W, WtW, y, n, K, G, m, prob, mu,
+  Sigma, Sigma_inv, Sigma_det, tau_t, delta, Omega, Omega_inv, Omega_det,
+  omega, sigma2, rho, tau, update_hyper_last)
 }
 \description{
 \code{update_hyperparams_logistic} Performs variational updates for bernoulli outcomes.

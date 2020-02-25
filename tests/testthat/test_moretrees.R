@@ -79,6 +79,13 @@ if (family == "gaussian") {
   y <- as.integer(y <= p_success)
 }
 
+# quadFormByRow2 <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)
+# l1 <- moretrees::quadFormByRow(S, X)
+# l2 <- quadFormByRow2(S, X)
+# all.equal(l1, l2)
+# microbenchmark::microbenchmark(moretrees::quadFormByRow(S, X), quadFormByRow2(S, X),
+#                                times = 10)
+
 require(gdata)
 keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, sure = T,
      s_true, beta, theta, groups_true)

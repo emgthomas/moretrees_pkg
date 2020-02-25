@@ -237,9 +237,6 @@ cp2 <- crossprod(B, C)
 all.equal(cp, cp2)
 microbenchmark::microbenchmark(ftrans(B, C), crossprod(B, C), times = 10)
 
-quadFormByRow <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)
-quadFormByRow2 <- function(Sigma, X) Matrix::rowSums((X %*% Sigma) * X)
-
 quadFormByRowCpp <- "using Eigen::Map;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -250,16 +247,19 @@ return wrap(((X * S).cwiseProduct(X)).rowwise().sum());"
 ftrans <- inline::cxxfunction(signature(XX = "matrix", SS = "matrix"), 
                               quadFormByRowCpp, plugin="RcppEigen")
 
+require(moretrees)
+quadFormByRow2 <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)
+
 K <- 200
 n <- 10000
-X <- Matrix::Matrix(rnorm(K * n) * rbinom(1, K * n, prob = 0.8), ncol = K)
+X <- Matrix::Matrix(rnorm(K * n) * rbinom(1, K * n, prob = 0.8), ncol = K, sparse = T)
 Xmat <- as.matrix(X)
-S <- Matrix::Matrix(rnorm(K ^ 2), ncol = K)
+S <- Matrix::Matrix(rnorm(K ^ 2), ncol = K, sparse = T)
 S <- Matrix::crossprod(S)
 Smat <- as.matrix(S)
 
-l1 <- quadFormByRow(S, X)
-l2 <- ftrans(Xmat, Smat)
+l1 <- moretrees::quadFormByRow(S, X)
+l2 <- quadFormByRow2(X, S)
 all.equal(l1, l2)
 
 microbenchmark::microbenchmark(quadFormByRow(S, X), ftrans(Xmat, Smat), times = 10)

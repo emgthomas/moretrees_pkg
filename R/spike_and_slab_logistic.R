@@ -61,14 +61,14 @@ spike_and_slab_logistic <- function(y, X, groups, W,
   hyperparams$g_eta <- g_eta
   # Variational parameter initial values
   A_eta <- Matrix::Diagonal(n = n, g_eta)
-  Sigma_inv <- sapply(X = groups, 
+  Sigma_inv <- lapply(X = groups, 
                 FUN = function(cols, Xg, A, tau) 2 * 
                 Matrix::crossprod(Xg[ , cols, drop = F], A) %*% Xg[ , cols, drop = F] + 
                 Matrix::Diagonal(length(cols), 1 / tau),
                 Xg = X,
                 tau = hyperparams$tau,
                 A = A_eta)
-  Sigma <- sapply(Sigma_inv, Matrix::solve)
+  Sigma <- lapply(Sigma_inv, Matrix::solve)
   Sigma_det <- sapply(Sigma, Matrix::det)
   mu <- sapply(K, rnorm, mean = 0 , sd = vi_random_init$mu_sd, simplify = F)
   mu <- sapply(mu, Matrix::Matrix, ncol = 1)

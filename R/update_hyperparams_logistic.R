@@ -18,10 +18,10 @@ update_hyperparams_logistic <- function(X, groups, W, y, n, K, G, m, # data
     lp <- lp + prob[g] *  X[ , groups[[g]], drop = F] %*% mu[[g]]
   }
   # Expected linear predictor squared
-  lp2 <- quadFormByRow(Omega, W)
+  lp2 <- quadFormByRow(as(Omega, "dgCMatrix"), W)
   for (g in 1:G) {
     Sigma_g <- Sigma[[g]] + (1 - prob[g]) * Matrix::tcrossprod(mu[[g]])
-    lp2 <- lp2 + prob[g] * quadFormByRow(Sigma_g, X[, groups[[g]], drop = F])
+    lp2 <- lp2 + prob[g] * quadFormByRow(as(Sigma_g, "dgCMatrix"), X[, groups[[g]], drop = F])
   }
   lp2 <- lp2 + lp ^ 2
 

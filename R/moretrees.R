@@ -8,5 +8,9 @@
 #' All about functions!
 #'
 #' @docType package
+#' @importFrom Rcpp evalCpp
+#' @import RcppEigen
+#' @useDynLib moretrees
+#' @exportPattern "^[[:alpha:]]+"
 #' @name moretrees
 NULL

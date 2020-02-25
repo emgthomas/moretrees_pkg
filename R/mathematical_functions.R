@@ -40,4 +40,4 @@ gfun <- function(x) {
   (expit(x) - 1 / 2) / (2 * x)
 }
 
-quadFormByRow <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)
+# quadFormByRow <- function(Sigma, X) Matrix::rowSums(Matrix::tcrossprod(X, Sigma) * X)

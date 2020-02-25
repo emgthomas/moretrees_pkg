@@ -4,8 +4,8 @@
 \alias{spike_and_slab}
 \title{Group spike and slab variable selection with bernoulli or gaussian outcome}
 \usage{
-spike_and_slab(y, X, W = NULL, family = "bernoulli", ci_level = 0.95,
-  tol = 1e-04, max_iter = 1e+05, nrestarts = 3,
+spike_and_slab(y, X, groups, W = NULL, family = "bernoulli",
+  ci_level = 0.95, tol = 1e-04, max_iter = 1e+05, nrestarts = 3,
   keep_restarts = nrestarts > 1, parallel = nrestarts > 1,
   log_restarts = nrestarts > 1, log_dir = getwd(), update_hyper = T,
   update_hyper_freq = 10, print_freq = update_hyper_freq,
@@ -18,9 +18,11 @@ spike_and_slab(y, X, W = NULL, family = "bernoulli", ci_level = 0.95,
 If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 If family = "gaussian", y must be a numeric vector containing continuous data.}
 
-\item{X}{List of length G of design matrices for each variable group.
-Each element of the list has dimension n x K_g
-where n is the number of observations, and K_g is the number of variables in group g.}
+\item{X}{Matrix of dimension n x sum(K), where n is the number of units, and
+K[g] is the number of variables in group g.}
+
+\item{groups}{A list of length G (number of groups), where groups[[g]] is an integer
+vector specifying the columns of X that belong to group g.}
 
 \item{W}{Matrix of data with non-sparse regression coefficients of dimension n x m}
 

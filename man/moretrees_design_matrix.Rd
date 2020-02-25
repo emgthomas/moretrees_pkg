@@ -31,17 +31,18 @@ W will be estimated separately for each outcome (no infromation sharing).}
 }
 \value{
 A list containing the following elements:
-Xstar: a list of length p (number of nodes in tr) of MOReTreeS design matrices 
-for the exposure. Each element of the list will be a sparse Matrix of dimension
-n x p, where n is the number of rows in X. Note that the rows of Xstar[[i]] have
-been ordered according to the elements of outcomes, and so may have a different 
-ordering from X.
+Xstar: a MOReTreeS design matrix of size n x (K * p) for the exposure. 
+Note that the rows of Xstar[[i]] have been ro-ordered according to the vector ord,
+and so may have a different ordering from X.
+groups: a list of length p indicating the columns of X which correspond to the same
+node on the tree. Used for spike and slab variable selection on the nodes.
 Wstar: the MOReTreeS design matrices for covariates. If share_W = T, this will 
-be a sparse Matrix of dimension n x (p x m), where m is the number of columns of W. 
+be a sparse Matrix of dimension n x (p * m), where m is the number of columns of W. 
 If share_W = F, Wstar is just W with re-ordered rows. Wstar is NULL if W is NULL.
 y_reord: Re-ordered outcome vector.
 A: A sparse Matrix of dimension p x p, where p is the number of nodes in tr.
 A_ij = 1 if j = i or node j is an ancestor of node i; A_ij = 0 otherwise.
+ord = integer vector indicating order of rows in Xstar relative to input matrix X.
 }
 \description{
 All the details go here!
