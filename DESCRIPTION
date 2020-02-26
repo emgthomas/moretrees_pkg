@@ -25,5 +25,8 @@ Imports:
     RcppEigen (>= 0.3.3.7.0)
 RoxygenNote: 6.1.1
 Suggests: 
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
 LinkingTo: Rcpp, RcppEigen
+VignetteBuilder: knitr

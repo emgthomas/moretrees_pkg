@@ -1,0 +1,90 @@
+---
+title: "Variational Inference for Spike and Slab Variable Selection and Multi-Outcome Regression"
+author: "Emma Thomas"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{moretrees}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+The `moretrees` package has two main functions: 
+
+1. the `moretrees()` function, which fits Multi-Outcome Regression with Tree-Structured Shrinkage (MOReTreeS) models;
+1. the `spike_and_slab()` function, which fits Bayesian spike and slab variable selection models.
+
+For each model, two likelihoods are currently supported: 
+
+1. a normal likelihood with the identity link for continous outcome data;
+1. a Bernoulli likelihood with logistic link for binary classification problems.
+
+All models are fit using variational inference (VI), a popular and typically much faster alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
+
+This vignette has three main objectives:
+
+1. to detail the functionality of the `moretrees` package in a readable form;
+1. to guide potential users through typical usage of the `moretrees` package;
+1. to explain the VI algorithms used to fit the models in sufficient detail that a user with knowledge of VI would be able replicate the code.
+
+We begin by addressing these three objectives for the `spike_and_slab()` function, followed by the `moretrees()` function.
+This is the natual ordering because the VI algorithm for MOReTreeS is a minor adaptation of the algorithm for the spike and slab variable selection model.
+
+# Spike and slab variable selection with `spike_and_slab()`
+
+The spike and slab prior is one of the most commonly-used methods for variable selection in the Bayesian literature.
+However, fitting spike and slab models can be very challenging and there are known difficulties with MCMC.
+Recently, a number of authors have developed VI algorithms for fitting regression models with spike and slab priors (CITATIONS).
+These approaches have the advantage of being fast, scalable, and avoiding issues with convergence.
+
+`moretrees` is, to our knowledge, the first R package to implement VI for spike and slab regression in R.
+The `spike_and_slab()` also provides greater flexibility in specifying the spike and slab model than the published algorithms mentioned above.
+Specifically, `spike_and_slab()` supports the following functionality:
+
+1. Group variable selection: groups of predictors can be selected in or out of the model simultaneously;
+1. Non-sparse predictors: the user can specify predictors that should be forced into the model (i.e., their coefficients will always be non-zero);
+1. Regression and classification: `spike_and_slab()` can be used with both normally-distributed response variables (regression) and binary response variables (classification).
+
+## Normal model
+
+We being by explaining the normal regression model.
+Let $Y_i$ be the response variable for unit $i$ and let $\mathbf{c}_i$ be a vector of length $m$ of predictors that will not be subject to variable selection (i.e., will be forced into the model).
+Typically, $\mathbf{c}_i$ will include an intercept term (1).
+Suppose we have $G$ groups of predictors that we wish to subject to variable selection.
+Let $\mathbf{x}_{i,g}$ be a vector of group $g$ predictors of length $k_g$.
+All variables in group $g$ will be selected in or out of the model simultaneously.
+Then let:
+
+$$Y_i = \epsilon_i + \sum_{g=1}^ G \boldsymbol{\beta}_g^T \mathbf{x}_{i,g} + \boldsymbol{\theta}^T \mathbf{w}_i$$
+where:
+
+* $\epsilon_i \sim N(0,\sigma^2)$
+* $\boldsymbol{\beta}_g = s_g \boldsymbol{\gamma}_g$
+* $s_g \sim Bern(\rho)$
+* $\boldsymbol{\gamma}_g \sim \mathcal{MVN}\left(\boldsymbol{0},\tau I_{k_g}\right)$
+* $\boldsymbol{\theta} \sim \mathcal{MVN} \left( \boldsymbol{0}, \omega I_m \right)$
+* $\rho \sim Unif(0,1)$.
+
+Here, $\sigma^2$ (residual variance), $\tau$ (common prior variance of the sparse coefficients), and $\omega$ (common prior variance of the non-sparse coefficients) are treated as fixed hyperparameters and will be estimated via Empirical Bayes.
+We estimate $\rho$, the prior probability that each of the groups of variables $g$ will be included in the model, using fully Bayesian estimation with a uniform hyperprior.
+This choice was made because estimating $\rho$ with empirical Bayes can lead to problems with posterior uncertainty (CITE Barbieri et al).
+
+Suppose we have $n$ units in total.
+Let $\mathbf{Y}$ be a vector of response values, and let $X_g$ and $W$ be the corresponding design matrices for variable group $g$ and the non-sparse variables respectively.
+Then the joint distribution of data and parameters is:
+
+$$\pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right)  = \dfrac{1}{\left(2 \pi \sigma^2\right)^{n/2}} \exp \left[-\dfrac{1}{2\sigma^2} \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g \right)^T \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g  \right) \right] $$
+$$\times \dfrac{1}{\left(2\pi\omega\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{\theta}_g^T\boldsymbol{\theta}_g}{2\omega}\right] \prod_{g=1}^G \rho^{s_g} (1-\rho)^{1-s_g} \dfrac{1}{\left(2\pi\tau\right)^{K_g/2}} \exp\left[-\dfrac{\boldsymbol{\gamma}_g^T\boldsymbol{\gamma}_g}{2\tau}\right] \mathbf{1} \lbrace 0 < \rho < 1 \rbrace$$
+
+```{r setup}
+library(moretrees)
+```
