@@ -54,11 +54,11 @@ Specifically, `spike_and_slab()` supports the following functionality:
 1. Non-sparse predictors: the user can specify predictors that should be forced into the model (i.e., their coefficients will always be non-zero);
 1. Regression and classification: `spike_and_slab()` can be used with both normally-distributed response variables (regression) and binary response variables (classification).
 
-## Normal model
+## Spike and slab regression with normal response variable
 
 We being by explaining the normal regression model.
-Let $Y_i$ be the response variable for unit $i$ and let $\mathbf{c}_i$ be a vector of length $m$ of predictors that will not be subject to variable selection (i.e., will be forced into the model).
-Typically, $\mathbf{c}_i$ will include an intercept term (1).
+Let $Y_i$ be the response variable for unit $i$ and let $\mathbf{w}_i$ be a vector of length $m$ of predictors that will not be subject to variable selection (i.e., will be forced into the model).
+Typically, $\mathbf{w}_i$ will include an intercept term (all entries equal to 1).
 Suppose we have $G$ groups of predictors that we wish to subject to variable selection.
 Let $\mathbf{x}_{i,g}$ be a vector of group $g$ predictors of length $k_g$.
 All variables in group $g$ will be selected in or out of the model simultaneously.
@@ -87,7 +87,7 @@ $$\times \dfrac{1}{\left(2\pi\omega\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{
 
 ### Worked example
 
-Before delving into the details of the VI algorithm, we begin with a worked example of using the `spike_and_slab()` function.
+We begin with a worked example of using the `spike_and_slab()` function.
 First, we load a small simulated dataset, `normalSpikeAndSlabData`, which has $n = 100$ observations, $G = 10$ sparse variable groups containing one to four variables each, and $m = 4$ non-sparse variables including the intercept.
 The data are stored as a list with three elements:
 
@@ -163,4 +163,95 @@ unlink(log_dir, recursive = T)
 ```
 
 ### VI algorithm for spike and slab normal model
+
+VI is a method for approximating the posterior distribution of a Bayesian model.
+This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where distance is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
+Note that VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
+A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see Blei 2017 (CITE).
+This section of the vignette is *not* required reading; it is intended for readers with some knowledge of variational Bayes who may wish to verify the details of the VI algorithm used by `moretrees`.
+
+For all models in the `moretrees` package, we assume only that the variational approximation $q$ factorizes as $q\left(\boldsymbol{\gamma},\mathbf{s}, \boldsymbol{\theta}, \rho \right) = q(\rho) q \left( \boldsymbol{\theta} \right) \prod_{g=1}^G q\left(\boldsymbol{\gamma}_g, s_g \right)$.
+Rather than minimizing $K(q || \pi)$, which depends on the intractable posterior $\pi$, we maximize a quantity known as the evidence lower bound (ELBO) $\mathcal{E}(q)$, which is equal to $- K(q || \pi)$ up to an additive constant that does not depend on $q$.
+The `moretrees` packages uses a co-ordinate ascent variational inference (CAVI) algorithm to maximize $\mathcal{E}(q)$ in $q$.
+Specifically, we maximize $\mathcal{E}(q)$ in $q(\rho)$, $q \left( \boldsymbol{\theta} \right)$,  and $q\left(\boldsymbol{\gamma}_j, s_j \right)$ for $j = 1, \dots, G$ in turn.
+
+In what follows we use the subscript $t$ or superscript $(t)$ to denote the next iteration or update; the absence of a subscript indicates that the last or most recent value of that parameter should be used.
+Each of the updates in the CAVI algorithm can be obtained using the following well-known result (see Blei 2017 for a derivation).
+As an example, consider the update for the factor $q\left(\boldsymbol{\gamma}_j, s_j \right)$.
+Let $q_{-\left(\boldsymbol{\gamma}_j, s_j \right)}$ be the variational distribution marginalized over $(\boldsymbol{\gamma}_j, s_j)$.
+Then the $t^{th}$ coordinate ascent update for $(\boldsymbol{\gamma}_j, s_j)$ is:
+
+$$ q_t \left( \boldsymbol{\gamma}_j, s_j \right) \propto \exp \left( E_{q_{-\left(\boldsymbol{\gamma}_j, s_j \right)}} \left[ \log \pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right] \right).$$
+The equivalent results hold for all other factors $q(\rho)$, $q(\boldsymbol{\theta})$, and $q(\boldsymbol{\gamma}_g, s_g)$ for $g \neq j$.
+
+### Update for $q(\boldsymbol{\gamma}_j, s_j)$
+
+$$ q_{t}\left( \boldsymbol{\gamma}_j, s_j \right) = \mathcal{MVN}\left(\boldsymbol{\gamma}_j \middle\vert s_j \boldsymbol{\mu}_j^{(t)}, s_j \Sigma_j^{(t)} + (1-s_j) \tilde{\tau}_j^{(t)} I_{K_g} \right) p_j^{(t)s_j} \left(1-p_j^{(t)}\right)^{1-s_j}$$
+
+where
+
+$$\left(\Sigma_j^{(t)}\right)^{-1} = \dfrac{X_j^T X_j}{\sigma^2} + \dfrac{I_{k_g}}{\tau}$$
+$$\tilde{\tau}_j^{(t)} = \tau$$
+$$\boldsymbol{\mu}_j^{(t)} =  \frac{1}{\sigma^2} \Sigma_j^{(t)} X_j^T \left( \mathbf{Y}-  W E_{q} \left[ \boldsymbol{\theta} \right] -   \sum_{g\neq j} X_g E_{q}  \left[ \boldsymbol{\gamma}_g s_g \right] \right)$$
+$$ \log \left(\dfrac{p_j^{(t)}}{ 1- p_j^{(t)}} \right) =  E_{q} \left[ \log \rho \right] - E_{q} \left[ \log (1-\rho)\right] + \dfrac{\boldsymbol{\mu}_j^{(t)T} \left(\Sigma_j^{(t)}\right)^{-1} \boldsymbol{\mu}_j^{(t)}}{2} + \dfrac{1}{2} \left( \log \left\vert \Sigma_j^{(t)} \right\vert - K_g \log \tilde{\tau}_j^{(t)} \right)$$
+
+### Update for $q(\boldsymbol{\theta})$
+
+$$q_t\left( \boldsymbol{\theta} \right) = \mathcal{MVN}\left(\boldsymbol{\delta}_t, \Omega_t \right) $$
+where
+
+$$     \Omega_t^{-1} = \dfrac{1}{\sigma^2} W^T W + \dfrac{1}{\omega} I_m $$
+
+$$  \boldsymbol{\delta}_t = \dfrac{1 }{\sigma^2}\Omega W^T\left( \mathbf{Y} - \sum_{g=1}^G E_{q_t} \left[ s_g X_g \boldsymbol{\gamma}_g \right] \right)$$
+
+### Update for $q(\rho)$
+
+$$q_{t}(\rho) = Be \left(a_t, b_t \right)$$
+
+where 
+
+$$a_t = 1 + \sum_{g=1}^G  E_{q} \left[ s_g \right] $$
+
+$$b_t = 1 + \sum_{g=1}^G  E_{q} \left[ 1 - s_g\right].$$
+
+### ELBO
+
+At the end of every iteration $t$ we must compute the ELBO $\mathcal{E}(q_t) = E_{q_t}\left[\log \pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right] - E_{q_t} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right]$ (the objective function we are attempting to maximize).
+We iterate through parameter updates until convergence, i.e., $\left\vert \mathcal{E}(q_t) - \mathcal{E}(q_{t-1}) \right\vert <$ `tol`.
+The expression for $\mathcal{E}(q_t)$ can be computed analytically based on the functional forms for each factor of $1$ given above.
+For brevity, we do not provide this expression here.
+
+### Hyperparameter estimation via empirical Bayes
+
+If the option `update_hyper = TRUE`, we estimate the hyperparameters $\tau$, $\omega$, and $\sigma^2$ via approximate empirical Bayes.
+Specifically, every `update_hyper_freq` iterations, we maximize $\mathcal{E}(q_t)$ (an approximation to the marginal likelihood) in each hyperparameter.
+This convenient technique has been used elsewhere (CITATIONS).
+This gives the following hyperparameter updates:
+
+$$\tau_t = \dfrac{\sum_{g=1}^G E_{q}\left[ \boldsymbol{\gamma}_g^T \boldsymbol{\gamma}_g \right]}{\sum_{g=1}^G k_g} $$
+
+$$\omega_t  = \dfrac{E_{q_t} \left[ \boldsymbol{\theta}_g^T \boldsymbol{\theta}_g \right]}{m} $$
+
+$$\sigma^2_t = \dfrac{1}{n} E_{q} \left[\left(\boldsymbol{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right)^T \left(\boldsymbol{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right) \right]$$
+
+## Spike and slab logistic regression with binary response variable
+
+We define all variables exactly as for the normal model, with the exception that $Y_i$ is now binary and takes on values either $1$ ("success") or $-1$ ("failure").
+*Note:* although we assume $Y_i \in \lbrace -1, 1 \rbrace$ here, the `spike_and_slab()` function assumes that the binary response vector `y` takes on values 1 (success) or 0 (failure), for compatability with other regression models in R.
+
+$$Y_i = 
+\begin{cases}
+1 \textrm{ with probability } p_i \\
+ -1 \textrm{ with probability } 1 - p_i 
+\end{cases} $$
+where
+$$\log \left(\dfrac{p_i}{1 - p_i} \right) = \sum_{g=1}^G \boldsymbol{\beta}_g^T \mathbf{x}_{i,g}  + \boldsymbol{\theta}^T \mathbf{w}_i$$
+and the parameters $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ follow the same hierarchical model as for the normal model above.
+
+## Worked example
+
+We refer the reader to the worked example for the spike and slab model with normally distributed response.
+The code for a binary response is almost idential, with the exception that we must set the option `family = "bernoulli"` in the `spike_and_slab()` function.
+
+## VI algorithm for spike and slab logistic model
 
