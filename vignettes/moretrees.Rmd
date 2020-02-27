@@ -2,7 +2,10 @@
 title: "Variational Inference for Spike and Slab Variable Selection and Multi-Outcome Regression"
 author: "Emma Thomas"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
 vignette: >
   %\VignetteIndexEntry{moretrees}
   %\VignetteEngine{knitr::rmarkdown}
@@ -20,15 +23,15 @@ knitr::opts_chunk$set(
 
 The `moretrees` package has two main functions: 
 
-1. the `moretrees()` function, which fits Multi-Outcome Regression with Tree-Structured Shrinkage (MOReTreeS) models;
+1. the `moretrees()` function, which fits Multi-Outcome Regression with Tree-Structured Shrinkage (MOReTreeS) models (CITE);
 1. the `spike_and_slab()` function, which fits Bayesian spike and slab variable selection models.
 
 For each model, two likelihoods are currently supported: 
 
-1. a normal likelihood with the identity link for continous outcome data;
-1. a Bernoulli likelihood with logistic link for binary classification problems.
+1. a normally distributed outcome data with the identity link;
+1. binary outcome data with logistic link.
 
-All models are fit using variational inference (VI), a popular and typically much faster alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
+All models are fit using variational inference (VI), a popular (and typically much faster) alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
 
 This vignette has three main objectives:
 
@@ -39,20 +42,20 @@ This vignette has three main objectives:
 We begin by addressing these three objectives for the `spike_and_slab()` function, followed by the `moretrees()` function.
 This is the natual ordering because the VI algorithm for MOReTreeS is a minor adaptation of the algorithm for the spike and slab variable selection model.
 
-# Spike and slab variable selection with `spike_and_slab()`
+# Spike and slab variable selection using `spike_and_slab()`
 
 The spike and slab prior is one of the most commonly-used methods for variable selection in the Bayesian literature.
-However, fitting spike and slab models can be very challenging and there are known difficulties with MCMC.
+However, fitting spike and slab models can be challenging and there are known difficulties with MCMC.
 Recently, a number of authors have developed VI algorithms for fitting regression models with spike and slab priors (CITATIONS).
 These approaches have the advantage of being fast, scalable, and avoiding issues with convergence.
 
-`moretrees` is, to our knowledge, the first R package to implement VI for spike and slab regression in R.
-The `spike_and_slab()` also provides greater flexibility in specifying the spike and slab model than the published algorithms mentioned above.
-Specifically, `spike_and_slab()` supports the following functionality:
+`moretrees` is, to our knowledge, the first R package to implement VI for regression models with spike and slab priors in R.
+`spike_and_slab()` supports the following functionality:
 
-1. Group variable selection: groups of predictors can be selected in or out of the model simultaneously;
-1. Non-sparse predictors: the user can specify predictors that should be forced into the model (i.e., their coefficients will always be non-zero);
+1. Group variable selection: groups of predictors can be selected in or out of the model simultaneously, and each group can contain any number of predictors;
+1. Non-sparse predictors: the user can specify which predictors should be forced into the model (i.e., their coefficients will always be non-zero);
 1. Regression and classification: `spike_and_slab()` can be used with both normally-distributed response variables (regression) and binary response variables (classification).
+1. Hyperparameter estimation: the user need not specify the values of hyperparameters which are instead estimated via an approximate empirial Bayes scheme, as detailed below.
 
 ## Spike and slab regression with normal response variable
 
@@ -67,13 +70,14 @@ Then let:
 $$Y_i = \epsilon_i + \sum_{g=1}^ G \boldsymbol{\beta}_g^T \mathbf{x}_{i,g} + \boldsymbol{\theta}^T \mathbf{w}_i$$
 where:
 
-* $\epsilon_i \sim N(0,\sigma^2)$
+* $\epsilon_i \sim \mathcal{N}(0,\sigma^2)$
 * $\boldsymbol{\beta}_g = s_g \boldsymbol{\gamma}_g$
 * $s_g \sim Bern(\rho)$
 * $\boldsymbol{\gamma}_g \sim \mathcal{MVN}\left(\boldsymbol{0},\tau I_{k_g}\right)$
 * $\boldsymbol{\theta} \sim \mathcal{MVN} \left( \boldsymbol{0}, \omega I_m \right)$
-* $\rho \sim Unif(0,1)$.
+* $\rho \sim Unif(0,1)$
 
+Where $\mathcal{MVN}$ is a multivariate normal distribution.
 Here, $\sigma^2$ (residual variance), $\tau$ (common prior variance of the sparse coefficients), and $\omega$ (common prior variance of the non-sparse coefficients) are treated as fixed hyperparameters and will be estimated via Empirical Bayes.
 We estimate $\rho$, the prior probability that each of the groups of variables $g$ will be included in the model, using fully Bayesian estimation with a uniform hyperprior.
 This choice was made because estimating $\rho$ with empirical Bayes can lead to problems with posterior uncertainty (CITE Barbieri et al).
@@ -92,7 +96,7 @@ First, we load a small simulated dataset, `normalSpikeAndSlabData`, which has $n
 The data are stored as a list with three elements:
 
 1. `X`: a matrix of class `dgCMatrix` (from the `Matrix` package) of predictors that will be subject to variable selection;
-1. `W`: a matrix of class `dgCMatrix` of predictors that will be forced into the model--- the first column is all ones and represents the intercept;
+1. `W`: a matrix of class `dgCMatrix` of predictors that will be forced into the model--- the first column is all 1s and represents the intercept;
 1. `y`: a numeric vector of response data.
 
 The names of the matrix `X` indicate to which group each variable belongs.
@@ -107,7 +111,7 @@ groups <- as.integer(stringr::str_extract(Xnames, "\\d+"))
 groups <- lapply(1:max(groups), function(i) which(groups == i))
 ```
 
-Next, we run the model.
+Next, we run the VI algorithm to get posterior estimates.
 We use a random seed because by default, `spike_and_slab()` generates random initial values for the VI algorithm.
 
 ```{r ss_mod, eval = TRUE, cache = T}
@@ -120,8 +124,9 @@ mod <- spike_and_slab(y = normalSpikeAndSlabData$y,
                        print_freq = 100)
 ```
 
-We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16`.
-Next, we inspect the posterior probabilities of variable inclusion for each sparse variable group.
+We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16` (the option `print_freq` determines how frequently the algorithm's progress will be printed).
+
+Next, we inspect the marginal posterior probabilities of variable inclusion for each sparse variable group.
 
 ```{r ss_pip, eval = TRUE}
 cbind(paste0("Group ", 1:length(groups), ":"), 
@@ -132,21 +137,30 @@ We see that only Groups 2 and 3 have a high posterior probability of inclusion i
 Next, we inspect the results for those groups.
 `spike_and_slab()` returns coefficient estimates and 95\% credible intervals (CIs) for each variable based on the *median probability model*, defined as the model that includes all variables whose marginal posterior inclusion probability is greater than $\frac{1}{2}$ (CITE).
 
-```{r ss_est, eval = TRUE}
+```{r ss_sparse_est, eval = TRUE}
 mod$sparse_est[2:3]
 ```
 
-### A note on random restarts
+The estimates for all other variable groups will be zero, as they have not been selected into the model.
+
+Finally, we inspect the results for the variables that were forced into the model:
+
+```{r ss_nonsparse_est, eval = TRUE}
+mod$nonsparse_est
+```
+
+
+#### A note on random restarts
 
 Note that in the example above, we have used only `nrestarts = 1` random restarts for illustration purposes.
 This means we have chosen only one random set of initial values for the VI algorithm.
 However, in practice we recommend using `nrestarts > 1`.
 This will cause `spike_and_slab()` to run multiple versions of the VI algorithm from different random initial values.
-The restart that leads to the highest ELBO will be returned.
+These restarts may converge to different local optima; if so, the "best" restart will be returned (highest value of the objective function).
 The unevaluated code chunk below illustrates registering a parallel backend for running three random restarts on multiple cores.
 The progress of restart `i` will be logged to a text file `log_dir/restart_i_log.txt` which is deleted at the end of the run. 
 
-```{r ss_parallel, eval = FALSE}
+```{r ss_parallel, eval = TRUE}
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
 set.seed(463456)
@@ -162,29 +176,39 @@ mod <- spike_and_slab(y = normalSpikeAndSlabData$y,
 unlink(log_dir, recursive = T)
 ```
 
-### VI algorithm for spike and slab normal model
+When `nrestarts > 1`, `spike_and_slab()` runs the restarts on multiple cores by default.
+To prevent this behaviour and run the restarts on one core, use the option `parallel = FALSE`.
+
+### VI algorithm
 
 VI is a method for approximating the posterior distribution of a Bayesian model.
-This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where distance is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
-Note that VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
+This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where "distance" is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
+Using this technique, VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
 A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see Blei 2017 (CITE).
-This section of the vignette is *not* required reading; it is intended for readers with some knowledge of variational Bayes who may wish to verify the details of the VI algorithm used by `moretrees`.
+This section of the vignette is *not* required reading.
+Rather, it is intended for readers with some knowledge of variational Bayes who may wish to verify the details of the VI algorithm used by `moretrees`.
 
 For all models in the `moretrees` package, we assume only that the variational approximation $q$ factorizes as $q\left(\boldsymbol{\gamma},\mathbf{s}, \boldsymbol{\theta}, \rho \right) = q(\rho) q \left( \boldsymbol{\theta} \right) \prod_{g=1}^G q\left(\boldsymbol{\gamma}_g, s_g \right)$.
 Rather than minimizing $K(q || \pi)$, which depends on the intractable posterior $\pi$, we maximize a quantity known as the evidence lower bound (ELBO) $\mathcal{E}(q)$, which is equal to $- K(q || \pi)$ up to an additive constant that does not depend on $q$.
-The `moretrees` packages uses a co-ordinate ascent variational inference (CAVI) algorithm to maximize $\mathcal{E}(q)$ in $q$.
-Specifically, we maximize $\mathcal{E}(q)$ in $q(\rho)$, $q \left( \boldsymbol{\theta} \right)$,  and $q\left(\boldsymbol{\gamma}_j, s_j \right)$ for $j = 1, \dots, G$ in turn.
+The ELBO is defined below.
 
-In what follows we use the subscript $t$ or superscript $(t)$ to denote the next iteration or update; the absence of a subscript indicates that the last or most recent value of that parameter should be used.
-Each of the updates in the CAVI algorithm can be obtained using the following well-known result (see Blei 2017 for a derivation).
-As an example, consider the update for the factor $q\left(\boldsymbol{\gamma}_j, s_j \right)$.
+The `moretrees` packages uses a co-ordinate ascent variational inference (CAVI) algorithm to maximize $\mathcal{E}(q)$ in $q$.
+Specifically, we maximize $\mathcal{E}(q)$ in each of the factors $q(\rho)$, $q \left( \boldsymbol{\theta} \right)$,  and $q\left(\boldsymbol{\gamma}_j, s_j \right)$ for $j = 1, \dots, G$ in turn.
+In what follows we use the subscript $t$ or superscript $(t)$ to denote the next iteration or update in the CAVI algorithm; the absence of a subscript indicates that the last or most recent value of that parameter should be used.
+
+The updates for each factor in the CAVI algorithm can be obtained using the following well-known result (see Blei 2017 for a derivation).
+As an example, consider the factor $q\left(\boldsymbol{\gamma}_j, s_j \right)$.
 Let $q_{-\left(\boldsymbol{\gamma}_j, s_j \right)}$ be the variational distribution marginalized over $(\boldsymbol{\gamma}_j, s_j)$.
-Then the $t^{th}$ coordinate ascent update for $(\boldsymbol{\gamma}_j, s_j)$ is:
+Then the $t^{th}$ coordinate ascent update for $(\boldsymbol{\gamma}_j, s_j)$ is determined by:
 
 $$ q_t \left( \boldsymbol{\gamma}_j, s_j \right) \propto \exp \left( E_{q_{-\left(\boldsymbol{\gamma}_j, s_j \right)}} \left[ \log \pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right] \right).$$
 The equivalent results hold for all other factors $q(\rho)$, $q(\boldsymbol{\theta})$, and $q(\boldsymbol{\gamma}_g, s_g)$ for $g \neq j$.
 
-### Update for $q(\boldsymbol{\gamma}_j, s_j)$
+Below, we give the CAVI updates for each factor.
+These updates can be straightforwardly derived from the above formula.
+In the `moretrees` package, these updates are coded in the internal function `vi_updates_normal()`.
+
+#### Update for $q(\boldsymbol{\gamma}_j, s_j)$
 
 $$ q_{t}\left( \boldsymbol{\gamma}_j, s_j \right) = \mathcal{MVN}\left(\boldsymbol{\gamma}_j \middle\vert s_j \boldsymbol{\mu}_j^{(t)}, s_j \Sigma_j^{(t)} + (1-s_j) \tilde{\tau}_j^{(t)} I_{K_g} \right) p_j^{(t)s_j} \left(1-p_j^{(t)}\right)^{1-s_j}$$
 
@@ -195,18 +219,18 @@ $$\tilde{\tau}_j^{(t)} = \tau$$
 $$\boldsymbol{\mu}_j^{(t)} =  \frac{1}{\sigma^2} \Sigma_j^{(t)} X_j^T \left( \mathbf{Y}-  W E_{q} \left[ \boldsymbol{\theta} \right] -   \sum_{g\neq j} X_g E_{q}  \left[ \boldsymbol{\gamma}_g s_g \right] \right)$$
 $$ \log \left(\dfrac{p_j^{(t)}}{ 1- p_j^{(t)}} \right) =  E_{q} \left[ \log \rho \right] - E_{q} \left[ \log (1-\rho)\right] + \dfrac{\boldsymbol{\mu}_j^{(t)T} \left(\Sigma_j^{(t)}\right)^{-1} \boldsymbol{\mu}_j^{(t)}}{2} + \dfrac{1}{2} \left( \log \left\vert \Sigma_j^{(t)} \right\vert - K_g \log \tilde{\tau}_j^{(t)} \right)$$
 
-### Update for $q(\boldsymbol{\theta})$
+#### Update for $q(\boldsymbol{\theta})$
 
 $$q_t\left( \boldsymbol{\theta} \right) = \mathcal{MVN}\left(\boldsymbol{\delta}_t, \Omega_t \right) $$
 where
 
 $$     \Omega_t^{-1} = \dfrac{1}{\sigma^2} W^T W + \dfrac{1}{\omega} I_m $$
 
-$$  \boldsymbol{\delta}_t = \dfrac{1 }{\sigma^2}\Omega W^T\left( \mathbf{Y} - \sum_{g=1}^G E_{q_t} \left[ s_g X_g \boldsymbol{\gamma}_g \right] \right)$$
+$$  \boldsymbol{\delta}_t = \dfrac{1 }{\sigma^2}\Omega W^T\left( \mathbf{Y} - \sum_{g=1}^G E_{q} \left[ s_g X_g \boldsymbol{\gamma}_g \right] \right)$$
 
-### Update for $q(\rho)$
+#### Update for $q(\rho)$
 
-$$q_{t}(\rho) = Be \left(a_t, b_t \right)$$
+$$q_{t}(\rho) = Beta \left(a_t, b_t \right)$$
 
 where 
 
@@ -214,30 +238,51 @@ $$a_t = 1 + \sum_{g=1}^G  E_{q} \left[ s_g \right] $$
 
 $$b_t = 1 + \sum_{g=1}^G  E_{q} \left[ 1 - s_g\right].$$
 
-### ELBO
+#### ELBO
 
-At the end of every iteration $t$ we must compute the ELBO $\mathcal{E}(q_t) = E_{q_t}\left[\log \pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right] - E_{q_t} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right]$ (the objective function we are attempting to maximize).
+At the end of every iteration $t$ we must compute the ELBO $\mathcal{E}(q_t) = E_{q}\left[\log \pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right] - E_{q} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \rho \right) \right]$ (the objective function we are attempting to maximize).
 We iterate through parameter updates until convergence, i.e., $\left\vert \mathcal{E}(q_t) - \mathcal{E}(q_{t-1}) \right\vert <$ `tol`.
-The expression for $\mathcal{E}(q_t)$ can be computed analytically based on the functional forms for each factor of $1$ given above.
-For brevity, we do not provide this expression here.
 
-### Hyperparameter estimation via empirical Bayes
+$\begin{aligned}
+\mathcal{E}(q_t) = &   -\dfrac{1}{2\sigma^2} E_{q} \left[\left(\boldsymbol{Y} - W \boldsymbol{\theta} -  \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right)^T \left(\boldsymbol{Y} - W \boldsymbol{\theta} - \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right) \right] - \dfrac{n}{2} \log\left( 2\pi \sigma^2\right)  & (1)\\
+&-\sum_{g=1}^G\left( \dfrac{E_{q} \left[\boldsymbol{\gamma}_g^T\boldsymbol{\gamma}_g \right]}{2\tau} + \dfrac{k_g}{2} \log(2 \pi \tau)\right)& (2)\\
+&+ E_{q} \left[ \log \rho \right] \sum_{g=1}^G  E_{q} \left[ s_g \right]  + E_{q} \left[ \log \left(1 - \rho \right) \right] \sum_{g=1}^G \left(1-E_{q} \left[s_g\right] \right) & (3) \\
+&- \dfrac{E_{q} \left[\boldsymbol{\theta}^T \boldsymbol{\theta} \right]}{2 \omega} - \dfrac{m}{2} \log (2 \pi \omega) & (4) \\
+&+ \dfrac{1}{2} \sum_{g=1}^G E_{q}\left[s_g \left(\boldsymbol{\gamma}_g - \boldsymbol{\mu}_g \right)^T \Sigma_g^{-1} \left(\boldsymbol{\gamma}_g - \boldsymbol{\mu}_g \right) \right] + E_{q}\left[ s_g \right] \left( \log \left\vert \Sigma_g \right\vert + k_g \log (2\pi)\right) & (5) \\
+&+ \dfrac{1}{2} \sum_{g=1}^G \dfrac{1}{\tilde{\tau}_g} E_{q}\left[(1-s_g) \boldsymbol{\gamma}_g^T \boldsymbol{\gamma}_g \right] +  \dfrac{1}{2}  \sum_{g=1}^G k_g \log (2\pi \tilde{\tau}_g) E_{q}\left[ 1-s_g \right] & (6) \\
+&- \sum_{g=1}^G \left( E_{q}[s_g] \log(\pi_g) + E_{q}[1-s_g] \log \left( 1- \pi_g \right) \right) & (7) \\
+&+ \dfrac{1}{2} E_{q} \left[ \left(\boldsymbol{\theta} - \boldsymbol{\delta} \right)^T \Omega^{-1} \left(\boldsymbol{\theta} - \boldsymbol{\delta} \right) \right] +  \dfrac{1}{2} \log \left\vert \Omega \right\vert + \dfrac{m}{2} \log(2 \pi) & (8) \\
+&- (a - 1) E_{q} \left[\log \rho \right] - (b - 1) E_{q} \left[\log (1 - \rho) \right] + \log \mathcal{B} (a, b) & (9)
+\end{aligned}$
 
-If the option `update_hyper = TRUE`, we estimate the hyperparameters $\tau$, $\omega$, and $\sigma^2$ via approximate empirical Bayes.
+where $\mathcal{B}(\cdot,\cdot)$ is the Beta function.
+The expectations with respect to $q$ can be computed using the known expressions for each factor of $q$ given in the previous sections.
+The line numbers above correspond exactly to those used in the internal function `update_hyperparams_normal()`, which both computes $\mathcal{E}(q_t)$ and performs the hyperparameter updates described in the next section.
+
+#### Hyperparameter estimation
+
+If `update_hyper = FALSE`, then fixed values of $\tau$, $\omega$, and $\sigma^2$ must be provided via the `hyper_fixed` option.
+However, in general it can be difficult to choose sensible hyperparameter values.
+As an alternative, the hyperparameters $\tau$, $\omega$, and $\sigma^2$ can be estimated via approximate empirical Bayes using the default option `update_hyper = TRUE`.
 Specifically, every `update_hyper_freq` iterations, we maximize $\mathcal{E}(q_t)$ (an approximation to the marginal likelihood) in each hyperparameter.
-This convenient technique has been used elsewhere (CITATIONS).
 This gives the following hyperparameter updates:
 
 $$\tau_t = \dfrac{\sum_{g=1}^G E_{q}\left[ \boldsymbol{\gamma}_g^T \boldsymbol{\gamma}_g \right]}{\sum_{g=1}^G k_g} $$
 
-$$\omega_t  = \dfrac{E_{q_t} \left[ \boldsymbol{\theta}_g^T \boldsymbol{\theta}_g \right]}{m} $$
+$$\omega_t  = \dfrac{E_{q} \left[ \boldsymbol{\theta}_g^T \boldsymbol{\theta}_g \right]}{m} $$
 
 $$\sigma^2_t = \dfrac{1}{n} E_{q} \left[\left(\boldsymbol{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right)^T \left(\boldsymbol{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G s_g X_g \boldsymbol{\gamma}_g \right) \right]$$
+
+This convenient technique has been used elsewhere (CITATIONS).
+Ideally, one would find the optimal VI parameters after every hyperparameter update by allowing the algorithm to converge while keeping the hyperparameter fixed.
+The hyperparameters would then be updated again, and this process would be repeated until convergence of both the VI parameters and hyperparameters.
+However, in practice this can be too time consuming; as an alternative, we set a maximum of `update_hyper_freq` VI updates between hyperparameter update.
+The default vaue is `update_hyper_freq = 50`; if the algorithm is converging slowly, changing this value may help.
 
 ## Spike and slab logistic regression with binary response variable
 
 We define all variables exactly as for the normal model, with the exception that $Y_i$ is now binary and takes on values either $1$ ("success") or $-1$ ("failure").
-*Note:* although we assume $Y_i \in \lbrace -1, 1 \rbrace$ here, the `spike_and_slab()` function assumes that the binary response vector `y` takes on values 1 (success) or 0 (failure), for compatability with other regression models in R.
+*Note:* although we assume $Y_i \in \lbrace -1, 1 \rbrace$ for notational convenience here, the `spike_and_slab()` function assumes that the binary response vector `y` takes on values 1 (success) or 0 (failure) for compatability with other regression models in R.
 
 $$Y_i = 
 \begin{cases}
@@ -248,10 +293,16 @@ where
 $$\log \left(\dfrac{p_i}{1 - p_i} \right) = \sum_{g=1}^G \boldsymbol{\beta}_g^T \mathbf{x}_{i,g}  + \boldsymbol{\theta}^T \mathbf{w}_i$$
 and the parameters $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ follow the same hierarchical model as for the normal model above.
 
-## Worked example
+### Worked example
 
 We refer the reader to the worked example for the spike and slab model with normally distributed response.
 The code for a binary response is almost idential, with the exception that we must set the option `family = "bernoulli"` in the `spike_and_slab()` function.
 
-## VI algorithm for spike and slab logistic model
+### VI algorithm
+
+# Multi-Outcome Regression with Tree-structured Shrinkage using `moretrees()`
+
+## Worked example
+
+## VI algorithm
 
