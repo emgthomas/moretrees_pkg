@@ -52,12 +52,12 @@ if(family == "bernoulli") {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 }
 
-X <- as(X, "dgCMatrix")
-colnames(X) <- unlist(sapply(1:length(groups), function(i) paste0("group", i, ".", 1:length(groups[[i]]))))
-W <- as(W, "dgCMatrix")
-W[ , 1] <- 1
-normalSpikeAndSlabData <- list(y = y, X = X, W = W)
-usethis::use_data(normalSpikeAndSlabData, overwrite = T)
+# X <- as(X, "dgCMatrix")
+# colnames(X) <- unlist(sapply(1:length(groups), function(i) paste0("group", i, ".", 1:length(groups[[i]]))))
+# W <- as(W, "dgCMatrix")
+# W[ , 1] <- 1
+# normalSpikeAndSlabData <- list(y = y, X = X, W = W)
+# usethis::use_data(normalSpikeAndSlabData, overwrite = T)
 
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, groups, W, family = family,

@@ -117,7 +117,7 @@ spike_and_slab <- function(y, X, groups, W = NULL,
   # Run algorithm
   mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
     if (log_restarts) {
-      f <- paste0(log_dir, "restart_", i, "_log.txt")
+      f <- paste0(log_dir, "/restart_", i, "_log.txt")
       sink(file = f)
       cat("Initialising random restart", i, "...\n\n")
     }

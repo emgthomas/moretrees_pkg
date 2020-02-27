@@ -84,15 +84,33 @@ Then the joint distribution of data and parameters is:
 
 $$\pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right)  = \dfrac{1}{\left(2 \pi \sigma^2\right)^{n/2}} \exp \left[-\dfrac{1}{2\sigma^2} \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g \right)^T \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g  \right) \right] $$
 $$\times \dfrac{1}{\left(2\pi\omega\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{\theta}_g^T\boldsymbol{\theta}_g}{2\omega}\right] \prod_{g=1}^G \rho^{s_g} (1-\rho)^{1-s_g} \dfrac{1}{\left(2\pi\tau\right)^{K_g/2}} \exp\left[-\dfrac{\boldsymbol{\gamma}_g^T\boldsymbol{\gamma}_g}{2\tau}\right] \mathbf{1} \lbrace 0 < \rho < 1 \rbrace$$
-## Worked example
 
+### Worked example
 
-```{r ss_eg}
+Before delving into the details of the VI algorithm, we begin with a worked example of using the `spike_and_slab()` function.
+First, we load a small simulated dataset, `normalSpikeAndSlabData`, which has $n = 100$ observations, $G = 10$ sparse variable groups containing one to four variables each, and $m = 4$ non-sparse variables including the intercept.
+The data are stored as a list with three elements:
+
+1. `X`: a matrix of class `dgCMatrix` (from the `Matrix` package) of predictors that will be subject to variable selection;
+1. `W`: a matrix of class `dgCMatrix` of predictors that will be forced into the model--- the first column is all ones and represents the intercept;
+1. `y`: a numeric vector of response data.
+
+The names of the matrix `X` indicate to which group each variable belongs.
+Using these names, we first construct a list, `groups`, of length equal to the number of variable groups.
+Each element `groups[[g]]` of `groups` is an integer vector denoting which columns of `X` belong to group `g`.
+
+```{r ss_data, eval = TRUE, cache = T}
 library(moretrees)
 data("normalSpikeAndSlabData")
-groups <- colnames(normalSpikeAndSlabData$X)
-groups <- as.integer(stringr::str_extract(groups, "\\d+"))
+(Xnames <- colnames(normalSpikeAndSlabData$X))
+groups <- as.integer(stringr::str_extract(Xnames, "\\d+"))
 groups <- lapply(1:max(groups), function(i) which(groups == i))
+```
+
+Next, we run the model.
+We use a random seed because by default, `spike_and_slab()` generates random initial values for the VI algorithm.
+
+```{r ss_mod, eval = TRUE, cache = T}
 set.seed(235897)
 mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
                        X = normalSpikeAndSlabData$X, 
@@ -101,3 +119,48 @@ mod <- spike_and_slab(y = normalSpikeAndSlabData$y,
                        nrestarts = 1, tol = 1E-16, 
                        print_freq = 100)
 ```
+
+We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16`.
+Next, we inspect the posterior probabilities of variable inclusion for each sparse variable group.
+
+```{r ss_pip, eval = TRUE}
+cbind(paste0("Group ", 1:length(groups), ":"), 
+      format(mod$mod$vi_params$prob, digits = 1))
+```
+
+We see that only Groups 2 and 3 have a high posterior probability of inclusion in the model.
+Next, we inspect the results for those groups.
+`spike_and_slab()` returns coefficient estimates and 95\% credible intervals (CIs) for each variable based on the *median probability model*, defined as the model that includes all variables whose marginal posterior inclusion probability is greater than $\frac{1}{2}$ (CITE).
+
+```{r ss_est, eval = TRUE}
+mod$sparse_est[2:3]
+```
+
+### A note on random restarts
+
+Note that in the example above, we have used only `nrestarts = 1` random restarts for illustration purposes.
+This means we have chosen only one random set of initial values for the VI algorithm.
+However, in practice we recommend using `nrestarts > 1`.
+This will cause `spike_and_slab()` to run multiple versions of the VI algorithm from different random initial values.
+The restart that leads to the highest ELBO will be returned.
+The unevaluated code chunk below illustrates registering a parallel backend for running three random restarts on multiple cores.
+The progress of restart `i` will be logged to a text file `log_dir/restart_i_log.txt` which is deleted at the end of the run. 
+
+```{r ss_parallel, eval = FALSE}
+nrestarts <- 3
+doParallel::registerDoParallel(cores = nrestarts)
+set.seed(463456)
+log_dir <- "restart_logs"
+dir.create(log_dir)
+mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
+                      X = normalSpikeAndSlabData$X, 
+                      W = normalSpikeAndSlabData$W,
+                      groups = groups, family = "gaussian", 
+                      tol = 1E-16, print_freq = 10,
+                      nrestarts = nrestarts, log_restarts = T,
+                      log_dir = log_dir)
+unlink(log_dir, recursive = T)
+```
+
+### VI algorithm for spike and slab normal model
+
