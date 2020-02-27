@@ -3,23 +3,23 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-# set.seed(98647)
+set.seed(45679)
 devtools::load_all() # Sources all files in R/
 
 # Pick one ---------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
+family <- "gaussian"
+# family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
-G <- 4 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
+G <- 10 # note: for matrices/arrays indexed by g=1,...,G, g is always the first dimension
 K <- sample(1:4, size = G, replace = T)
 m <- 4
 tau <- 3
 rho <- 0.5
 omega <- 2
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau))
-# s_true <- rbinom(n = G, size = 1, prob = rho)
-s_true <- sample(c(0, 0, 1, 1), size = )
+s_true <- rbinom(n = G, size = 1, prob = rho)
+# s_true <- sample(c(0, 0, 1, 1), size = )
 beta <- sapply(1:G, function(g) gamma_true[[g]] * s_true[[g]])
 theta <- rnorm(m, mean = 0, sd = sqrt(omega))
 sigma2 <- 2
@@ -39,6 +39,7 @@ groups <- sapply(1:length(K), function(i) {
   }
 })
 W <- Matrix::Matrix(rnorm(m * n, sd = 0.5), nrow = n)
+W[ , 1] <- 1 # intercept
 lp <- W %*% theta
 for (g in 1:G) {
   lp <- lp + X[ , groups[[g]], drop = F] %*% beta[[g]]
@@ -51,12 +52,19 @@ if(family == "bernoulli") {
   y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
 }
 
+X <- as(X, "dgCMatrix")
+colnames(X) <- unlist(sapply(1:length(groups), function(i) paste0("group", i, ".", 1:length(groups[[i]]))))
+W <- as(W, "dgCMatrix")
+W[ , 1] <- 1
+normalSpikeAndSlabData <- list(y = y, X = X, W = W)
+usethis::use_data(normalSpikeAndSlabData, overwrite = T)
+
 # Run algorithm ----------------------------------------------------------------------
 mod1 <- spike_and_slab(y, X, groups, W, family = family,
                        update_hyper = T, update_hyper_freq = 10,
                        print_freq = 10,
-                       tol = 1E-8, max_iter = 1E5,
-                       nrestarts = nrestarts,
+                       tol = 1E-16, max_iter = 1E5,
+                       nrestarts = 1,
                        log_dir = "./tests/",
                        hyper_fixed = hyper_fixed)
 beta_est <- mod1$sparse_est

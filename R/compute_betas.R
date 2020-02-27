@@ -32,10 +32,12 @@ compute_betas <- function(mod, ci_level) {
                        node_select = node_select, 
                        SIMPLIFY = F)
   z <- qnorm(ci_level + (1 - ci_level) / 2)
-  beta_ci_l <- mapply(function(beta, sd) beta - z * sd,
-                      beta = beta_est, sd = beta_sd_est)
-  beta_ci_u <- mapply(function(beta, sd) beta + z * sd,
-                      beta = beta_est, sd = beta_sd_est)
+  beta_ci_l <- mapply(function(beta, beta_sd) beta - z * beta_sd,
+                      beta = beta_est, beta_sd = beta_sd_est,
+                      SIMPLIFY = F)
+  beta_ci_u <- mapply(function(beta, beta_sd) beta + z * beta_sd,
+                      beta = beta_est, beta_sd = beta_sd_est,
+                      SIMPLIFY = F)
   
   # Combine results
   beta_est <- mapply(function(est, cil, ciu) data.frame(est = est, cil = cil, ciu = ciu),

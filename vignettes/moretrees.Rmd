@@ -84,7 +84,20 @@ Then the joint distribution of data and parameters is:
 
 $$\pi \left(\mathbf{Y}, \boldsymbol{\gamma}, \mathbf{s}, \rho \right)  = \dfrac{1}{\left(2 \pi \sigma^2\right)^{n/2}} \exp \left[-\dfrac{1}{2\sigma^2} \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g \right)^T \left(\mathbf{Y} - W\boldsymbol{\theta} - \sum_{g=1}^G X_g \boldsymbol{\beta}_g  \right) \right] $$
 $$\times \dfrac{1}{\left(2\pi\omega\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{\theta}_g^T\boldsymbol{\theta}_g}{2\omega}\right] \prod_{g=1}^G \rho^{s_g} (1-\rho)^{1-s_g} \dfrac{1}{\left(2\pi\tau\right)^{K_g/2}} \exp\left[-\dfrac{\boldsymbol{\gamma}_g^T\boldsymbol{\gamma}_g}{2\tau}\right] \mathbf{1} \lbrace 0 < \rho < 1 \rbrace$$
+## Worked example
 
-```{r setup}
+
+```{r ss_eg}
 library(moretrees)
+data("normalSpikeAndSlabData")
+groups <- colnames(normalSpikeAndSlabData$X)
+groups <- as.integer(stringr::str_extract(groups, "\\d+"))
+groups <- lapply(1:max(groups), function(i) which(groups == i))
+set.seed(235897)
+mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
+                       X = normalSpikeAndSlabData$X, 
+                       W = normalSpikeAndSlabData$W,
+                       groups = groups, family = "gaussian",
+                       nrestarts = 1, tol = 1E-16, 
+                       print_freq = 100)
 ```
