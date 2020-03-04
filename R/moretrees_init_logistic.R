@@ -69,10 +69,11 @@ moretrees_init_logistic <- function(X, W, y, A,
     units <- unlist(outcomes_units[u])
     suppressWarnings(suppressMessages(
       if (m > 0){
-        mod <- glm(y[units] == 1 ~ 0 + X[units, ] + W[units, ],
+        mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F] 
+                   + W[units,  , drop = F],
                    family = "binomial")
       } else {
-        mod <- glm(y[units] == 1 ~ 0 + X[units, ],
+        mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F],
                    family = "binomial")
       }
     ))
@@ -81,6 +82,10 @@ moretrees_init_logistic <- function(X, W, y, A,
       theta_ml[v, ] <- mod$coefficients[(K+1):(K + m)]
     }
   }
+  # replace any NA vals with zero
+  beta_ml[is.na(beta_ml)] <- 0
+  theta_ml[is.na(theta_ml)] <- 0
+  # transform to get initial values of mu and delta
   A_inv <- solve(A)
   mu <- A_inv %*% beta_ml
   delta <- A_inv %*% theta_ml
@@ -103,8 +108,8 @@ moretrees_init_logistic <- function(X, W, y, A,
   for (v in 1:pL) {
     beta_v <- Reduce(`+`, xi[ancestors[[v]]])
     theta_v <- Reduce(`+`, vi_params$delta[ancestors[[v]]])
-    lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], ] %*% beta_v +
-      W[outcomes_units[[v]], ] %*% theta_v
+    lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], , drop = F] %*% beta_v +
+      W[outcomes_units[[v]], , drop = F ] %*% theta_v
   }
   hyperparams$eta <- abs(lp)
   hyperparams$g_eta <- gfun(hyperparams$eta)

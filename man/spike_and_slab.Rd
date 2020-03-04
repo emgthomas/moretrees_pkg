@@ -4,14 +4,14 @@
 \alias{spike_and_slab}
 \title{Group spike and slab variable selection with bernoulli or gaussian outcome}
 \usage{
-spike_and_slab(y, X, groups, W = NULL, family = "bernoulli",
-  ci_level = 0.95, tol = 1e-04, max_iter = 1e+05, nrestarts = 3,
-  keep_restarts = nrestarts > 1, parallel = nrestarts > 1,
-  log_restarts = nrestarts > 1, log_dir = getwd(), update_hyper = T,
-  update_hyper_freq = 10, print_freq = update_hyper_freq,
-  hyper_fixed = NULL, hyper_random_init = list(omega_max = 100, tau_max
-  = 100, sigma2_max = 100), vi_random_init = list(eta_sd = 10, mu_sd =
-  10, delta_sd = 10))
+spike_and_slab(y, X, groups, W = NULL, initial_values = NULL,
+  family = "bernoulli", ci_level = 0.95, tol = 1e-04,
+  max_iter = 1e+05, nrestarts = 3, keep_restarts = nrestarts > 1,
+  parallel = nrestarts > 1, log_restarts = nrestarts > 1,
+  log_dir = getwd(), update_hyper = T, update_hyper_freq = 10,
+  print_freq = update_hyper_freq, hyper_fixed = NULL,
+  hyper_random_init = list(omega_max = 100, tau_max = 100, sigma2_max =
+  100), vi_random_init = list(eta_sd = 10, mu_sd = 10, delta_sd = 10))
 }
 \arguments{
 \item{y}{Vector of length n containing outcomes data.
@@ -112,6 +112,7 @@ Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
   \code{\link{spike_and_slab_logistic_moretrees}},
   \code{\link{spike_and_slab_logistic}},
+  \code{\link{spike_and_slab_normal_moretrees}},
   \code{\link{spike_and_slab_normal}}
 }
 \concept{spike and slab functions}

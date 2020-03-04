@@ -4,9 +4,9 @@
 \alias{spike_and_slab_logistic_moretrees}
 \title{Group spike and slab variable selection with Gaussian outcome}
 \usage{
-spike_and_slab_logistic_moretrees(dsgn, tol, max_iter, update_hyper,
-  update_hyper_freq, hyper_fixed, print_freq, hyper_random_init,
-  vi_random_init)
+spike_and_slab_logistic_moretrees(dsgn, initial_values, random_init, tol,
+  max_iter, update_hyper, update_hyper_freq, hyper_fixed, print_freq,
+  hyper_random_init, vi_random_init)
 }
 \arguments{
 \item{tol}{Convergence tolerance for ELBO.}
@@ -64,6 +64,7 @@ All the details go here!
 Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
   \code{\link{spike_and_slab_logistic}},
+  \code{\link{spike_and_slab_normal_moretrees}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}
 }

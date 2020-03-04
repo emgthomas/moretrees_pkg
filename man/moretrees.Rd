@@ -7,9 +7,10 @@
 \title{moretrees: A package for fitting Multi-Outcome Regression with 
 Tree-structured Shrinkage (MOReTreeS)}
 \usage{
-moretrees(X, W = NULL, y, outcomes, tr, method = "tree",
-  W_method = "shared", family = "bernoulli", ci_level = 0.95,
-  get_ml = FALSE, update_hyper = T, update_hyper_freq = 50,
+moretrees(X, W = NULL, y, outcomes, tr, random_init = FALSE,
+  initial_values = NULL, method = "tree", W_method = "shared",
+  family = "bernoulli", ci_level = 0.95, get_ml = FALSE,
+  update_hyper = T, update_hyper_freq = 50,
   print_freq = update_hyper_freq, hyper_fixed = NULL, tol = 1e-08,
   max_iter = 5000, nrestarts = 3, keep_restarts = nrestarts > 1,
   parallel = nrestarts > 1, log_restarts = nrestarts > 1,
@@ -135,6 +136,9 @@ Describe MOReTreeS model and all parameters here.
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
   \code{\link{moretrees_design_matrix}},
-  \code{\link{moretrees_design_tree}}
+  \code{\link{moretrees_design_tree}},
+  \code{\link{moretrees_init_W_logistic}},
+  \code{\link{moretrees_init_logistic}},
+  \code{\link{moretrees_init_rand}}
 }
 \concept{MOReTreeS functions}

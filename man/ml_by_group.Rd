@@ -50,6 +50,7 @@ Other spike and slab functions: \code{\link{compute_betas}},
   \code{\link{compute_thetas}},
   \code{\link{spike_and_slab_logistic_moretrees}},
   \code{\link{spike_and_slab_logistic}},
+  \code{\link{spike_and_slab_normal_moretrees}},
   \code{\link{spike_and_slab_normal}},
   \code{\link{spike_and_slab}}
 }

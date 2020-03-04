@@ -20,7 +20,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E4
+n <- 1E2
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2
@@ -51,7 +51,7 @@ table(groups_true)
 
 # Generate some data -----------------------------------------------------------------
 X <- matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
-outcomes <- sample(leaves, size = n, replace = T)
+outcomes <- c(leaves, sample(leaves, size = n - pL, replace = T))
 
 # Create non-sparse design matrix
 if (m > 0) {

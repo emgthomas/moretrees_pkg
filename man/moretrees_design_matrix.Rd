@@ -56,6 +56,9 @@ All the details go here!
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
   \code{\link{moretrees_design_tree}},
+  \code{\link{moretrees_init_W_logistic}},
+  \code{\link{moretrees_init_logistic}},
+  \code{\link{moretrees_init_rand}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}
