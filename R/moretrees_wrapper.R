@@ -92,6 +92,7 @@
 #' @family MOReTreeS functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
+                      random_init = FALSE,
                       initial_values = NULL,
                       method = "tree",
                       W_method = "shared",
@@ -155,6 +156,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   #   }
   #   mod <- 
   mod_restarts <- list(ss_fun(dsgn = dsgn,
+           random_init = random_init,
            initial_values = initial_values,
            update_hyper = update_hyper, 
            update_hyper_freq = update_hyper_freq,
