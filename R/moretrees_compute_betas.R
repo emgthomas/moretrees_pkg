@@ -23,7 +23,7 @@
 #' @examples
 #' @family MOReTreeS functions
 
-moretrees_compute_betas <- function(mod, ci_level, A_leaves) {
+moretrees_compute_betas <- function(mod, ci_level, A_leaves, outcomes) {
   
   # Get betas from xis
   p <- length(mod$vi_params$prob)
@@ -61,11 +61,17 @@ moretrees_compute_betas <- function(mod, ci_level, A_leaves) {
   for (i in 1:G) {
     beta_moretrees$outcomes[[i]] <- row.names(beta_est)[beta_est$group == i]
   }
+  
+  # Get counts of observations by group
+  beta_moretrees$n_obs <- sapply(beta_moretrees$outcomes,
+                       function(out, dat) sum(dat %in% out),
+                       dat = outcomes)
+  
   # re-order columns for readability
   cols <- c("est", "cil", "ciu")
   cols <- sapply(1:K, function(i) paste0(cols, i), simplify = T) %>%
     as.vector
-  beta_moretrees <- beta_moretrees[ , c("group", cols, "outcomes")]
+  beta_moretrees <- beta_moretrees[ , c("group", cols, "n_obs", "outcomes")]
   
   # Return results
   return(list(beta_moretrees = beta_moretrees, beta_est = beta_est))

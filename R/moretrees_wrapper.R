@@ -186,6 +186,7 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   
   # Compute MOReTreeS exposure coefficient estimates from model output
   betas <- moretrees_compute_betas(mod = mod, ci_level = ci_level,
+                                   outcomes = outcomes,
               A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Compute MOReTreeS covariate coefficient estimates from model output

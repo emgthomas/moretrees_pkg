@@ -121,7 +121,8 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
       break
     }
     i <- i + 1
-    if (i %% print_freq == 0) cat("Iteration", i, "\n")
+    if (i %% print_freq == 0 & i > 1) cat("Iteration", i, "; epsilon =",
+                                  ELBO_track2[i] - ELBO_track2[i - 1] , "\n")
     update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
     vi_params <- update_vi_params_logistic_moretrees(y = dsgn$y, X = dsgn$X,
                                                      W = dsgn$W, xxT = xxT,
