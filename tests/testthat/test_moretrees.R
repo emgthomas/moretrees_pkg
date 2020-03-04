@@ -81,8 +81,8 @@ if (family == "gaussian") {
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, 
-     s_true, groups_true, beta, theta, hyper_fixed, sure = T)
+keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed, sure = T)
+     # s_true, groups_true, beta, theta, sure = T)
 # require(profvis)
 # profvis(
 # Run model without W
@@ -99,7 +99,7 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts,
                    get_ml = F,
                    log_dir = "./tests/")
   mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   # initial_values = mod_start$mod,
+                   initial_values = mod_start$mod,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,

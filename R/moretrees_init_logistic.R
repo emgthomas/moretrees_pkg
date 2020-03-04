@@ -112,7 +112,7 @@ moretrees_init_logistic <- function(X, W, y, A,
   # Get hyperparameter starting values -------------------------------------------------
   if (update_hyper) {
     # If hyperparameters will be updated, initialise them
-    hyperparams$omega <- var(as.numeric(theta))
+    hyperparams$omega <- var(as.numeric(delta))
     hyperparams$tau <- var(as.numeric(mu))
   } else {
     # Otherwise, use fixed values
