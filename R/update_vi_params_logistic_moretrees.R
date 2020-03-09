@@ -6,11 +6,11 @@
 
 update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                       outcomes_nodes, outcomes_units,
-                                      ancestors,
-                                      n, p, pL, K, m, # data
+                                      ancestors, levels,
+                                      n, p, pL, K, m, Fg, # data
                                       prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
                                       delta, Omega, Omega_inv, Omega_det, 
-                                      a_rho, b_rho, # variational params
+                                      a, b, # variational params
                                       eta, g_eta, 
                                       omega, tau) { # hyperparams
   
@@ -45,7 +45,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     mu[[v]] <- Sigma[[v]] %*% mu[[v]]
     # Update u_v
     u_v <- 0.5 * crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] +
-      0.5 * log(Sigma_det[v]) + digamma(a_rho) - digamma(b_rho) -
+      0.5 * log(Sigma_det[v]) + digamma(a[levels[v]]) - digamma(b[levels[v]]) -
       0.5 * K * log(tau_t[v])
     prob[v] <- expit(u_v)
     # Update xi
@@ -53,8 +53,10 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   }
   
   # Update rho ------------------------------------------------------------------------
-  a_rho <- 1 + sum(prob) 
-  b_rho <- 1 + p - sum(prob)
+  for (f in 1:Fg) {
+    a[f] <- 1 + sum(prob[levels == f])
+    b[f] <- 1 + sum(levels == f) - sum(prob[levels == f])
+  }
   
   # Update non-sparse coefficients ----------------------------------------------------
   if (m > 0) {
@@ -91,5 +93,5 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,
               Omega = Omega, Omega_inv = Omega_inv, Omega_det = Omega_det,
-              a_rho = a_rho, b_rho = b_rho))
+              a = a, b = b))
 }

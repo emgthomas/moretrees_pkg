@@ -8,11 +8,12 @@
 update_hyperparams_logistic_moretrees <- function(X, W, y, 
                                         outcomes_units,
                                         ancestors,
-                                        n, K, p, m, # data
+                                        levels,
+                                        n, K, p, m, Fg, # data
                                         prob, mu, Sigma, Sigma_det, tau_t,
                                         delta, Omega, Omega_det, 
                                         eta, g_eta,
-                                        a_rho, b_rho, # variational params
+                                        a, b, # variational params
                                         omega, tau, # hyperparameters
                                         model = "ss",
                                         update_hyper = T) {

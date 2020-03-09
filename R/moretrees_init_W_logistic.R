@@ -50,6 +50,7 @@ moretrees_init_W_logistic <- function(X, W, y, A,
                                 outcomes_units,
                                 outcomes_nodes,
                                 ancestors,
+                                levels,
                                 xxT, wwT,
                                 update_hyper,
                                 hyper_fixed) {
@@ -59,10 +60,11 @@ moretrees_init_W_logistic <- function(X, W, y, A,
   p <- length(unique(unlist(ancestors)))
   pL <- length(ancestors)
   K <- ncol(X)
+  Fg <- max(levels)
   vi_params <- initial_values$vi_params
   hyperparams <- initial_values$hyperparams
   
-  # Get starting value for omega -----------------------------------
+  # Get starting values for omega -----------------------------------
   if (update_hyper) {
     hyperparams$omega <- hyperparams$tau
   } else {
@@ -105,14 +107,15 @@ moretrees_init_W_logistic <- function(X, W, y, A,
                                                         y = y, 
                                                         outcomes_units = outcomes_units,
                                                         ancestors = ancestors,
-                                                        n = n, K = K, p = p, m = m,
+                                                        levels = levels,
+                                                        n = n, K = K, p = p, m = m, Fg = Fg,
                                                         prob = vi_params$prob, mu = vi_params$mu,
                                                         Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
                                                         tau_t = vi_params$tau_t, delta = vi_params$delta,
                                                         Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
                                                         eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                         omega = hyperparams$omega, tau = hyperparams$tau,
-                                                        a_rho = vi_params$a_rho, b_rho = vi_params$b_rho,
+                                                        a = vi_params$a, b = vi_params$b,
                                                         update_hyper = F)
   
   return(list(vi_params = vi_params, hyperparams = hyperparams))

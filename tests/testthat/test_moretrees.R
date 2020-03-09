@@ -20,17 +20,18 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E2
+n <- 1E5
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 2
+# mdim <- 3
 tau <- 3
 rho1 <- 0.6 # rho for internal nodes
 rho2 <- 0.05 # rho for leaf nodes
 rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
 omega <- 2
 sigma2 <- 2
-hyper_fixed <- list(tau = tau, omega = omega)
+hyper_fixed <- list(tau = rep(tau, 4), omega = rep(omega, 4))
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
@@ -67,8 +68,19 @@ for (v in leaves) {
   lp[which_v] <- lp[which_v] + X[which_v, , drop = F] %*% Matrix::t(beta[v, , drop = F])
   if (m > 0) {
     lp[which_v] <- lp[which_v] + W[which_v, , drop = F] %*% Matrix::t(theta[v, , drop = F])
+    # counter <- 0
+    # for (j in 1:m) {
+    #   for (l in 1:mdim) {
+    #     counter <- counter + 1
+    #     lp[which_v] <- lp[which_v] + W[which_v, j , drop = F] ^ (l - 1) %*% 
+    #       Matrix::t(theta[v, counter, drop = F])
+    #   }
+    # }
   }
 }
+
+# v <- leaves[3]
+# plot(W[outcomes == v, 2], lp[outcomes == v])
 
 # Simulate outcomes
 if (family == "gaussian") {
@@ -79,24 +91,33 @@ if (family == "gaussian") {
   y <- as.integer(y <= p_success)
 }
 
+# require(splines)
+# df <- 3
+# Wspl <- matrix(nrow = n, ncol = 0)
+# for (j in 1:m) {
+#   Wspl <- cbind(Wspl, ns(W[ , j], df = df))
+# }
+# W <- Wspl
+
+
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed, sure = T)
-     # s_true, groups_true, beta, theta, sure = T)
+keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed,
+     s_true, groups_true, beta, theta, sure = T)
 # require(profvis)
 # profvis(
 # Run model without W
-  mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
+  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    random_init = F,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 20,
+                   update_hyper = F, update_hyper_freq = 50,
                    hyper_fixed = hyper_fixed,
-                   tol = 1E-8, max_iter = 1E4,
-                   print_freq = 100,
+                   tol = 1E-8, max_iter = 1E5,
+                   print_freq = 10,
                    nrestarts = nrestarts,
-                   get_ml = F,
+                   get_ml = T,
                    log_dir = "./tests/")
   mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                    initial_values = mod_start$mod,
@@ -108,7 +129,7 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed, sure = 
                    tol = 1E-8, max_iter = 1E4,
                    print_freq = 100,
                    nrestarts = nrestarts,
-                   get_ml = T,
+                   get_ml = F,
                    log_dir = "./tests/")
 # )
 beta_est <- mod_end$beta_est
@@ -135,7 +156,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 1
+plot_start <- 2700
 plot_end <- length(ELBO_track)
 # plot_end <- 4020
 plot(ELBO_track[plot_start:plot_end],

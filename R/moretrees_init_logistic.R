@@ -49,6 +49,7 @@ moretrees_init_logistic <- function(X, W, y, A,
                                 outcomes_units,
                                 outcomes_nodes,
                                 ancestors,
+                                levels,
                                 xxT, wwT,
                                 update_hyper,
                                 hyper_fixed) {
@@ -58,6 +59,7 @@ moretrees_init_logistic <- function(X, W, y, A,
   p <- length(unique(unlist(ancestors)))
   pL <- length(ancestors)
   K <- ncol(X)
+  Fg <- max(levels)
   vi_params <- list()
   hyperparams <- list()
   
@@ -96,8 +98,12 @@ moretrees_init_logistic <- function(X, W, y, A,
   
   # Set initial values for prob to be high (but not one) -------------------------------
   vi_params$prob <- rep(0.95, p)
-  vi_params$a_rho <- 1 + sum(vi_params$prob) # need to initialise a_rho and b_rho using VI updates
-  vi_params$b_rho <- 1 + p - sum(vi_params$prob) # so that terms cancel in ELBO.
+  vi_params$a <- numeric(Fg)
+  vi_params$b <- numeric(Fg)
+  for (f in 1:Fg) {
+    vi_params$a[f] <- 1 + sum(vi_params$prob[levels == f]) # need to initialise a_rho and b_rho using VI updates
+    vi_params$b[f] <- 1 + sum(levels == f) - sum(vi_params$prob[levels == f]) # so that terms cancel in ELBO.
+  }
   
   # Get starting values for eta --------------------------------------------------------
   # Use expected linear predictor squared 
@@ -162,14 +168,15 @@ moretrees_init_logistic <- function(X, W, y, A,
                                                         y = y, 
                                                         outcomes_units = outcomes_units,
                                                         ancestors = ancestors,
-                                                        n = n, K = K, p = p, m = m,
+                                                        levels = levels,
+                                                        n = n, K = K, p = p, m = m, Fg = Fg,
                                                         prob = vi_params$prob, mu = vi_params$mu,
                                                         Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
                                                         tau_t = vi_params$tau_t, delta = vi_params$delta,
                                                         Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
                                                         eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                         omega = hyperparams$omega, tau = hyperparams$tau,
-                                                        a_rho = vi_params$a_rho, b_rho = vi_params$b_rho,
+                                                        a = vi_params$a, b = vi_params$b,
                                                         update_hyper = F)
   
   return(list(vi_params = vi_params, hyperparams = hyperparams))

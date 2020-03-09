@@ -54,7 +54,10 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   }
   # Re-order nodes to have internal nodes first, then leaves
   nodes <- c(nodes[!(nodes %in% leaves)], leaves)
-  
+  # Get levels for specifying groups of hyperparameters
+  root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
+  levels <- as.numeric(igraph::distances(tr, v = root, to = nodes, mode = "out") + 1)
+
   # Extract relevant parameters
   p <- length(nodes)
   pL <- length(leaves)
@@ -107,6 +110,7 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   return(list(y = y, X = as.matrix(X), W = W, A = A,
               outcomes = outcomes,
               outcomes_units = outcomes_units, outcomes_nodes = outcomes_nodes,
-              ancestors = ancestors))
+              ancestors = ancestors,
+              levels = levels))
   
 }

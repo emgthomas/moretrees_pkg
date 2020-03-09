@@ -49,6 +49,7 @@ moretrees_init_rand <- function(X, W, y,
                       outcomes_units,
                       outcomes_nodes,
                       ancestors,
+                      levels,
                       xxT, wwT,
                       initial_values,
                       update_hyper,
@@ -118,7 +119,7 @@ moretrees_init_rand <- function(X, W, y,
                     tau_t = tau_t, delta = delta,
                     Omega = Omega, Omega_inv = Omega_inv,
                     Omega_det = Omega_det,
-                    a_rho = a_rho, b_rho = b_rho)
+                    a = a, b = b)
   
   # Compute initial ELBO
   hyperparams <-  update_hyperparams_logistic_moretrees(X = X, 
@@ -126,14 +127,15 @@ moretrees_init_rand <- function(X, W, y,
                                                         y = y, 
                                                         outcomes_units = outcomes_units,
                                                         ancestors = ancestors,
-                                                        n = n, K = K, p = p, m = m,
+                                                        levels = levels,
+                                                        n = n, K = K, p = p, m = m, Fg = Fg,
                                                         prob = prob, mu = mu,
                                                         Sigma = Sigma, Sigma_det = Sigma_det,
                                                         tau_t = tau_t, delta = delta,
                                                         Omega = Omega, Omega_det = Omega_det,
                                                         eta = hyperparams$eta, g_eta = hyperparams$g_eta,
                                                         omega = hyperparams$omega, tau = hyperparams$tau,
-                                                        a_rho = a_rho, b_rho = b_rho,
+                                                        a = a, b = b,
                                                         update_hyper = F)
   
   return(list(vi_params = vi_params, hyperparams = hyperparams))
