@@ -62,6 +62,7 @@ moretrees_init_rand <- function(X, W, y,
   p <- length(unique(unlist(ancestors)))
   pL <- length(ancestors)
   K <- ncol(X)
+  Fg <- max(levels)
   
   eta <- abs(rnorm(n, mean = 0, sd = vi_random_init$eta_sd))
   g_eta <- gfun(eta)
@@ -92,8 +93,12 @@ moretrees_init_rand <- function(X, W, y,
   Sigma_det <- sapply(Sigma, det)
   mu <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(K), ncol = 1))
   prob <- runif(p, 0 , 1)
-  a_rho <- 1 + sum(prob) # need to initialise a_rho and b_rho using VI updates
-  b_rho <- 1 + p - sum(prob) # so that terms cancel in ELBO.
+  a <- numeric(Fg)
+  b <- numeric(Fg)
+  for (f in 1:Fg) {
+    a[f] <- 1 + sum(prob[levels == f]) # need to initialise a_rho and b_rho using VI updates
+    b[f] <- 1 + sum(levels == f) - sum(prob[levels == f]) # so that terms cancel in ELBO.
+  }
   # otherwise first ELBO will be wrong
   tau_t <- rep(hyperparams$tau, p)
   delta <- lapply(X = 1:p, FUN = function(i) matrix(rnorm(m), ncol = 1))

@@ -26,12 +26,12 @@ K <- rep(K_g, G)
 m <- 2
 # mdim <- 3
 tau <- 3
-rho1 <- 0.6 # rho for internal nodes
-rho2 <- 0.05 # rho for leaf nodes
+rho1 <- 0.4 # rho for internal nodes
+rho2 <- 0 # rho for leaf nodes
 rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
 omega <- 2
 sigma2 <- 2
-hyper_fixed <- list(tau = rep(tau, 4), omega = rep(omega, 4))
+hyper_fixed <- list(tau = tau, omega = omega)
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
@@ -107,12 +107,12 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed,
 # require(profvis)
 # profvis(
 # Run model without W
-  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+  mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
                    random_init = F,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = F, update_hyper_freq = 50,
+                   update_hyper = T, update_hyper_freq = 50,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E5,
                    print_freq = 10,
@@ -127,9 +127,9 @@ keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed,
                    update_hyper = T, update_hyper_freq = 20,
                    hyper_fixed = hyper_fixed,
                    tol = 1E-8, max_iter = 1E4,
-                   print_freq = 100,
+                   print_freq = 10,
                    nrestarts = nrestarts,
-                   get_ml = F,
+                   get_ml = T,
                    log_dir = "./tests/")
 # )
 beta_est <- mod_end$beta_est
@@ -146,8 +146,8 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
-# ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
+# ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -156,7 +156,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 2700
+plot_start <- 5000
 plot_end <- length(ELBO_track)
 # plot_end <- 4020
 plot(ELBO_track[plot_start:plot_end],

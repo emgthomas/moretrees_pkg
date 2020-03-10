@@ -86,7 +86,7 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   line8 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   line9 <- (m * p + sum(log(Omega_det)) + m * p * log(2 * pi)) / 2
-  line10 <- lbeta(a_rho, b_rho)
+  line10 <- sum(mapply(lbeta, a, b))
   
   ELBO <- line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8 + line9 + line10
   # Return -------------------------------------------------------------------------
