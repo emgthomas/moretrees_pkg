@@ -56,7 +56,7 @@ ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups, ci_level, fami
                     family = family)
     }
     suppressWarnings(suppressMessages(beta_ml_ci <- confint(mod_ml, level = ci_level)))
-    if (K == 1) beta_ml_ci <- matrix(beta_ml_ci, nrow = K)
+    if (K == 1 & is.null(W)) beta_ml_ci <- matrix(beta_ml_ci, nrow = K)
     beta_ml[g, paste0("est", 1:K)] <- mod_ml$coefficients[1:K]
     beta_ml[g, paste0("cil", 1:K)] <- beta_ml_ci[1:K , 1]
     beta_ml[g, paste0("ciu", 1:K)] <- beta_ml_ci[1:K , 2]
