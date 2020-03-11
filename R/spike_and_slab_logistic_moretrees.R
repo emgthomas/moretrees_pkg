@@ -48,168 +48,86 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   if (is.null(dsgn$W)) {
     dsgn$W <- matrix(nrow = length(dsgn$y), ncol = 0)
   }
+  
   # Prepare for running algorithm ---------------------------------------------------
-  n <- length(dsgn$y)
-  m <- ncol(dsgn$W)
-  p <- length(unique(unlist(dsgn$ancestors)))
-  pL <- length(dsgn$ancestors)
-  K <- ncol(dsgn$X)
-  Fg <- max(dsgn$levels)
-  if (K == 1) {
-    xxT <- dsgn$X ^ 2
+  dsgn$n <- length(dsgn$y)
+  dsgn$m <- ncol(dsgn$W)
+  dsgn$p <- length(unique(unlist(dsgn$ancestors)))
+  dsgn$pL <- length(dsgn$ancestors)
+  dsgn$K <- ncol(dsgn$X)
+  dsgn$Fg <- max(dsgn$levels)
+  dsgn$hyper_fixed <- hyper_fixed
+  if (dsgn$K == 1) {
+    dsgn$xxT <- dsgn$X ^ 2
   } else {
-    xxT <- rowOuterProds(dsgn$X)
+    dsgn$xxT <- rowOuterProds(dsgn$X)
   }
-  if (m > 0) {
-    if (m == 1) {
-      wwT <- dsgn$W ^ 2
+  if (dsgn$m > 0) {
+    if (dsgn$m == 1) {
+      dsgn$wwT <- dsgn$W ^ 2
     } else {
-      wwT <- rowOuterProds(dsgn$W)
+      dsgn$wwT <- rowOuterProds(dsgn$W)
     }
   } else {
-    wwT <- NULL
+    dsgn$wwT <- NULL
   }
   # Initial hyperparameter values
   if (is.null(initial_values)) {
     if (random_init) {
-      initial_values <- moretrees_init_rand(X = dsgn$X, W = dsgn$W, y = dsgn$y,
-                                            outcomes_units = dsgn$outcomes_units,
-                                            outcomes_nodes = dsgn$outcomes_nodes,
-                                            ancestors = dsgn$ancestors,
-                                            levels = dsgn$levels,
-                                            xxT = xxT, wwT = wwT,
-                                            update_hyper = update_hyper,
-                                            hyper_fixed = hyper_fixed,
-                                            vi_random_init = vi_random_init,
-                                            hyper_random_init = hyper_random_init)
+      initial_values <- R.utils::doCall(moretrees_init_rand, vi_random_init = vi_random_init,
+                                        hyper_random_init = hyper_random_init,
+                                        args = dsgn)
     } else {
-      initial_values <- moretrees_init_logistic(X = dsgn$X, W = dsgn$W, 
-                                                y = dsgn$y, A = dsgn$A,
-                                                outcomes_units = dsgn$outcomes_units,
-                                                outcomes_nodes = dsgn$outcomes_nodes,
-                                                ancestors = dsgn$ancestors,
-                                                levels = dsgn$levels,
-                                                xxT = xxT, wwT = wwT,
-                                                update_hyper = update_hyper,
-                                                hyper_fixed = hyper_fixed)
+      initial_values <- R.utils::doCall(moretrees_init_logistic, 
+                                        args = dsgn)
     }
   } else {
     # In some cases, we may supply starting values for mu but not delta
     if (m > 0 & nrow(initial_values$vi_params$delta[[1]]) != m) {
-      initial_values <- moretrees_init_W_logistic(X = dsgn$X, W = dsgn$W, 
-                                                  y = dsgn$y, A = dsgn$A,
-                                                  initial_values = initial_values,
-                                                  outcomes_units = dsgn$outcomes_units,
-                                                  outcomes_nodes = dsgn$outcomes_nodes,
-                                                  ancestors = dsgn$ancestors,
-                                                  levels = dsgn$levels,
-                                                  xxT = xxT, wwT = wwT,
-                                                  update_hyper = update_hyper,
-                                                  hyper_fixed = hyper_fixed)
+      initial_values <- R.utils::doCalls(moretrees_init_W_logistic,
+                                         update_hyper = update_hyper,
+                                         hyper_fixed = hyper_fixed,
+                                         args = dsgn)
     } # otherwise, all initial values should already be supplied
   }
   vi_params <- initial_values$vi_params
   hyperparams <- initial_values$hyperparams
-
+  
   # Initialise ELBO
-  ELBO_track <- numeric(max_iter %/% update_hyper_freq + 1)
-  ELBO_track[1] <- initial_values$hyperparams$ELBO
-  ELBO_track2 <- numeric(max_iter + 1)
-  ELBO_track2[1] <- initial_values$hyperparams$ELBO
+  ELBO_track <- numeric(max_iter %/% update_hyper_freq)
+  
   # Run algorithm -----------------------------------------------------------------
   i <- 0
   repeat {
-    if (i >= max_iter) {
+    # check if max_iter reached
+    if (i > max_iter) {
       cat(paste("Iteration", i, "complete.\n"))
       cat("\nWarning: Maximum number of iterations reached!\n")
       break
     }
+  
+    # iterate i
     i <- i + 1
-    if (i %% print_freq == 0 & i > 1) cat("Iteration", i, "; epsilon =",
-                                  ELBO_track2[i] - ELBO_track2[i - 1] , "\n")
-    update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-    vi_params <- update_vi_params_logistic_moretrees(y = dsgn$y, X = dsgn$X,
-                                                     W = dsgn$W, xxT = xxT,
-                                                     wwT = wwT,
-                                                     outcomes_nodes = dsgn$outcomes_nodes,
-                                                     outcomes_units = dsgn$outcomes_units,
-                                                     ancestors = dsgn$ancestors,
-                                                     levels = dsgn$levels,
-                                                     n = n, p = p, pL = pL, K = K, m = m, Fg = Fg,
-                                                     prob = vi_params$prob, 
-                                                     mu = vi_params$mu, 
-                                                     Sigma = vi_params$Sigma, 
-                                                     Sigma_inv = vi_params$Sigma_inv, 
-                                                     Sigma_det = vi_params$Sigma_det, 
-                                                     tau_t = vi_params$tau_t,
-                                                     a = vi_params$a,
-                                                     b = vi_params$b,
-                                                     delta = vi_params$delta, 
-                                                     Omega = vi_params$Omega,
-                                                     Omega_inv = vi_params$Omega_inv, 
-                                                     Omega_det = vi_params$Omega_det,
-                                                     eta = hyperparams$eta,
-                                                     g_eta = hyperparams$g_eta,
-                                                     omega = hyperparams$omega,
-                                                     tau = hyperparams$tau)
-    if (!update_hyper_i) {
-      hyperparams <-  update_hyperparams_logistic_moretrees(X = dsgn$X, 
-                                                            W = dsgn$W,
-                                                            y = dsgn$y, 
-                                                            outcomes_units = dsgn$outcomes_units,
-                                                            ancestors = dsgn$ancestors,
-                                                            levels = dsgn$levels,
-                                                            n = n, K = K, p = p, m = m, Fg = Fg,
-                                                            prob = vi_params$prob, mu = vi_params$mu,
-                                                            Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
-                                                            tau_t = vi_params$tau_t, delta = vi_params$delta,
-                                                            Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
-                                                            a = vi_params$a, b = vi_params$b,
-                                                            eta = hyperparams$eta, g_eta = hyperparams$g_eta,
-                                                            omega = hyperparams$omega, tau = hyperparams$tau,
-                                                            update_hyper = F)
-      ELBO_track2[i + 1] <- hyperparams$ELBO
-      if (abs(ELBO_track2[i + 1] - ELBO_track2[i]) < tol) {
-        # If we are not updating hyperparameters, we have converged
-        if (!update_hyper) break
-        # Otherwise, fill in results until next hyperparameter update
-        i2 <- ceiling(i / update_hyper_freq) * update_hyper_freq
-        if (i2 >= max_iter) {
-          ELBO_track2[(i + 2):max_iter] <- hyperparams$ELBO
-          i <- max_iter
-          cat("Iteration", i, "complete.\n")
-          cat("\nWarning: Maximum number of iterations reached!\n")
-          break
-        }
-        ELBO_track2[(i + 2):(i2 + 1)] <- hyperparams$ELBO
-        i <- i2
-        update_hyper_i <- (i %% update_hyper_freq == 0) & update_hyper
-        update_hyper_im1 <- (i %% update_hyper_freq == 1)
-      }
-    }
-    # Update hyperparameters
-    if (update_hyper_i) {
-      hyperparams <-   update_hyperparams_logistic_moretrees(X = dsgn$X, 
-                                                             W = dsgn$W,
-                                                             y = dsgn$y, 
-                                                             outcomes_units = dsgn$outcomes_units,
-                                                             ancestors = dsgn$ancestors,
-                                                             levels = dsgn$levels,
-                                                             n = n, K = K, p = p, m = m, Fg = Fg,
-                                                             prob = vi_params$prob, mu = vi_params$mu,
-                                                             Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
-                                                             tau_t = vi_params$tau_t, delta = vi_params$delta,
-                                                             Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
-                                                             a = vi_params$a, b = vi_params$b,
-                                                             eta = hyperparams$eta, g_eta = hyperparams$g_eta,
-                                                             omega = hyperparams$omega, tau = hyperparams$tau,
-                                                             update_hyper = T)
-      j <- i %/% update_hyper_freq
-      ELBO_track[j + 1] <- hyperparams$ELBO
-      ELBO_track2[i + 1] <- hyperparams$ELBO
-      if (abs(ELBO_track[j + 1] - ELBO_track[j]) < tol) break
+    
+    # update vi params
+    vi_params <- R.utils::doCall(update_vi_params_logistic_moretrees, 
+                      args = c(dsgn, vi_params, hyperparams, hyper_fixed))
+    
+    # compute ELBO and update eta
+    hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees,
+                      args = c(dsgn, vi_params, hyperparams, hyper_fixed))
+    ELBO_track[i] <- hyperparams$ELBO
+    
+    # check tolerance
+    if (i > 2 && abs(ELBO_track[i] - ELBO_track[i - 1]) < tol) break
+    
+    # print progress
+    if (i %% print_freq == 0 & i > 2) {
+      cat("Iteration", i, "; epsilon =", ELBO_track[i] - ELBO_track[i - 1] , "\n")
     }
   }
+  
+  # return results
   return(list(vi_params = vi_params, hyperparams = hyperparams,
-              ELBO_track = ELBO_track2[1:(i + 1)]))
+              ELBO_track = ELBO_track[1:i]))
 }

@@ -7,12 +7,15 @@
 update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                       outcomes_nodes, outcomes_units,
                                       ancestors, levels,
-                                      n, p, pL, K, m, Fg, # data
+                                      n, p, pL, K, m, Fg, # dsgn
                                       prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
                                       delta, Omega, Omega_inv, Omega_det, 
-                                      a, b, # variational params
-                                      eta, g_eta, 
-                                      omega, tau) { # hyperparams
+                                      a, b, 
+                                      a_t_tau, b_t_tau,
+                                      a_t_omega, b_t_omega, # vi_params
+                                      eta, g_eta, # hyperparams
+                                      a_tau, b_tau,
+                                      a_omega, b_omega) { # hyper_fixed
   
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
@@ -26,11 +29,11 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     # Update Sigma_v and tau_t_v
+    tau_t[v] <- b_t_tau[levels[v]] / a_t_tau[levels[v]]
     Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[leaf_descendants]) + 
-      diag(1 / tau, nrow = K)
+      diag(1 / tau_t[v], nrow = K)
     Sigma[[v]] <- solve(Sigma_inv[[v]])
     Sigma_det[v] <- det(Sigma[[v]])
-    tau_t[v] <- tau
     # Update mu_v
     mu[[v]] <- matrix(0, nrow = K, ncol = 1)
     for (u in leaf_descendants) {
@@ -58,6 +61,17 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     b[f] <- 1 + sum(levels == f) - sum(prob[levels == f])
   }
   
+  # Update tau ------------------------------------------------------------------------
+  expected_ss_gamma <- numeric(p)
+  for (v in 1:p) {
+    expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
+      (1 - prob[v]) * K * tau_t[v]
+  }
+  for (f in 1:Fg) {
+    a_t_tau[f] <- sum(levels == f) * K / 2 + a_tau[f]
+    b_t_tau[f] <- sum(expected_ss_gamma[levels == f]) / 2 + b_tau[f]
+  }
+  
   # Update non-sparse coefficients ----------------------------------------------------
   if (m > 0) {
     Xbeta <- numeric(n) + 0
@@ -71,7 +85,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
       # Update Omega_v
       leaf_descendants <- outcomes_nodes[[v]]
       Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) +
-        diag(1 / omega, nrow = m)
+        diag(a_t_omega[levels[v]] / b_t_omega[levels[v]], nrow = m)
       Omega[[v]] <- solve(Omega_inv[[v]])
       Omega_det[v] <- det(Omega[[v]])
       # Update delta_v
@@ -88,10 +102,21 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
       delta[[v]] <- Omega[[v]] %*% delta[[v]]
     }
   }
+  
+  # Update omega ------------------------------------------------------------------------
+  expected_ss_theta <- numeric(p)
+  for (v in 1:p) {
+    expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
+  }
+  for (f in 1:Fg) {
+    a_t_omega[f] <- sum(levels == f) * m / 2 + a_omega[f]
+    b_t_omega[f] <- sum(expected_ss_theta[levels == f]) / 2 + b_omega[f]
+  }
 
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,
               Omega = Omega, Omega_inv = Omega_inv, Omega_det = Omega_det,
-              a = a, b = b))
+              a = a, b = b, a_t_tau = a_t_tau, b_t_tau = b_t_tau,
+              a_t_omega = a_t_omega, b_t_omega = b_t_omega))
 }
