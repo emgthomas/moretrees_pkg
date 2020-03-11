@@ -6,8 +6,9 @@
   current value of ELBO in VI algorithm for bernoulli outcomes.}
 \usage{
 update_hyperparams_logistic_moretrees(X, W, y, outcomes_units, ancestors,
-  n, K, p, m, prob, mu, Sigma, Sigma_det, tau_t, delta, Omega, Omega_det,
-  eta, g_eta, a_rho, b_rho, omega, tau, model = "ss", update_hyper = T)
+  levels, n, K, p, m, Fg, prob, mu, Sigma, Sigma_det, tau_t, delta, Omega,
+  Omega_det, a, b, a_t_tau, b_t_tau, a_t_omega, b_t_omega, eta, g_eta,
+  a_tau, b_tau, a_omega, b_omega)
 }
 \description{
 \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 

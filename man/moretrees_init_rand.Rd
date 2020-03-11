@@ -7,8 +7,8 @@
   models. Not recommended if the model is converging slowly!}
 \usage{
 moretrees_init_rand(X, W, y, outcomes_units, outcomes_nodes, ancestors,
-  xxT, wwT, initial_values, update_hyper, hyper_fixed, vi_random_init,
-  hyper_random_init)
+  levels, xxT, wwT, initial_values, update_hyper, hyper_fixed,
+  vi_random_init, hyper_random_init)
 }
 \arguments{
 \item{xxT}{Computed from exposure matrix X}

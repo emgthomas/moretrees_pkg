@@ -57,6 +57,8 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   # Get levels for specifying groups of hyperparameters
   root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
   levels <- as.numeric(igraph::distances(tr, v = root, to = nodes, mode = "out") + 1)
+  levels[levels < max(levels)] <- 1
+  levels[levels == max(levels)] <- 2
 
   # Extract relevant parameters
   p <- length(nodes)

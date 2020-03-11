@@ -94,14 +94,22 @@ moretrees_init_logistic <- function(X, W, y, A,
   vi_params$delta <- lapply(1:p, function(v, delta) matrix(delta[v, ], ncol = 1),
                                            delta = delta)
   
-  # Set initial values for prob to be high (but not one) -------------------------------
+  # Choose fixed hyperparameters ------------------------------------------------------------
+  if (is.null(hyper_fixed)) {
+    hyper_fixed$a_tau <- sapply(1:max(levels), function(l) sum(levels == l)) * K / 2
+    hyper_fixed$b_tau <- sapply(1:max(levels), function(l) sum(mu[levels == l, ] ^ 2)) / 2
+    if (m > 0) {
+      hyper_fixed$a_omega <- sapply(1:max(levels), function(l) sum(levels == l)) * m / 2
+      hyper_fixed$b_omega <- sapply(1:max(levels), function(l) sum(delta[levels == l, ] ^ 2)) / 2
+    }
+  }
+  
+  # Set initial values for hyperpriors ------------------------------------------------------
   vi_params$prob <- rep(0.95, p)
   vi_params$a <- numeric(Fg)
   vi_params$b <- numeric(Fg)
   vi_params$a_t_tau <- numeric(Fg)
   vi_params$b_t_tau <- numeric(Fg)
-  vi_params$a_t_omega <- numeric(Fg)
-  vi_params$b_omega <- numeric(Fg)
   for (f in 1:Fg) {
     # need to initialise these parameters using VI updates
     # so that terms cancel in ELBO.
@@ -109,8 +117,15 @@ moretrees_init_logistic <- function(X, W, y, A,
     vi_params$b[f] <- 1 + sum(levels == f) - sum(vi_params$prob[levels == f]) 
     vi_params$a_t_tau[f] <- sum(levels == f) * K / 2 + hyper_fixed$a_tau[f]
     vi_params$b_t_tau[f] <- sum(mu[levels == f, ] ^ 2) / 2 + hyper_fixed$b_tau[f]
-    vi_params$a_t_omega[f] <- sum(levels == f) * m / 2 + hyper_fixed$a_omega[f]
-    vi_params$b_t_omega[f] <- sum(delta[levels == f, ] ^ 2) / 2 + hyper_fixed$b_omega[f]
+  }
+  
+  if (m > 0) {
+    vi_params$a_t_omega <- numeric(Fg)
+    vi_params$b_t_omega <- numeric(Fg)
+    for (f in 1:Fg) {
+      vi_params$a_t_omega[f] <- sum(levels == f) * m / 2 + hyper_fixed$a_omega[f]
+      vi_params$b_t_omega[f] <- sum(delta[levels == f, ] ^ 2) / 2 + hyper_fixed$b_omega[f]
+    }
   }
   
   # Get starting values for eta --------------------------------------------------------
@@ -164,5 +179,7 @@ moretrees_init_logistic <- function(X, W, y, A,
   
   # Make up ELBO
   hyperparams$ELBO <- 1E-16
-  return(list(vi_params = vi_params, hyperparams = hyperparams))
+  return(list(vi_params = vi_params, 
+              hyperparams = hyperparams,
+              hyper_fixed = hyper_fixed))
 }

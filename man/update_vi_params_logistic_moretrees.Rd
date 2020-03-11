@@ -5,9 +5,10 @@
 \title{\code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.}
 \usage{
 update_vi_params_logistic_moretrees(X, W, y, xxT, wwT, outcomes_nodes,
-  outcomes_units, ancestors, n, p, pL, K, m, prob, mu, Sigma, Sigma_inv,
-  Sigma_det, tau_t, delta, Omega, Omega_inv, Omega_det, a_rho, b_rho, eta,
-  g_eta, omega, tau)
+  outcomes_units, ancestors, levels, n, p, pL, K, m, Fg, prob, mu, Sigma,
+  Sigma_inv, Sigma_det, tau_t, delta, Omega, Omega_inv, Omega_det, a, b,
+  a_t_tau, b_t_tau, a_t_omega, b_t_omega, eta, g_eta, a_tau, b_tau,
+  a_omega, b_omega)
 }
 \description{
 \code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.

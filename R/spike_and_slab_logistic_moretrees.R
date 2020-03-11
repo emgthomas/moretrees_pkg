@@ -56,7 +56,6 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   dsgn$pL <- length(dsgn$ancestors)
   dsgn$K <- ncol(dsgn$X)
   dsgn$Fg <- max(dsgn$levels)
-  dsgn$hyper_fixed <- hyper_fixed
   if (dsgn$K == 1) {
     dsgn$xxT <- dsgn$X ^ 2
   } else {
@@ -71,27 +70,39 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   } else {
     dsgn$wwT <- NULL
   }
-  # Initial hyperparameter values
+  # Initial values
   if (is.null(initial_values)) {
     if (random_init) {
       initial_values <- R.utils::doCall(moretrees_init_rand, vi_random_init = vi_random_init,
                                         hyper_random_init = hyper_random_init,
+                                        hyper_fixed = hyper_fixed,
                                         args = dsgn)
     } else {
       initial_values <- R.utils::doCall(moretrees_init_logistic, 
+                                        hyper_fixed = hyper_fixed,
                                         args = dsgn)
     }
-  } else {
-    # In some cases, we may supply starting values for mu but not delta
-    if (m > 0 & nrow(initial_values$vi_params$delta[[1]]) != m) {
-      initial_values <- R.utils::doCalls(moretrees_init_W_logistic,
-                                         update_hyper = update_hyper,
-                                         hyper_fixed = hyper_fixed,
-                                         args = dsgn)
-    } # otherwise, all initial values should already be supplied
   }
+  
+  # else {
+  #   # In some cases, we may supply starting values for mu but not delta
+  #   if (m > 0 & nrow(initial_values$vi_params$delta[[1]]) != m) {
+  #     initial_values <- R.utils::doCall(moretrees_init_W_logistic,
+  #                                        initial_values = initial_values,
+  #                                        hyper_fixed = hyper_fixed,
+  #                                        args = dsgn)
+  #   } # otherwise, all initial values should already be supplied
+  # }
   vi_params <- initial_values$vi_params
   hyperparams <- initial_values$hyperparams
+  hyper_fixed <- initial_values$hyper_fixed
+  
+  # Do first updates so that ELBO calculation will be correct
+  # (some cancellation in formula relies on recent updates)
+  vi_params <- R.utils::doCall(update_vi_params_logistic_moretrees, 
+                               args = c(dsgn, vi_params, hyperparams, hyper_fixed))
+  hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees,
+                                  args = c(dsgn, vi_params, hyperparams, hyper_fixed))
   
   # Initialise ELBO
   ELBO_track <- numeric(max_iter %/% update_hyper_freq)
@@ -128,6 +139,8 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   }
   
   # return results
-  return(list(vi_params = vi_params, hyperparams = hyperparams,
+  return(list(vi_params = vi_params, 
+              hyperparams = hyperparams,
+              hyper_fixed = hyper_fixed,
               ELBO_track = ELBO_track[1:i]))
 }

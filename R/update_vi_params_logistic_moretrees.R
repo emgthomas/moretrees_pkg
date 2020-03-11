@@ -5,17 +5,17 @@
 #' \code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.
 
 update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
-                                      outcomes_nodes, outcomes_units,
-                                      ancestors, levels,
-                                      n, p, pL, K, m, Fg, # dsgn
-                                      prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
-                                      delta, Omega, Omega_inv, Omega_det, 
-                                      a, b, 
-                                      a_t_tau, b_t_tau,
-                                      a_t_omega, b_t_omega, # vi_params
-                                      eta, g_eta, # hyperparams
-                                      a_tau, b_tau,
-                                      a_omega, b_omega) { # hyper_fixed
+                                                outcomes_nodes, outcomes_units,
+                                                ancestors, levels,
+                                                n, p, pL, K, m, Fg, # dsgn
+                                                prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
+                                                delta, Omega, Omega_inv, Omega_det, 
+                                                a, b, 
+                                                a_t_tau, b_t_tau,
+                                                a_t_omega, b_t_omega, # vi_params
+                                                eta, g_eta, # hyperparams
+                                                a_tau, b_tau,
+                                                a_omega, b_omega) { # hyper_fixed
   
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
@@ -25,7 +25,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     Wtheta[outcomes_units[[u]]] <- W[outcomes_units[[u]], ] %*% theta_u
   }
   xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
-                        xxT = xxT, g_eta = g_eta, K = K)
+                      xxT = xxT, g_eta = g_eta, K = K)
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     # Update Sigma_v and tau_t_v
@@ -41,9 +41,9 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
       beta_u_mv <- Reduce(`+`, xi[anc_u_mv])
       units_u <- outcomes_units[[u]]
       mu[[v]] <- mu[[v]] + crossprod(X[units_u, , drop = FALSE],
-        (y[units_u] / 2 - 2 * g_eta[units_u] * 
-           (X[units_u, , drop = FALSE] %*% beta_u_mv + Wtheta[units_u]))
-        )
+                                     (y[units_u] / 2 - 2 * g_eta[units_u] * 
+                                        (X[units_u, , drop = FALSE] %*% beta_u_mv + Wtheta[units_u]))
+      )
     }
     mu[[v]] <- Sigma[[v]] %*% mu[[v]]
     # Update u_v
@@ -95,24 +95,26 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
         units_u <- outcomes_units[[u]]
         theta_u_mv <- Reduce(`+`, delta[anc_u_mv])
         delta[[v]] <- delta[[v]] + crossprod(W[units_u, , drop = FALSE],
-                 (y[units_u] / 2 - 2 * g_eta[units_u] *
-                 (W[units_u, , drop = FALSE] %*% theta_u_mv + Xbeta[units_u])
-                 ) )
+                                             (y[units_u] / 2 - 2 * g_eta[units_u] *
+                                                (W[units_u, , drop = FALSE] %*% theta_u_mv + Xbeta[units_u])
+                                             ) )
       }
       delta[[v]] <- Omega[[v]] %*% delta[[v]]
     }
   }
   
   # Update omega ------------------------------------------------------------------------
-  expected_ss_theta <- numeric(p)
-  for (v in 1:p) {
-    expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
+  if (m > 0) {
+    expected_ss_theta <- numeric(p)
+    for (v in 1:p) {
+      expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
+    }
+    for (f in 1:Fg) {
+      a_t_omega[f] <- sum(levels == f) * m / 2 + a_omega[f]
+      b_t_omega[f] <- sum(expected_ss_theta[levels == f]) / 2 + b_omega[f]
+    }
   }
-  for (f in 1:Fg) {
-    a_t_omega[f] <- sum(levels == f) * m / 2 + a_omega[f]
-    b_t_omega[f] <- sum(expected_ss_theta[levels == f]) / 2 + b_omega[f]
-  }
-
+  
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,

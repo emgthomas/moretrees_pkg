@@ -7,14 +7,12 @@
   models. Not recommended if the model is converging slowly!}
 \usage{
 moretrees_init_logistic(X, W, y, A, outcomes_units, outcomes_nodes,
-  ancestors, xxT, wwT, update_hyper, hyper_fixed)
+  ancestors, levels, xxT, wwT, hyper_fixed)
 }
 \arguments{
 \item{xxT}{Computed from exposure matrix X}
 
 \item{wwT}{Computed from covariate matrix W}
-
-\item{update_hyper}{Update hyperparameters? Default = TRUE.}
 
 \item{hyper_fixed}{Fixed values of hyperparameters to use if update_hyper = FALSE.
 If family = "bernoulli", this should be a list including the following elements:

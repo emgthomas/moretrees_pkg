@@ -43,24 +43,22 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   }
   lp2 <- lp2 + lp ^ 2
   
-  # # Expected sum of squared gammas
-  # expected_ss_gamma <- 0
-  # for (v in 1:p) {
-  #   expected_ss_gamma <- expected_ss_gamma + prob[v] *
-  #     (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2))
-  # }
-  # expected_ss_gamma <- as.numeric(expected_ss_gamma + sum(K * tau_t * (1 - prob)))
-  
-  # # Expected sum of squared thetas
-  # if (m == 0) {
-  #   expected_ss_theta <- 0
-  # } else {
-  #   expected_ss_theta <- 0
-  #   for (v in 1:p) {
-  #     expected_ss_theta <- expected_ss_theta +
-  #       (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
-  #   }
-  # }
+  # Expected sum of squared gammas
+  expected_ss_gamma <- numeric(p)
+  for (v in 1:p) {
+    expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
+      (1 - prob[v]) * K * tau_t[v]
+  }
+
+  # Expected sum of squared thetas
+  if (m == 0) {
+    expected_ss_theta <- 0
+  } else {
+    expected_ss_theta <- numeric(p)
+    for (v in 1:p) {
+      expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
+    }
+  }
   
   # Update eta  --------------------------------------------------------------------
   eta <- as.numeric(sqrt(lp2))
@@ -83,8 +81,8 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   line11 <- (m * p + sum(log(Omega_det)) + m * p * log(2 * pi)) / 2
   line12 <- sum(mapply(lbeta, a, b)) # some terms cancel with line 4
-  line13 <- sum(- a_t_tau * log(b_t_tau) + lgamma(a_t_tau)) # some terms cancel with line 6
-  line14 <- sum(- a_t_omega * log(b_t_omega) - lgamma(a_t_omega)) # some terms cancel with line 7
+  line13 <- sum(- a_t_tau * log(b_t_tau) + lgamma(a_t_tau)) # some terms cancel with line 3 & 6
+  line14 <- sum(- a_t_omega * log(b_t_omega) - lgamma(a_t_omega)) # some terms cancel with line 5 & 7
   
   ELBO <- line1 + line2 + line3 + line4 + line5 + line6 + line7 + 
         line8 + line9 + line10 + line11 + line12 + line13 + line14

@@ -20,10 +20,10 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E3
-K_g <- 1 # number of variables
+n <- 1E4
+K_g <- 2 # number of variables
 K <- rep(K_g, G)
-m <- 2
+m <- 6
 # mdim <- 3
 tau <- 3
 rho1 <- 0.4 # rho for internal nodes
@@ -31,10 +31,10 @@ rho2 <- 0.1 # rho for leaf nodes
 rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
 omega <- 2
 sigma2 <- 2
-hyper_fixed <- list(a_tau = c(0.001, 0.001, 0.001, 0.001), 
-                    b_tau = c(0.001, 0.001, 0.001, 0.001),
-                    a_omega = c(0.001, 0.001, 0.001, 0.001), 
-                    b_omega = c(0.001, 0.001, 0.001, 0.001))
+# hyper_fixed <- list(a_tau = rep(1, 4), 
+#                     b_tau = rep(1, 4),
+#                     a_omega = rep(1, 4), 
+#                     b_omega = rep(1, 4))
 if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
 nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
@@ -105,36 +105,35 @@ if (family == "gaussian") {
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, hyper_fixed, nrestarts, hyper_fixed,
+keep(X, W, y, outcomes, tr, family, nrestarts,
      s_true, groups_true, beta, theta, sure = T)
 # require(profvis)
 # profvis(
 # Run model without W
-  mod_start <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   random_init = F,
+  # mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
+  #                  random_init = F,
+  #                  method = "tree",
+  #                  W_method = "shared",
+  #                  tr = tr, family = family,
+  #                  update_hyper = T, update_hyper_freq = 50,
+  #                  hyper_fixed = hyper_fixed,
+  #                  tol = 1E-8, max_iter = 1E5,
+  #                  print_freq = 10,
+  #                  nrestarts = nrestarts,
+  #                  get_ml = F,
+  #                  log_dir = "./tests/")
+  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   # initial_values = mod_start$mod,
                    method = "tree",
                    W_method = "shared",
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 50,
-                   hyper_fixed = hyper_fixed,
+                   update_hyper = T, update_hyper_freq = 20,
+                   hyper_fixed = NULL,
                    tol = 1E-8, max_iter = 1E5,
                    print_freq = 10,
                    nrestarts = nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
-  mod_end <- mod_start
-  # mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-  #                  initial_values = mod_start$mod,
-  #                  method = "tree",
-  #                  W_method = "shared",
-  #                  tr = tr, family = family,
-  #                  update_hyper = T, update_hyper_freq = 20,
-  #                  hyper_fixed = hyper_fixed,
-  #                  tol = 1E-6, max_iter = 1E4,
-  #                  print_freq = 10,
-  #                  nrestarts = nrestarts,
-  #                  get_ml = T,
-  #                  log_dir = "./tests/")
 # )
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
@@ -160,7 +159,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 1
+plot_start <- 100
 plot_end <- length(ELBO_track)
 # plot_end <- 4020
 plot(ELBO_track[plot_start:plot_end],
@@ -191,10 +190,4 @@ plot(beta_ml[, clmn], beta_moretrees[ , clmn])
 abline(a = 0, b = 1, col = "red")
 cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
-# Compare hyperparameter estimates to truth -------------------------------------------------
-if (family == "gaussian") {
-  cbind(mod1$hyperparams[2:3], c(hyper_fixed$omega, hyper_fixed$sigma2, hyper_fixed$tau))
-} else {
-  cbind(mod1$hyperparams[2:3], c(hyper_fixed$omega, hyper_fixed$tau))
-}
 

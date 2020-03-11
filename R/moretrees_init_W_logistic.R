@@ -52,7 +52,6 @@ moretrees_init_W_logistic <- function(X, W, y, A,
                                 ancestors,
                                 levels,
                                 xxT, wwT,
-                                update_hyper,
                                 hyper_fixed) {
   
   n <- length(y)
@@ -63,13 +62,16 @@ moretrees_init_W_logistic <- function(X, W, y, A,
   Fg <- max(levels)
   vi_params <- initial_values$vi_params
   hyperparams <- initial_values$hyperparams
+  hyper_fixed <- initial_values$hyper_fixed
   
   # Get starting values for omega -----------------------------------
-  if (update_hyper) {
-    hyperparams$omega <- hyperparams$tau
-  } else {
-    hyperparams$tau <- hyper_fixed$tau
-    hyperparams$omega <- hyper_fixed$omega
+  vi_params$a_t_omega <- numeric(Fg)
+  vi_params$b_t_omega <- numeric(Fg)
+  for (f in 1:Fg) {
+    # need to initialise these parameters using VI updates
+    # so that terms cancel in ELBO.
+    vi_params$a_t_omega[f] <- sum(levels == f) * m / 2 + hyper_fixed$a_tau[f]
+    vi_params$b_t_omega[f] <- vi_params$b_t_tau[f]
   }
   
   # Get starting values for delta ----------------------------------
@@ -78,15 +80,14 @@ moretrees_init_W_logistic <- function(X, W, y, A,
   Xbeta <- numeric(n) + 0
   for (u in 1:pL) {
     beta_u <- Reduce(`+`, xi[ancestors[[u]]])
-    Xbeta[outcomes_units[[u]]] <- X[outcomes_units[[u]], 
-                                              ] %*% beta_u
+    Xbeta[outcomes_units[[u]]] <- X[outcomes_units[[u]], , drop = F] %*% beta_u
   }
   wwT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun, 
                       xxT = wwT, g_eta = hyperparams$g_eta, K = m)
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     vi_params$Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) + 
-      diag(1 / hyperparams$omega, nrow = m)
+      diag(vi_params$a_t_omega[levels[v]] / vi_params$b_t_omega[levels[v]], nrow = m)
     vi_params$Omega[[v]] <- solve(vi_params$Omega_inv[[v]])
     vi_params$Omega_det[v] <- det(vi_params$Omega[[v]])
     vi_params$delta[[v]] <- vi_params$delta[[v]] * 0
@@ -101,22 +102,17 @@ moretrees_init_W_logistic <- function(X, W, y, A,
     vi_params$delta[[v]] <- vi_params$Omega[[v]] %*% vi_params$delta[[v]]
   }
   
-  # Compute initial ELBO
-  hyperparams <-  update_hyperparams_logistic_moretrees(X = X, 
-                                                        W = W,
-                                                        y = y, 
-                                                        outcomes_units = outcomes_units,
-                                                        ancestors = ancestors,
-                                                        levels = levels,
-                                                        n = n, K = K, p = p, m = m, Fg = Fg,
-                                                        prob = vi_params$prob, mu = vi_params$mu,
-                                                        Sigma = vi_params$Sigma, Sigma_det = vi_params$Sigma_det,
-                                                        tau_t = vi_params$tau_t, delta = vi_params$delta,
-                                                        Omega = vi_params$Omega, Omega_det = vi_params$Omega_det,
-                                                        eta = hyperparams$eta, g_eta = hyperparams$g_eta,
-                                                        omega = hyperparams$omega, tau = hyperparams$tau,
-                                                        a = vi_params$a, b = vi_params$b,
-                                                        update_hyper = F)
+  # Choose fixed hyperparameters ------------------------------------------------------------
+  if (is.null(hyper_fixed$a_omega)) {
+    hyper_fixed$a_omega <- sapply(1:max(levels), function(l) sum(levels == l)) / 2
+  }
+  if (is.null(hyper_fixed$b_omega)) {
+    hyper_fixed$b_omega <- sapply(1:max(levels),
+              function(l) sum(unlist(vi_params$delta[levels == l]) ^ 2)) / 2
+  }
   
-  return(list(vi_params = vi_params, hyperparams = hyperparams))
+  return(list(vi_params = vi_params,
+              hyperparams = hyperparams,
+              hyper_fixed = hyper_fixed))
+  
 }
