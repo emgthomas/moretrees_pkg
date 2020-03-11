@@ -101,6 +101,9 @@ moretrees_init_logistic <- function(X, W, y, A,
     if (m > 0) {
       hyper_fixed$a_omega <- sapply(1:max(levels), function(l) sum(levels == l)) * m / 2
       hyper_fixed$b_omega <- sapply(1:max(levels), function(l) sum(delta[levels == l, ] ^ 2)) / 2
+    } else {
+      hyper_fixed$a_omega <- rep(1, Fg)
+      hyper_fixed$b_omega <- rep(1, Fg)
     }
   }
   
@@ -126,6 +129,9 @@ moretrees_init_logistic <- function(X, W, y, A,
       vi_params$a_t_omega[f] <- sum(levels == f) * m / 2 + hyper_fixed$a_omega[f]
       vi_params$b_t_omega[f] <- sum(delta[levels == f, ] ^ 2) / 2 + hyper_fixed$b_omega[f]
     }
+  } else {
+    vi_params$a_t_omega <- rep(1, Fg)
+    vi_params$b_t_omega <- rep(1, Fg)
   }
   
   # Get starting values for eta --------------------------------------------------------

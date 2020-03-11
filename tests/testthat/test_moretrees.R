@@ -20,7 +20,7 @@ A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E4
+n <- 1E3
 K_g <- 2 # number of variables
 K <- rep(K_g, G)
 m <- 6
@@ -122,7 +122,7 @@ keep(X, W, y, outcomes, tr, family, nrestarts,
   #                  nrestarts = nrestarts,
   #                  get_ml = F,
   #                  log_dir = "./tests/")
-  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+  mod_end <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
                    # initial_values = mod_start$mod,
                    method = "tree",
                    W_method = "shared",
