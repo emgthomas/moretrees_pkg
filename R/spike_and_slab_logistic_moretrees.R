@@ -11,45 +11,36 @@
 #' @section Model Description:
 #'   Describe group spike and slab prior and all parameters here.
 #' 
-#' @param y Integer vector of length n containing outcomes; 1 = success, 0 = failure.
-#' @param X Matrix of dimension n x sum(K), where n is the number of units, and
-#' K[g] is the number of variables in group g.
-#' @param W Matrix of non-sparse regression coefficients of dimension n x m
-#' @param model "ss" or "moretrees". If "ss", regular spike and slab variable selection is implemented.
-#' If "moretrees", the multi-outcome moretrees model is fitted.
-#' @param groups If model = "ss", groups is a list of length G (number of groups), where groups[[g]] 
-#' is an integer vector specifying the columns of X that belong to group g. NULL if model = "moretrees".
-#' @param outcomes_units: If model = "moretrees", outcomes_units is a list of length equal to the number 
-#' of unique outcomes. Each element of the list is an integer vector indicating which units (entries 
-#' of y_reord, rows of X_reord) correspond to each outcomes. NULL if model = "ss".
-#' @param outcomes_nodes: If model = "moretrees", outcomes_nodes is a list of length equal to the number 
-#' of unique nodes. Each element of the list is an integer vector indicating which outcomes/leaves
-#' are descendants of each node. NULL if model = "ss".
-#' @param ancestors If model = "moretrees", ancestors ia  list of length equal to the number of unique 
-#' outcomes. Each element of the list is an integer vector indicating which nodes on the tree (including 
-#' leaves) are ancestors of the corresponding outcome. NULL if model = "ss".
+#' @param dsgn A list containing all data elements needed for the algorithm.
 #' @param tol Convergence tolerance for ELBO.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
-#' @param update_hyper Update hyperparameters? Default = TRUE.
-#' @param update_hyper_freq How frequently to update hyperparameters. Default = every 10 iterations.
+#' @param print_freq How often to print out iteration number.
+#' @param hyper_method Either "full" (fully Bayesian) or "EB" (empirical Bayes).
+#' Controls how hyperparameters rho, omega, and tau are estimated. 
+#' @param hyper_fixed Fixed values of hyperprior parameters to use if hyper_method = "full".
+#' @param update_hyper_freq How frequently to update hyperparameters if hyper_method = "EB".
 #' @return A list of variational parameters.
 #' @examples
 #' @family spike and slab functions
 
-spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
+spike_and_slab_logistic_moretrees <- function(dsgn, 
+                                              initial_values,
                                               random_init,
-                                              tol, max_iter,
-                                              update_hyper, 
+                                              tol,
+                                              tol_hyper,
+                                              max_iter,
+                                              print_freq,
+                                              hyper_method, 
                                               update_hyper_freq,
                                               hyper_fixed,
-                                              print_freq,
                                               hyper_random_init,
                                               vi_random_init) {
+  
   if (is.null(dsgn$W)) {
     dsgn$W <- matrix(nrow = length(dsgn$y), ncol = 0)
   }
   
-  # Prepare for running algorithm ---------------------------------------------------
+  # Add some data elements to dsgn ---------------------------------------------------
   dsgn$n <- length(dsgn$y)
   dsgn$m <- ncol(dsgn$W)
   dsgn$p <- length(unique(unlist(dsgn$ancestors)))
@@ -70,20 +61,23 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   } else {
     dsgn$wwT <- NULL
   }
-  # Initial values
+  
+  # Get initial values ------------------------------------------------------------
   if (is.null(initial_values)) {
     if (random_init) {
-      initial_values <- R.utils::doCall(moretrees_init_rand, vi_random_init = vi_random_init,
+      initial_values <- R.utils::doCall(moretrees_init_rand, 
+                                        vi_random_init = vi_random_init,
                                         hyper_random_init = hyper_random_init,
                                         hyper_fixed = hyper_fixed,
+                                        hyper_method = hyper_method,
                                         args = dsgn)
     } else {
       initial_values <- R.utils::doCall(moretrees_init_logistic, 
                                         hyper_fixed = hyper_fixed,
+                                        hyper_method = hyper_method,
                                         args = dsgn)
     }
   }
-  
   # else {
   #   # In some cases, we may supply starting values for mu but not delta
   #   if (m > 0 & nrow(initial_values$vi_params$delta[[1]]) != m) {
@@ -100,43 +94,81 @@ spike_and_slab_logistic_moretrees <- function(dsgn, initial_values,
   # Do first updates so that ELBO calculation will be correct
   # (some cancellation in formula relies on recent updates)
   vi_params <- R.utils::doCall(update_vi_params_logistic_moretrees, 
+                               hyper_method = hyper_method,
                                args = c(dsgn, vi_params, hyperparams, hyper_fixed))
-  hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees,
+  hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees, 
+                                  hyper_method = hyper_method,
+                                  update_hyper = F,
                                   args = c(dsgn, vi_params, hyperparams, hyper_fixed))
   
   # Initialise ELBO
-  ELBO_track <- numeric(max_iter %/% update_hyper_freq)
+  ELBO_track <- numeric(max_iter)
   
   # Run algorithm -----------------------------------------------------------------
   i <- 0
   repeat {
+    
+    # iterate i
+    i <- i + 1
+    
     # check if max_iter reached
     if (i > max_iter) {
+      i <- max_iter
       cat(paste("Iteration", i, "complete.\n"))
       cat("\nWarning: Maximum number of iterations reached!\n")
       break
     }
-  
-    # iterate i
-    i <- i + 1
     
     # update vi params
     vi_params <- R.utils::doCall(update_vi_params_logistic_moretrees, 
-                      args = c(dsgn, vi_params, hyperparams, hyper_fixed))
+                                 hyper_method = hyper_method,
+                                 args = c(dsgn, vi_params, hyperparams, hyper_fixed))
     
     # compute ELBO and update eta
-    hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees,
-                      args = c(dsgn, vi_params, hyperparams, hyper_fixed))
+    update_hyper <- i %% update_hyper_freq == 0
+    hyperparams <-  R.utils::doCall(update_hyperparams_logistic_moretrees, 
+                                    hyper_method = hyper_method,
+                                    update_hyper = update_hyper,
+                                    args = c(dsgn, vi_params, hyperparams, hyper_fixed))
     ELBO_track[i] <- hyperparams$ELBO
     
-    # check tolerance
-    if (i > 2 && abs(ELBO_track[i] - ELBO_track[i - 1]) < tol) break
-    
     # print progress
-    if (i %% print_freq == 0 & i > 2) {
+    if (i %% print_freq == 0 & i > 3) {
       cat("Iteration", i, "; epsilon =", ELBO_track[i] - ELBO_track[i - 1] , "\n")
     }
-  }
+    
+    # check tolerance
+    criterion1 <- (i > 2) && (abs(ELBO_track[i] - ELBO_track[i - 1]) < tol)
+    
+    # If we are doing full Bayes, criterion1 indicates convergence
+    if (hyper_method == "full") {
+      if (criterion1) break else next
+    }
+    
+    # If we are doing EB, it's more complicated....
+    if (hyper_method == "EB") {
+      if (update_hyper & i >= 2 * update_hyper_freq) {
+        # if we just updated hyperparameters, check for convergence of hyperparameters
+        criterion2 <- abs(ELBO_track[i] - ELBO_track[i - update_hyper_freq]) < tol_hyper
+        if (criterion2) {
+          # did last VI update reach convergence?
+          criterion3 <- abs(ELBO_track[i - 1] - ELBO_track[i - 2]) < tol
+          # if yes, both have converged. if not, continue.
+          if (criterion3) break else next
+        } else next
+      } else {
+        # otherwise, fill in results until just before the 
+        # next hyperparameter update (or max_iter, whichever comes first)
+        if (criterion1) {
+          i2 <- min(ceiling(i / update_hyper_freq) * update_hyper_freq - 1, 
+                    max_iter)
+          ELBO_track[(i + 1):i2] <- hyperparams$ELBO 
+          i <- i2
+        }
+      }
+    }
+    
+  } # close repeat loop
   
   # return results
   return(list(vi_params = vi_params, 

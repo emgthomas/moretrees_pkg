@@ -15,9 +15,12 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
                                         a, b, 
                                         a_t_tau, b_t_tau,
                                         a_t_omega, b_t_omega, # vi_params
-                                        eta, g_eta, # hyperparams
+                                        eta, g_eta, 
+                                        tau, omega, # hyperparams
                                         a_tau, b_tau,
-                                        a_omega, b_omega) { # hyper_fixed
+                                        a_omega, b_omega, # hyper_fixed
+                                        hyper_method,
+                                        update_hyper) { 
   # Computing quantities needed for ELBO and hyperparameter updates ---------------
   # Expected linear predictor
   xi <- mapply(FUN = function(prob, mu) prob * mu,
@@ -44,39 +47,50 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
   lp2 <- lp2 + lp ^ 2
   
   # Expected sum of squared gammas
-  expected_ss_gamma <- numeric(p)
-  for (v in 1:p) {
-    expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
-      (1 - prob[v]) * K * tau_t[v]
+  if (hyper_method == "EB") {
+    expected_ss_gamma <- numeric(p)
+    for (v in 1:p) {
+      expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
+        (1 - prob[v]) * K * tau_t[v]
+    }
+  } else {
+    expected_ss_gamma <- rep(0, p)
   }
 
   # Expected sum of squared thetas
-  if (m == 0) {
-    expected_ss_theta <- 0
-  } else {
+  if (hyper_method == "EB" & m > 0) {
     expected_ss_theta <- numeric(p)
     for (v in 1:p) {
       expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
     }
+  } else {
+    expected_ss_theta <- rep(0, p)
   }
   
   # Update eta  --------------------------------------------------------------------
   eta <- as.numeric(sqrt(lp2))
   g_eta <- as.numeric(gfun(eta))
   
+  # Update hyperparams  ------------------------------------------------------------
+  if (hyper_method == "EB" & update_hyper == T) {
+    tau <- sapply(1:Fg, function(l) sum(expected_ss_gamma[levels == l]) / (K * sum(levels == l)))
+    if (m > 0) {
+      omega <- sapply(1:Fg, function(l) sum(expected_ss_theta[levels == l]) / (m * sum(levels == l)))
+    }
+  }
+  
   # Compute ELBO -------------------------------------------------------------------
-  # See pg 13 of "variational inference for spike & slab model" document -
+  # See "variational inference for spike & slab model" document -
   # line numbers correspond to lines in equation
   line1 <- (1 / 2) * crossprod(y, lp) + sum(logexpit(eta)) - sum(eta) / 2 + g_eta %*% (eta ^ 2)
   line2 <- - g_eta %*% lp2
-  line3 <- - p * K * log(2 * pi) / 2 # some terms cancel with line 13
+  line3 <- - sum(expected_ss_gamma / (2 * tau[levels])) - K * sum(log(2 * pi * tau[levels])) / 2 # some terms cancel with line 13 in full bayes
   line4 <- 0 # terms cancel with line 12
-  line5 <- - (m * p / 2) * log(2 * pi) # some terms cancel with line 14
+  line5 <- - sum(expected_ss_theta / (2 * omega[levels])) - m * sum(log(2 * pi * omega[levels])) / 2 # some terms cancel with line 14 in full bayes
   line6 <- sum(a_tau * log(b_tau) - lgamma(a_tau)) # some terms cancel with line 13
   line7 <- sum(a_omega * log(b_omega) - lgamma(a_omega)) # some terms cancel with line 14
   line8 <- (K * sum(prob) * (1 + log(2 * pi)) + sum(prob * log(Sigma_det))) / 2
-  line9 <- (K / 2) * sum(1 - prob) + 
-    (K / 2) * sum(log(2 * pi * tau_t) * (1 - prob))
+  line9 <- (K / 2) * sum(1 - prob) +(K / 2) * sum(log(2 * pi * tau_t) * (1 - prob))
   line10 <- -1 * (sum(prob[prob != 0] * log(prob[prob != 0])) +
                    sum((1 - prob[prob != 1]) * log(1 - prob[prob != 1])))
   line11 <- (m * p + sum(log(Omega_det)) + m * p * log(2 * pi)) / 2
@@ -88,5 +102,6 @@ update_hyperparams_logistic_moretrees <- function(X, W, y,
         line8 + line9 + line10 + line11 + line12 + line13 + line14
   
   # Return -------------------------------------------------------------------------
-  return(list(ELBO = as.numeric(ELBO), eta = eta, g_eta = g_eta))
+  return(list(ELBO = as.numeric(ELBO), eta = eta, g_eta = g_eta,
+              tau = tau, omega = omega))
 }

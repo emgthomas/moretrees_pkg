@@ -8,14 +8,17 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                                 outcomes_nodes, outcomes_units,
                                                 ancestors, levels,
                                                 n, p, pL, K, m, Fg, # dsgn
-                                                prob, mu, Sigma, Sigma_inv, Sigma_det, tau_t, 
+                                                prob, mu, Sigma, 
+                                                Sigma_inv, Sigma_det, tau_t, 
                                                 delta, Omega, Omega_inv, Omega_det, 
                                                 a, b, 
                                                 a_t_tau, b_t_tau,
                                                 a_t_omega, b_t_omega, # vi_params
-                                                eta, g_eta, # hyperparams
+                                                eta, g_eta, 
+                                                tau, omega, # hyperparams
                                                 a_tau, b_tau,
-                                                a_omega, b_omega) { # hyper_fixed
+                                                a_omega, b_omega, # hyper_fixed
+                                                hyper_method) {
   
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
@@ -29,7 +32,11 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     # Update Sigma_v and tau_t_v
-    tau_t[v] <- b_t_tau[levels[v]] / a_t_tau[levels[v]]
+    if (hyper_method == "full") {
+      tau_t[v] <- (b_t_tau[levels[v]] / a_t_tau[levels[v]])
+    } else {
+      tau_t[v] <- tau[levels[v]]
+    }
     Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[leaf_descendants]) + 
       diag(1 / tau_t[v], nrow = K)
     Sigma[[v]] <- solve(Sigma_inv[[v]])
@@ -41,8 +48,8 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
       beta_u_mv <- Reduce(`+`, xi[anc_u_mv])
       units_u <- outcomes_units[[u]]
       mu[[v]] <- mu[[v]] + crossprod(X[units_u, , drop = FALSE],
-                                     (y[units_u] / 2 - 2 * g_eta[units_u] * 
-                                        (X[units_u, , drop = FALSE] %*% beta_u_mv + Wtheta[units_u]))
+                       (y[units_u] / 2 - 2 * g_eta[units_u] * 
+                       (X[units_u, , drop = FALSE] %*% beta_u_mv + Wtheta[units_u]))
       )
     }
     mu[[v]] <- Sigma[[v]] %*% mu[[v]]
@@ -61,15 +68,17 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     b[f] <- 1 + sum(levels == f) - sum(prob[levels == f])
   }
   
-  # Update tau ------------------------------------------------------------------------
-  expected_ss_gamma <- numeric(p)
-  for (v in 1:p) {
-    expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
-      (1 - prob[v]) * K * tau_t[v]
-  }
-  for (f in 1:Fg) {
-    a_t_tau[f] <- sum(levels == f) * K / 2 + a_tau[f]
-    b_t_tau[f] <- sum(expected_ss_gamma[levels == f]) / 2 + b_tau[f]
+  # Update a_t_tau and b_t_tau -------------------------------------------------------------
+  if (hyper_method == "full") {
+    expected_ss_gamma <- numeric(p)
+    for (v in 1:p) {
+      expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
+        (1 - prob[v]) * K * tau_t[v]
+    }
+    for (f in 1:Fg) {
+      a_t_tau[f] <- sum(levels == f) * K / 2 + a_tau[f]
+      b_t_tau[f] <- sum(expected_ss_gamma[levels == f]) / 2 + b_tau[f]
+    }
   }
   
   # Update non-sparse coefficients ----------------------------------------------------
@@ -84,8 +93,13 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     for (v in 1:p) {
       # Update Omega_v
       leaf_descendants <- outcomes_nodes[[v]]
+      if (hyper_method == "full") {
+        omega_t <- (b_t_omega[levels[v]] / a_t_omega[levels[v]])
+      } else {
+        omega_t <- omega[levels[v]]
+      }
       Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) +
-        diag(a_t_omega[levels[v]] / b_t_omega[levels[v]], nrow = m)
+        diag(1 / omega_t, nrow = m)
       Omega[[v]] <- solve(Omega_inv[[v]])
       Omega_det[v] <- det(Omega[[v]])
       # Update delta_v
@@ -95,16 +109,16 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
         units_u <- outcomes_units[[u]]
         theta_u_mv <- Reduce(`+`, delta[anc_u_mv])
         delta[[v]] <- delta[[v]] + crossprod(W[units_u, , drop = FALSE],
-                                             (y[units_u] / 2 - 2 * g_eta[units_u] *
-                                                (W[units_u, , drop = FALSE] %*% theta_u_mv + Xbeta[units_u])
+                     (y[units_u] / 2 - 2 * g_eta[units_u] *
+                     (W[units_u, , drop = FALSE] %*% theta_u_mv + Xbeta[units_u])
                                              ) )
       }
       delta[[v]] <- Omega[[v]] %*% delta[[v]]
     }
   }
   
-  # Update omega ------------------------------------------------------------------------
-  if (m > 0) {
+  # Update a_t_omega and b_t_omega -------------------------------------------------------
+  if (hyper_method == "full" & m > 0) {
     expected_ss_theta <- numeric(p)
     for (v in 1:p) {
       expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))

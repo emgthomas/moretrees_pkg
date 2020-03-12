@@ -3,27 +3,41 @@
 # -------- Test code -------------------------------------------------------------- #
 # --------------------------------------------------------------------------------- #
 
-rm(list = ls())
+rm(list = ls(), inherits = T)
 devtools::load_all() # Sources all files in R/
+
+# Parameter choices to be tested -----------------------------------------------------
+params_list <- list(K_g = 1:2, m = 0:2, hyper_method = c("EB", "full"))
+params <- do.call(expand.grid, params_list)
+i <- 12
+params[i, ]
 
 # Chose one --------------------------------------------------------------------------
 # family <- "gaussian"
 family <- "bernoulli"
 
 # Input parameters -------------------------------------------------------------------
+hyper_method <- params$hyper_method[i]
+n <- 3E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
+# # If desired, specify levels
+# root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
+# levels <- as.numeric(igraph::distances(tr, v = root, to =igraph::V(tr), 
+#                                        mode = "out") + 1)
+# levels[levels < max(levels)] <- 1
+# levels[levels == max(levels)] <- 2
+# igraph::V(tr)$levels <- levels
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
 G <- length(igraph::V(tr))
 p <- G
 pL <- sum(igraph::V(tr)$leaf)
-n <- 1E3
-K_g <- 2 # number of variables
+K_g <- params$K_g[i] # number of variables
 K <- rep(K_g, G)
-m <- 6
+m <- params$m[i]
 # mdim <- 3
 tau <- 3
 rho1 <- 0.4 # rho for internal nodes
@@ -71,19 +85,8 @@ for (v in leaves) {
   lp[which_v] <- lp[which_v] + X[which_v, , drop = F] %*% Matrix::t(beta[v, , drop = F])
   if (m > 0) {
     lp[which_v] <- lp[which_v] + W[which_v, , drop = F] %*% Matrix::t(theta[v, , drop = F])
-    # counter <- 0
-    # for (j in 1:m) {
-    #   for (l in 1:mdim) {
-    #     counter <- counter + 1
-    #     lp[which_v] <- lp[which_v] + W[which_v, j , drop = F] ^ (l - 1) %*% 
-    #       Matrix::t(theta[v, counter, drop = F])
-    #   }
-    # }
   }
 }
-
-# v <- leaves[3]
-# plot(W[outcomes == v, 2], lp[outcomes == v])
 
 # Simulate outcomes
 if (family == "gaussian") {
@@ -94,18 +97,10 @@ if (family == "gaussian") {
   y <- as.integer(y <= p_success)
 }
 
-# require(splines)
-# df <- 3
-# Wspl <- matrix(nrow = n, ncol = 0)
-# for (j in 1:m) {
-#   Wspl <- cbind(Wspl, ns(W[ , j], df = df))
-# }
-# W <- Wspl
-
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, nrestarts,
+keep(X, W, y, outcomes, tr, family, nrestarts, hyper_method,
      s_true, groups_true, beta, theta, sure = T)
 # require(profvis)
 # profvis(
@@ -122,15 +117,15 @@ keep(X, W, y, outcomes, tr, family, nrestarts,
   #                  nrestarts = nrestarts,
   #                  get_ml = F,
   #                  log_dir = "./tests/")
-  mod_end <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
-                   # initial_values = mod_start$mod,
-                   method = "tree",
-                   W_method = "shared",
+  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                   hyper_method = hyper_method,
                    tr = tr, family = family,
-                   update_hyper = T, update_hyper_freq = 20,
+                   update_hyper_freq = 20,
                    hyper_fixed = NULL,
-                   tol = 1E-8, max_iter = 1E5,
-                   print_freq = 10,
+                   tol = 1E-8, 
+                   tol_hyper = 1E-4,
+                   max_iter = 3E4,
+                   print_freq = 20,
                    nrestarts = nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
@@ -159,7 +154,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 100
+plot_start <- 10
 plot_end <- length(ELBO_track)
 # plot_end <- 4020
 plot(ELBO_track[plot_start:plot_end],
@@ -174,10 +169,12 @@ k <- 1
 clmn <- paste0("est", k)
 plot(beta_est[ , clmn <- paste0("est", k)], beta[ , k])
 abline(a = 0, b = 1, col = "red")
-j <- 1
-clmn <- paste0("est", j)
-plot(theta_est[, clmn], theta[ , j])
-abline(a = 0, b = 1, col = "red")
+if (length(mod1$vi_params$delta[[1]]) > 0) {
+  j <- 1
+  clmn <- paste0("est", j)
+  plot(theta_est[, clmn], theta[ , j])
+  abline(a = 0, b = 1, col = "red") 
+}
 
 # Compare estimated groups to truth ---------------------------------------------------------
 groups_est <- beta_est$group
@@ -188,6 +185,6 @@ k <- 1
 clmn <- paste0("est", k)
 plot(beta_ml[, clmn], beta_moretrees[ , clmn])
 abline(a = 0, b = 1, col = "red")
-cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
+# cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 

@@ -23,19 +23,29 @@
 #' Default is NULL (no covariates).
 #' @param outcomes is a character vector of length n, where entry i
 #  tells us which outcome is represented by unit i
-#' @param tr is an igraph tree, where the leaves represent outcomes
+#' @param tr is an igraph tree, where the leaves represent outcomes.
+#' The vertices of tr, V(tr), may have an attribute 'levels' containing integer
+#' values from 1 to max(V(tr)$levels). In this case, the levels attribute specifies
+#' groups of nodes that share common hyperparameters rho[f], tau[f], and omega[f].
+#' If V(tr)$levels is NULL, moretrees_design_tree will specify levels based on
+#' distance from the root node of the tree.
 #' @return A list containing the following elements:
 #' y: Re-ordered outcome vector.
 #' X: Re-ordered exposure matrix.
 #' W: Re-ordered covariate matrix.
+#' A: Matrix for transforming node-level parameters to outcome-level parameters.
 #' outcomes_units: list of length equal to the number of unique outcomes. Each element of
 #' the list is an integer vector indicating which units (entries of y_reord, rows of X_reord)
 #' correspond to each outcomes.
-#' #' outcomes_nodes: list of length equal to the number of unique nodes. Each element of
+#' outcomes_nodes: list of length equal to the number of unique nodes. Each element of
 #' the list is an integer vector indicating which outcomes are descendants of each node.
 #' ancestors: list of length equal to the number of unique outcomes. Each element of the 
 #' list is an integer vector indicating which nodes on the tree (including leaves) are ancestors
 #' of the corresponding outcome.
+#' levels: an integer vector of length equal to the number of unique nodes. Contains
+#' integer values from 1 to max(levels), where the values indicate groups of nodes
+#' that share common hyperparameters rho[f], tau[f], and omega[f], where f is the value
+#' in levels.
 #' @examples
 #' @family MOReTreeS functions
 
@@ -55,10 +65,14 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   # Re-order nodes to have internal nodes first, then leaves
   nodes <- c(nodes[!(nodes %in% leaves)], leaves)
   # Get levels for specifying groups of hyperparameters
-  root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
-  levels <- as.numeric(igraph::distances(tr, v = root, to = nodes, mode = "out") + 1)
-  levels[levels < max(levels)] <- 1
-  levels[levels == max(levels)] <- 2
+  if (is.null(igraph::V(tr)$levels)) {
+    # The default is to use distance from the root node as levels
+    root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
+    levels <- as.numeric(igraph::distances(tr, v = root, to = nodes, mode = "out") + 1)
+  } else {
+    # Otherwise, use levels supplied
+    levels <- igraph::V(tr)[nodes]$levels
+  }
 
   # Extract relevant parameters
   p <- length(nodes)
@@ -76,6 +90,7 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   # Sort by outcomes, where order is specified by ordering in tr
   ord <- order(ordered(outcomes, levels = leaves))
   X <- X[ord, , drop = F]
+  X <- as.matrix(X)
   if (!is.null(W)){
     W <- as.matrix(W)
     W <- W[ord, , drop = F]
@@ -109,9 +124,13 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   outcomes <- sapply(outcomes, function(o) which(leaves == o))
   
   # return
-  return(list(y = y, X = as.matrix(X), W = W, A = A,
+  return(list(y = y, 
+              X = X, 
+              W = W, 
+              A = A,
               outcomes = outcomes,
-              outcomes_units = outcomes_units, outcomes_nodes = outcomes_nodes,
+              outcomes_units = outcomes_units, 
+              outcomes_nodes = outcomes_nodes,
               ancestors = ancestors,
               levels = levels))
   
