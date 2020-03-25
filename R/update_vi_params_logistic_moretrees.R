@@ -11,15 +11,11 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                                 prob, mu, Sigma, 
                                                 Sigma_inv, Sigma_det, tau_t, 
                                                 delta, Omega, Omega_inv, Omega_det, 
-                                                a, b, 
-                                                a_t_tau, b_t_tau,
-                                                a_t_omega, b_t_omega, # vi_params
+                                                a_t_rho, b_t_rho, # vi_params
                                                 eta, g_eta, 
                                                 tau, omega, # hyperparams
-                                                a_tau, b_tau,
-                                                a_omega, b_omega, # hyper_fixed
-                                                hyper_method) {
-  
+                                                a_rho, b_rho) { # hyper_fixed
+
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
   Wtheta <- numeric(n) + 0
@@ -32,11 +28,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   for (v in 1:p) {
     leaf_descendants <- outcomes_nodes[[v]]
     # Update Sigma_v and tau_t_v
-    if (hyper_method == "full") {
-      tau_t[v] <- (b_t_tau[levels[v]] / a_t_tau[levels[v]])
-    } else {
-      tau_t[v] <- tau[levels[v]]
-    }
+    tau_t[v] <- tau[levels[v]]
     Sigma_inv[[v]] <- 2 * Reduce(`+`, xxT_g_eta[leaf_descendants]) + 
       diag(1 / tau_t[v], nrow = K)
     Sigma[[v]] <- solve(Sigma_inv[[v]])
@@ -54,9 +46,9 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     }
     mu[[v]] <- Sigma[[v]] %*% mu[[v]]
     # Update u_v
-    u_v <- 0.5 * crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] +
-      0.5 * log(Sigma_det[v]) + digamma(a[levels[v]]) - digamma(b[levels[v]]) -
-      0.5 * K * log(tau_t[v])
+    u_v <-  digamma(a_t_rho[levels[v]]) - digamma(b_t_rho[levels[v]]) +
+      crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] / 2 +
+      (log(Sigma_det[v]) - K * log(tau_t[v])) / 2
     prob[v] <- expit(u_v)
     # Update xi
     xi[[v]] <- prob[v] * mu[[v]]
@@ -64,21 +56,8 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   
   # Update rho ------------------------------------------------------------------------
   for (f in 1:Fg) {
-    a[f] <- 1 + sum(prob[levels == f])
-    b[f] <- 1 + sum(levels == f) - sum(prob[levels == f])
-  }
-  
-  # Update a_t_tau and b_t_tau -------------------------------------------------------------
-  if (hyper_method == "full") {
-    expected_ss_gamma <- numeric(p)
-    for (v in 1:p) {
-      expected_ss_gamma[v] <- prob[v] * (sum(diag(Sigma[[v]])) + sum(mu[[v]] ^ 2)) + 
-        (1 - prob[v]) * K * tau_t[v]
-    }
-    for (f in 1:Fg) {
-      a_t_tau[f] <- sum(levels == f) * K / 2 + a_tau[f]
-      b_t_tau[f] <- sum(expected_ss_gamma[levels == f]) / 2 + b_tau[f]
-    }
+    a_t_rho[f] <- a_rho[f] + sum(prob[levels == f])
+    b_t_rho[f] <- b_rho[f] + sum(1 - prob[levels == f])
   }
   
   # Update non-sparse coefficients ----------------------------------------------------
@@ -93,11 +72,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     for (v in 1:p) {
       # Update Omega_v
       leaf_descendants <- outcomes_nodes[[v]]
-      if (hyper_method == "full") {
-        omega_t <- (b_t_omega[levels[v]] / a_t_omega[levels[v]])
-      } else {
-        omega_t <- omega[levels[v]]
-      }
+      omega_t <- omega[levels[v]]
       Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) +
         diag(1 / omega_t, nrow = m)
       Omega[[v]] <- solve(Omega_inv[[v]])
@@ -117,22 +92,9 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     }
   }
   
-  # Update a_t_omega and b_t_omega -------------------------------------------------------
-  if (hyper_method == "full" & m > 0) {
-    expected_ss_theta <- numeric(p)
-    for (v in 1:p) {
-      expected_ss_theta[v] <- (sum(diag(Omega[[v]])) + sum(delta[[v]] ^ 2))
-    }
-    for (f in 1:Fg) {
-      a_t_omega[f] <- sum(levels == f) * m / 2 + a_omega[f]
-      b_t_omega[f] <- sum(expected_ss_theta[levels == f]) / 2 + b_omega[f]
-    }
-  }
-  
   # Return ---------------------------------------------------------------------------
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,
               Omega = Omega, Omega_inv = Omega_inv, Omega_det = Omega_det,
-              a = a, b = b, a_t_tau = a_t_tau, b_t_tau = b_t_tau,
-              a_t_omega = a_t_omega, b_t_omega = b_t_omega))
+              a_t_rho = a_t_rho, b_t_rho = b_t_rho))
 }

@@ -45,13 +45,12 @@
 #' @family MOReTreeS functions
 
 moretrees_init_logistic <- function(X, W, y, A,
-                                outcomes_units,
-                                outcomes_nodes,
-                                ancestors,
-                                levels,
-                                xxT, wwT,
-                                hyper_method,
-                                hyper_fixed) {
+                                    outcomes_units,
+                                    outcomes_nodes,
+                                    ancestors,
+                                    levels,
+                                    xxT, wwT,
+                                    hyper_fixed) {
   
   n <- length(y)
   m <- ncol(W)
@@ -91,72 +90,26 @@ moretrees_init_logistic <- function(X, W, y, A,
   mu <- A_inv %*% beta_ml
   delta <- A_inv %*% theta_ml
   vi_params$mu <- lapply(1:p, function(v, mu) matrix(mu[v, ], ncol = 1),
-                                        mu = mu)
+                         mu = mu)
   vi_params$delta <- lapply(1:p, function(v, delta) matrix(delta[v, ], ncol = 1),
-                                           delta = delta)
-  
-  # Choose fixed hyperparameters ------------------------------------------------------------
-  if (hyper_method == "full" & is.null(hyper_fixed)) {
-    hyper_fixed <- list()
-    hyper_fixed$a_tau <- sapply(1:max(levels), function(l) sum(levels == l)) * K / 2
-    hyper_fixed$b_tau <- sapply(1:max(levels), function(l) sum(mu[levels == l, ] ^ 2)) / 2
-    if (m > 0) {
-      hyper_fixed$a_omega <- sapply(1:max(levels), function(l) sum(levels == l)) * m / 2
-      hyper_fixed$b_omega <- sapply(1:max(levels), function(l) sum(delta[levels == l, ] ^ 2)) / 2
-    } else {
-      hyper_fixed$a_omega <- rep(1, Fg)
-      hyper_fixed$b_omega <- rep(1, Fg)
-    }
-  } else {
-    hyper_fixed$a_tau <- rep(1, Fg)
-    hyper_fixed$b_tau <- rep(1, Fg)
-    hyper_fixed$a_omega <- rep(1, Fg)
-    hyper_fixed$b_omega <- rep(1, Fg)
-  }
+                            delta = delta)
   
   # Initial values for hyperparms to be updated via EB --------------------------------------
-  if (hyper_method == "EB") {
-    hyperparams$tau <- sapply(1:Fg, function(l) mean(mu[levels == l, ] ^ 2))
-    if (m > 0) {
-      hyperparams$omega <- sapply(1:Fg, function(l) mean(delta[levels == l, ] ^ 2))
-    } else {
-      hyperparams$omega <- rep(1 , Fg)
-    }
+  hyperparams$tau <- sapply(1:Fg, function(l) mean(mu[levels == l, ] ^ 2))
+  if (m > 0) {
+    hyperparams$omega <- sapply(1:Fg, function(l) mean(delta[levels == l, ] ^ 2))
   } else {
-    hyperparams$tau <- rep(1, Fg)
-    hyperparams$omega <- rep(1, Fg)
+    hyperparams$omega <- rep(1 , Fg)
   }
   
   # Set initial values for hyperpriors ------------------------------------------------------
   vi_params$prob <- rep(0.95, p)
-  vi_params$a <- numeric(Fg)
-  vi_params$b <- numeric(Fg)
-  vi_params$a_t_tau <- numeric(Fg)
-  vi_params$b_t_tau <- numeric(Fg)
+  vi_params$a_t_rho <- numeric(Fg)
+  vi_params$b_t_rho <- numeric(Fg)
   for (f in 1:Fg) {
-    # need to initialise these parameters using VI updates
-    # so that terms cancel in ELBO.
-    vi_params$a[f] <- 1 + sum(vi_params$prob[levels == f]) 
-    vi_params$b[f] <- 1 + sum(levels == f) - sum(vi_params$prob[levels == f]) 
-    if (hyper_method == "full") {
-      vi_params$a_t_tau[f] <- sum(levels == f) * K / 2 + hyper_fixed$a_tau[f]
-      vi_params$b_t_tau[f] <- sum(mu[levels == f, ] ^ 2) / 2 + hyper_fixed$b_tau[f]
-    } else {
-      vi_params$a_t_tau[f] <- 1
-      vi_params$b_t_tau[f] <- 1
-    }
-  }
-  
-  if (m > 0 & hyper_method == "full") {
-    vi_params$a_t_omega <- numeric(Fg)
-    vi_params$b_t_omega <- numeric(Fg)
-    for (f in 1:Fg) {
-      vi_params$a_t_omega[f] <- sum(levels == f) * m / 2 + hyper_fixed$a_omega[f]
-      vi_params$b_t_omega[f] <- sum(delta[levels == f, ] ^ 2) / 2 + hyper_fixed$b_omega[f]
-    }
-  } else {
-    vi_params$a_t_omega <- rep(1, Fg)
-    vi_params$b_t_omega <- rep(1, Fg)
+    # initialise these parameters using VI updates
+    vi_params$a_t_rho[f] <- hyper_fixed$a_rho[f] + sum(vi_params$prob[levels == f]) 
+    vi_params$b_t_rho[f] <- hyper_fixed$b_rho[f] + sum(1 - vi_params$prob[levels == f]) 
   }
   
   # Get starting values for eta --------------------------------------------------------
@@ -173,33 +126,25 @@ moretrees_init_logistic <- function(X, W, y, A,
   }
   hyperparams$eta <- abs(lp)
   hyperparams$g_eta <- gfun(hyperparams$eta)
-
+  
   # Sigma and Omega initial values ---------------------------------------------------
   xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
                       xxT = xxT, g_eta = hyperparams$g_eta, K = K)
-  if (hyper_method == "full") {
-    vi_params$tau_t <- (vi_params$b_t_tau / vi_params$a_t_tau)[levels]
-  } else {
-    vi_params$tau_t <- hyperparams$tau[levels]
-  }
+  vi_params$tau_t <- hyperparams$tau[levels]
   vi_params$Sigma_inv <- lapply(X = 1:length(outcomes_nodes), 
-                      FUN = function(v, outcomes, x, K, tau_t) 2 * 
-                        Reduce(`+`, x[outcomes[[v]]]) + 
-                        diag(1 / tau_t[v], nrow = K),
-                      outcomes = outcomes_nodes,
-                      x = xxT_g_eta,
-                      K = K,
-                      tau_t = vi_params$tau_t)
+                                FUN = function(v, outcomes, x, K, tau_t) 2 * 
+                                  Reduce(`+`, x[outcomes[[v]]]) + 
+                                  diag(1 / tau_t[v], nrow = K),
+                                outcomes = outcomes_nodes,
+                                x = xxT_g_eta,
+                                K = K,
+                                tau_t = vi_params$tau_t)
   vi_params$Sigma <- lapply(vi_params$Sigma_inv, solve)
   vi_params$Sigma_det <- sapply(vi_params$Sigma, det)
   if (m > 0) {
     wwT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
                         xxT = wwT, g_eta = hyperparams$g_eta, K = m)
-    if (hyper_method == "full") {
-      omega_t <- (vi_params$b_t_omega / vi_params$a_t_omega)[levels]
-    } else {
-      omega_t <- hyperparams$omega[levels]
-    }
+    omega_t <- hyperparams$omega[levels]
     vi_params$Omega_inv <- lapply(X = 1:length(outcomes_nodes), 
                                   FUN = function(v, outcomes, w, m, omega_t) 2 * 
                                     Reduce(`+`, w[outcomes[[v]]]) + 

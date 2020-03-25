@@ -7,28 +7,22 @@ rm(list = ls(), inherits = T)
 devtools::load_all() # Sources all files in R/
 
 # Parameter choices to be tested -----------------------------------------------------
-params_list <- list(K_g = 1:2, m = 0:2, hyper_method = c("EB", "full"))
+params_list <- list(family = c("bernoulli", "gaussian"),
+                    K_g = 1:2, 
+                    m = 0:2)
 params <- do.call(expand.grid, params_list)
-i <- 12
+i <- 5
 params[i, ]
 
-# Chose one --------------------------------------------------------------------------
-# family <- "gaussian"
-family <- "bernoulli"
-
 # Input parameters -------------------------------------------------------------------
-hyper_method <- params$hyper_method[i]
-n <- 3E3
+family <- params$family[i]
+n <- 5E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
-# # If desired, specify levels
-# root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
-# levels <- as.numeric(igraph::distances(tr, v = root, to =igraph::V(tr), 
-#                                        mode = "out") + 1)
-# levels[levels < max(levels)] <- 1
-# levels[levels == max(levels)] <- 2
-# igraph::V(tr)$levels <- levels
+# If desired, specify levels 
+igraph::V(tr)$levels <- 1
+igraph::V(tr)$levels[igraph::V(tr)$leaf] <- 2
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
@@ -40,9 +34,10 @@ K <- rep(K_g, G)
 m <- params$m[i]
 # mdim <- 3
 tau <- 3
-rho1 <- 0.4 # rho for internal nodes
-rho2 <- 0.1 # rho for leaf nodes
-rho <- sum(1 + 0.8 * (p - pL - 1) + 0.05 * pL) / p # overall rho
+hyper_fixed <- list(a_rho = c(1, 1), b_rho = c(1 , 1))
+# hyper_fixed <- list(a_rho = c(0.9, 0.5), b_rho = c(3 , 2))
+rho1 <- rbeta(1, shape1 = hyper_fixed$a_rho[1], shape2 = hyper_fixed$b_rho[1]) # rho for internal nodes
+rho2 <- rbeta(1, shape1 = hyper_fixed$a_rho[2], shape2 = hyper_fixed$b_rho[2]) # rho for leaf nodes
 omega <- 2
 sigma2 <- 2
 # hyper_fixed <- list(a_tau = rep(1, 4), 
@@ -100,7 +95,7 @@ if (family == "gaussian") {
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, nrestarts, hyper_method,
+keep(X, W, y, outcomes, tr, family, nrestarts, hyper_method, hyper_fixed,
      s_true, groups_true, beta, theta, sure = T)
 # require(profvis)
 # profvis(
@@ -118,14 +113,13 @@ keep(X, W, y, outcomes, tr, family, nrestarts, hyper_method,
   #                  get_ml = F,
   #                  log_dir = "./tests/")
   mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   hyper_method = hyper_method,
                    tr = tr, family = family,
-                   update_hyper_freq = 20,
-                   hyper_fixed = NULL,
+                   update_hyper_freq = 50,
+                   hyper_fixed = hyper_fixed,
                    tol = 1E-8, 
                    tol_hyper = 1E-4,
                    max_iter = 3E4,
-                   print_freq = 20,
+                   print_freq = 50,
                    nrestarts = nrestarts,
                    get_ml = T,
                    log_dir = "./tests/")
@@ -154,9 +148,9 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 10
+plot_start <- 500
 plot_end <- length(ELBO_track)
-# plot_end <- 4020
+# plot_end <- 2519
 plot(ELBO_track[plot_start:plot_end],
      type = "l")
 

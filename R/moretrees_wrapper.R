@@ -45,22 +45,17 @@
 #' between subsequent hyperparmeter updates. Typically a more generous
 #' tolerance than tol. Default = 1E-6.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
-#' @param hyper_method Either "full" (fully Bayesian) or "EB" (empirical Bayes).
-#' Controls how hyperparameters rho, omega, and tau are estimated. 
-#' @param hyper_fixed Fixed values of hyperprior parameters to use if hyper_method = "full".
-#' If hyper_method = "full" and hyper_fixed = NULL (the default), these values will be 
-#' chosen based on maximum likelihood estimates of the variational parameters (see BLAH).
+#' @param hyper_fixed Fixed values of hyperprior parameters for rho.
 #' If family = "bernoulli", this should be a list including the following elements:
-#' a_tau, b_tau (parameters of inverse gamma on variance for sparse node coefficients)
-#' a_omega, b_omega (parameters of inverse gamma on variance for non-sparse node coefficients)
+#' a_rho, b_rho (parameters of beta prior on rho for each level)
 #' If family = "gaussian", in addition to the above, the list should also include:
 #' sigma2 (variance of residuals)
-#' @param update_hyper_freq If hyper_method = "EB", how frequently to update hyperparameters. 
+#' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
 #' @param random_init If TRUE, initial values will be chosen randomly. If FALSE, initial
 #' values will be chosen based on maximum likelihood estimates of the variational parameters
 #' (see BLAH for details).
-#' @param hyper_random_init If hyper_method = "EB" and random_init = TRUE, 
+#' @param hyper_random_init If random_init = TRUE, 
 #' this is a list containing the  maximum values of the initial hyperparameter values. 
 #' Each hyperparameter will beinitialised uniformly at random between 0 and the 
 #' maximum values given by the list elements below. 
@@ -106,7 +101,6 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                       family = "bernoulli",
                       ci_level = 0.95,
                       get_ml = FALSE,
-                      hyper_method = "full", 
                       update_hyper_freq = 50,
                       print_freq = update_hyper_freq,
                       hyper_fixed = NULL,
