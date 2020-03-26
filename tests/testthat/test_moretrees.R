@@ -11,7 +11,7 @@ params_list <- list(family = c("bernoulli", "gaussian"),
                     K_g = 1:2, 
                     m = 0:2)
 params <- do.call(expand.grid, params_list)
-i <- 5
+i <- 6
 params[i, ]
 
 # Input parameters -------------------------------------------------------------------
@@ -95,35 +95,33 @@ if (family == "gaussian") {
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, nrestarts, hyper_method, hyper_fixed,
+keep(X, W, y, outcomes, tr, family, nrestarts, hyper_fixed,
      s_true, groups_true, beta, theta, sure = T)
-# require(profvis)
-# profvis(
 # Run model without W
-  # mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
-  #                  random_init = F,
-  #                  method = "tree",
-  #                  W_method = "shared",
-  #                  tr = tr, family = family,
-  #                  update_hyper = T, update_hyper_freq = 50,
-  #                  hyper_fixed = hyper_fixed,
-  #                  tol = 1E-8, max_iter = 1E5,
-  #                  print_freq = 10,
-  #                  nrestarts = nrestarts,
-  #                  get_ml = F,
-  #                  log_dir = "./tests/")
-  mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                   tr = tr, family = family,
-                   update_hyper_freq = 50,
-                   hyper_fixed = hyper_fixed,
-                   tol = 1E-8, 
-                   tol_hyper = 1E-4,
-                   max_iter = 3E4,
-                   print_freq = 50,
-                   nrestarts = nrestarts,
-                   get_ml = T,
-                   log_dir = "./tests/")
-# )
+mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
+                       random_init = T,
+                       tr = tr, family = family,
+                       update_hyper_freq = 50,
+                       hyper_fixed = hyper_fixed,
+                       tol = 1E-8, 
+                       tol_hyper = 1E-4,
+                       max_iter = 3E4,
+                       print_freq = 50,
+                       nrestarts = nrestarts,
+                       get_ml = T,
+                       log_dir = "./tests/")
+mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+                     initial_values = mod_start,
+                     tr = tr, family = family,
+                     update_hyper_freq = 50,
+                     hyper_fixed = hyper_fixed,
+                     tol = 1E-8, 
+                     tol_hyper = 1E-4,
+                     max_iter = 3E4,
+                     print_freq = 50,
+                     nrestarts = nrestarts,
+                     get_ml = T,
+                     log_dir = "./tests/")
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
 beta_ml <- mod_end$beta_ml
@@ -138,8 +136,8 @@ c(mod1$ELBO_track[length(mod1$ELBO_track)],
 # Plot results -----------------------------------------------------------------------
 
 # Check if the ELBO decreases
-ELBO_track <- mod1$ELBO_track
-# ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
+# ELBO_track <- mod1$ELBO_track
+ELBO_track <- c(mod_start$mod$ELBO_track, mod_end$mod$ELBO_track[2:length(mod_end$mod$ELBO_track)])
 if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) < 0) {
   print("ELBO decreases at these time points:")
   which(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)] < 0)
@@ -148,7 +146,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 500
+plot_start <- 3000
 plot_end <- length(ELBO_track)
 # plot_end <- 2519
 plot(ELBO_track[plot_start:plot_end],

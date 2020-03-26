@@ -52,29 +52,10 @@
 #' sigma2 (variance of residuals)
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
-#' @param random_init If TRUE, initial values will be chosen randomly. If FALSE, initial
-#' values will be chosen based on maximum likelihood estimates of the variational parameters
-#' (see BLAH for details).
-#' @param hyper_random_init If random_init = TRUE, 
-#' this is a list containing the  maximum values of the initial hyperparameter values. 
-#' Each hyperparameter will beinitialised uniformly at random between 0 and the 
-#' maximum values given by the list elements below. 
-#' If multiple random restarts are being used, it is recommended
-#' to use a large range for these initial values so that the parameter space
-#' can be more effectively explored. The list contains the following elements:
-#' tau_max (maximum of prior sparse node variance);
-#' omega_max (maximum of prior non-sparse node variance);
-#' sigma2_max (maximum of residual error variance--- for gaussian data only).
-#' @param vi_random_init If random_init = TRUE, a list with parameters that 
-#' determine the distributions from which the initial VI parameters will be randomly chosen. 
-#' All parameters will be randomly
-#' selected from independent normal distributions with the standard deviations given by
-#' the list elements below. If multiple random restarts are being used, it is recommended
-#' to use large standard deviations for these initial values so that the parameter space
-#' can be more effectively explored. The list contains the following elements:
-#' mu_sd (standard deviation for posterior means of sparse node coefficients)
-#' delta_sd (standard deviation for posterior means of non-sparse node coefficients)
-#' xi_sd (standard deviation for auxilliary parameters xi--- for bernoulli data only).
+#' @param random_init If TRUE, initial values will be randomly permuted.
+#' @param random_init_vals If random_init = TRUE, 
+#' this is a list containing parameters for randomly permuting the inital values.
+#' The list contains the following elements:
 #' @param print_freq How often to print out iteration number and current value of epsilon
 #' (the difference in objective function value for the two most recent iterations). 
 #' @param nrestarts Number of random re-starts of the VI algorithm. The result that 
@@ -112,12 +93,12 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                       parallel = nrestarts > 1,
                       log_restarts = nrestarts > 1,
                       log_dir = getwd(),
-                      hyper_random_init = list(omega_max = 100,
-                                               tau_max = 100,
-                                               sigma2_max = 100),
-                      vi_random_init = list(eta_sd = 10,
-                                            mu_sd = 10,
-                                            delta_sd = 10)) {
+                      random_init_vals = list(omega_lims = c(0.5, 1.5),
+                                               tau_lims = c(0.5, 1.5),
+                                               sigma2_lims = c(0.5, 1.5),
+                                               eta_sd_frac = 0.2,
+                                               mu_sd_frac = 0.2,
+                                               delta_sd_frac = 0.2)) {
   
   if (!(family %in% c("bernoulli", "gaussian"))) {
     stop("family must be a string (\"bernoulli\" or \"gaussian\")")

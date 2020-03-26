@@ -50,7 +50,9 @@ moretrees_init_logistic <- function(X, W, y, A,
                                     ancestors,
                                     levels,
                                     xxT, wwT,
-                                    hyper_fixed) {
+                                    hyper_fixed,
+                                    random_init,
+                                    random_init_vals) {
   
   n <- length(y)
   m <- ncol(W)
@@ -93,11 +95,27 @@ moretrees_init_logistic <- function(X, W, y, A,
                          mu = mu)
   vi_params$delta <- lapply(1:p, function(v, delta) matrix(delta[v, ], ncol = 1),
                             delta = delta)
+  if (random_init) {
+    vi_params$mu <- lapply(vi_params$mu,
+         function(mu) mu + rnorm(nrow(mu), sd = abs(mu) * random_init_vals$mu_sd_frac))
+    vi_params$delta <- lapply(vi_params$delta,
+         function(delta) delta + rnorm(nrow(delta), sd = abs(delta) * random_init_vals$delta_sd_frac))
+  }
   
   # Initial values for hyperparms to be updated via EB --------------------------------------
   hyperparams$tau <- sapply(1:Fg, function(l) mean(mu[levels == l, ] ^ 2))
+  if (random_init) {
+    hyperparams$tau <- sapply(hyperparams$tau, 
+      function(tau) runif(1, min = tau * random_init_vals$tau_lims[1],
+      max = tau * random_init_vals$tau_lims[2]))
+  } 
   if (m > 0) {
     hyperparams$omega <- sapply(1:Fg, function(l) mean(delta[levels == l, ] ^ 2))
+    if (random_init) {
+      hyperparams$omega <- sapply(hyperparams$omega, 
+       function(omega) runif(1, min = omega * random_init_vals$omega_lims[1],
+       max = omega * random_init_vals$omega_lims[2]))
+    }
   } else {
     hyperparams$omega <- rep(1 , Fg)
   }
@@ -125,6 +143,10 @@ moretrees_init_logistic <- function(X, W, y, A,
       W[outcomes_units[[v]], , drop = F ] %*% theta_v
   }
   hyperparams$eta <- abs(lp)
+  if (random_init) {
+    hyperparams$eta <- abs(hyperparams$eta * 
+          (1 + rnorm(length(hyperparams$eta)) * random_init_vals$eta_sd_frac))
+  }
   hyperparams$g_eta <- gfun(hyperparams$eta)
   
   # Sigma and Omega initial values ---------------------------------------------------
