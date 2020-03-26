@@ -4,41 +4,26 @@
 \alias{spike_and_slab_logistic_moretrees}
 \title{Group spike and slab variable selection with Gaussian outcome}
 \usage{
-spike_and_slab_logistic_moretrees(dsgn, initial_values, random_init, tol,
-  max_iter, update_hyper, update_hyper_freq, hyper_fixed, print_freq,
-  hyper_random_init, vi_random_init)
+spike_and_slab_logistic_moretrees(dsgn, initial_values, random_init,
+  random_init_vals, tol, tol_hyper, max_iter, print_freq,
+  update_hyper_freq, hyper_fixed)
 }
 \arguments{
+\item{dsgn}{A list containing all data elements needed for the algorithm.}
+
+\item{random_init}{If TRUE, initial values will be randomly permuted.}
+
+\item{random_init_vals}{If random_init = TRUE, 
+this is a list containing parameters for randomly permuting the inital values.
+The list contains the following elements:}
+
 \item{tol}{Convergence tolerance for ELBO.}
 
-\item{update_hyper}{Update hyperparameters? Default = TRUE.}
+\item{print_freq}{How often to print out iteration number.}
 
-\item{update_hyper_freq}{How frequently to update hyperparameters. Default = every 10 iterations.}
+\item{update_hyper_freq}{How frequently to update hyperparameters.}
 
-\item{y}{Integer vector of length n containing outcomes; 1 = success, 0 = failure.}
-
-\item{X}{Matrix of dimension n x sum(K), where n is the number of units, and
-K[g] is the number of variables in group g.}
-
-\item{W}{Matrix of non-sparse regression coefficients of dimension n x m}
-
-\item{model}{"ss" or "moretrees". If "ss", regular spike and slab variable selection is implemented.
-If "moretrees", the multi-outcome moretrees model is fitted.}
-
-\item{groups}{If model = "ss", groups is a list of length G (number of groups), where groups[[g]] 
-is an integer vector specifying the columns of X that belong to group g. NULL if model = "moretrees".}
-
-\item{outcomes_units:}{If model = "moretrees", outcomes_units is a list of length equal to the number 
-of unique outcomes. Each element of the list is an integer vector indicating which units (entries 
-of y_reord, rows of X_reord) correspond to each outcomes. NULL if model = "ss".}
-
-\item{outcomes_nodes:}{If model = "moretrees", outcomes_nodes is a list of length equal to the number 
-of unique nodes. Each element of the list is an integer vector indicating which outcomes/leaves
-are descendants of each node. NULL if model = "ss".}
-
-\item{ancestors}{If model = "moretrees", ancestors ia  list of length equal to the number of unique 
-outcomes. Each element of the list is an integer vector indicating which nodes on the tree (including 
-leaves) are ancestors of the corresponding outcome. NULL if model = "ss".}
+\item{hyper_fixed}{Fixed values of hyperprior parameters.}
 
 \item{maxiter}{Maximum number of iterations of the VI algorithm.}
 }
@@ -61,11 +46,6 @@ All the details go here!
 }
 
 \seealso{
-Other spike and slab functions: \code{\link{compute_betas}},
-  \code{\link{compute_thetas}}, \code{\link{ml_by_group}},
-  \code{\link{spike_and_slab_logistic}},
-  \code{\link{spike_and_slab_normal_moretrees}},
-  \code{\link{spike_and_slab_normal}},
-  \code{\link{spike_and_slab}}
+Other spike and slab functions: \code{\link{ml_by_group}}
 }
 \concept{spike and slab functions}

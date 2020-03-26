@@ -44,7 +44,6 @@ ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups, ci_level, fami
   names(beta_ml) <- c("group", cols)
   beta_ml$group <- 1:G
   beta_ml$outcomes <- outcome_groups
-  if (family == "bernoulli") family <- "binomial"
   for (g in 1:G) {
     which_i <- outcomes %in% outcome_groups[[g]]
     if (!is.null(W)) {

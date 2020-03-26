@@ -7,7 +7,7 @@
   models. Not recommended if the model is converging slowly!}
 \usage{
 moretrees_init_logistic(X, W, y, A, outcomes_units, outcomes_nodes,
-  ancestors, levels, xxT, wwT, hyper_fixed)
+  ancestors, levels, xxT, wwT, hyper_fixed, random_init, random_init_vals)
 }
 \arguments{
 \item{xxT}{Computed from exposure matrix X}
@@ -60,10 +60,7 @@ Describe MOReTreeS model and all parameters here.
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
   \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_W_logistic}},
-  \code{\link{moretrees_init_rand}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}

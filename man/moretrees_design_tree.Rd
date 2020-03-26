@@ -22,21 +22,31 @@ Default is NULL (no covariates).}
 
 \item{outcomes}{is a character vector of length n, where entry i}
 
-\item{tr}{is an igraph tree, where the leaves represent outcomes}
+\item{tr}{is an igraph tree, where the leaves represent outcomes.
+The vertices of tr, V(tr), may have an attribute 'levels' containing integer
+values from 1 to max(V(tr)$levels). In this case, the levels attribute specifies
+groups of nodes that share common hyperparameters rho[f], tau[f], and omega[f].
+If V(tr)$levels is NULL, moretrees_design_tree will specify levels based on
+distance from the root node of the tree.}
 }
 \value{
 A list containing the following elements:
 y: Re-ordered outcome vector.
 X: Re-ordered exposure matrix.
 W: Re-ordered covariate matrix.
+A: Matrix for transforming node-level parameters to outcome-level parameters.
 outcomes_units: list of length equal to the number of unique outcomes. Each element of
 the list is an integer vector indicating which units (entries of y_reord, rows of X_reord)
 correspond to each outcomes.
-#' outcomes_nodes: list of length equal to the number of unique nodes. Each element of
+outcomes_nodes: list of length equal to the number of unique nodes. Each element of
 the list is an integer vector indicating which outcomes are descendants of each node.
 ancestors: list of length equal to the number of unique outcomes. Each element of the 
 list is an integer vector indicating which nodes on the tree (including leaves) are ancestors
 of the corresponding outcome.
+levels: an integer vector of length equal to the number of unique nodes. Contains
+integer values from 1 to max(levels), where the values indicate groups of nodes
+that share common hyperparameters rho[f], tau[f], and omega[f], where f is the value
+in levels.
 }
 \description{
 All the details go here!
@@ -49,10 +59,7 @@ All the details go here!
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
-  \code{\link{moretrees_init_W_logistic}},
   \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees_init_rand}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}

@@ -7,16 +7,16 @@ rm(list = ls(), inherits = T)
 devtools::load_all() # Sources all files in R/
 
 # Parameter choices to be tested -----------------------------------------------------
-params_list <- list(family = c("bernoulli", "gaussian"),
-                    K_g = 1:2, 
-                    m = 0:2)
+params_list <- list(K_g = 1:2, 
+                    m = 0:2,
+                    nrestarts = c(1, 2))
 params <- do.call(expand.grid, params_list)
-i <- 6
+i <- 12
 params[i, ]
 
 # Input parameters -------------------------------------------------------------------
-family <- params$family[i]
-n <- 5E3
+nrestarts <- params$nrestarts[i]
+n <- 1E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
@@ -32,21 +32,13 @@ pL <- sum(igraph::V(tr)$leaf)
 K_g <- params$K_g[i] # number of variables
 K <- rep(K_g, G)
 m <- params$m[i]
-# mdim <- 3
 tau <- 3
-hyper_fixed <- list(a_rho = c(1, 1), b_rho = c(1 , 1))
-# hyper_fixed <- list(a_rho = c(0.9, 0.5), b_rho = c(3 , 2))
+hyper_fixed <- list(a_rho = c(0.9, 0.5), b_rho = c(3 , 2))
 rho1 <- rbeta(1, shape1 = hyper_fixed$a_rho[1], shape2 = hyper_fixed$b_rho[1]) # rho for internal nodes
 rho2 <- rbeta(1, shape1 = hyper_fixed$a_rho[2], shape2 = hyper_fixed$b_rho[2]) # rho for leaf nodes
 omega <- 2
-sigma2 <- 2
-# hyper_fixed <- list(a_tau = rep(1, 4), 
-#                     b_tau = rep(1, 4),
-#                     a_omega = rep(1, 4), 
-#                     b_omega = rep(1, 4))
-if (family == "gaussian") hyper_fixed$sigma2 <- sigma2
-nrestarts <- 1
 doParallel::registerDoParallel(cores = nrestarts)
+log_dir <- "./tests/"
 
 # Generate randomly grouped beta (groups follow tree)
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
@@ -84,23 +76,17 @@ for (v in leaves) {
 }
 
 # Simulate outcomes
-if (family == "gaussian") {
-  y <- lp + rnorm(n, mean = 0, sd = sqrt(sigma2))
-} else {
-  p_success <- expit(lp)
-  y <- runif(n)
-  y <- as.integer(y <= p_success)
-}
-
+p_success <- expit(lp)
+y <- runif(n)
+y <- as.integer(y <= p_success)
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, family, nrestarts, hyper_fixed,
-     s_true, groups_true, beta, theta, sure = T)
+keep(X, W, y, outcomes, tr, nrestarts, hyper_fixed,
+    s_true, groups_true, beta, theta, sure = T)
 # Run model without W
 mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
-                       random_init = T,
-                       tr = tr, family = family,
+                       tr = tr,
                        update_hyper_freq = 50,
                        hyper_fixed = hyper_fixed,
                        tol = 1E-8, 
@@ -108,11 +94,12 @@ mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
                        max_iter = 3E4,
                        print_freq = 50,
                        nrestarts = nrestarts,
+                       parallel = F,
                        get_ml = T,
                        log_dir = "./tests/")
 mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                      initial_values = mod_start,
-                     tr = tr, family = family,
+                     tr = tr,
                      update_hyper_freq = 50,
                      hyper_fixed = hyper_fixed,
                      tol = 1E-8, 
@@ -121,7 +108,7 @@ mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
                      print_freq = 50,
                      nrestarts = nrestarts,
                      get_ml = T,
-                     log_dir = "./tests/")
+                     log_dir = log_dir)
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
 beta_ml <- mod_end$beta_ml
@@ -132,6 +119,12 @@ mod1 <- mod_end$mod
 # Compare ELBOs for random restarts --------------------------------------------------
 c(mod1$ELBO_track[length(mod1$ELBO_track)],
   sapply(mod_restarts, function(mod) mod$ELBO_track[length(mod$ELBO_track)]))
+for (i in 1:nrestarts) {
+  fl <- paste0(log_dir, "restart_", i, "_log.txt")
+  if (file.exists(fl)) {
+    file.remove(fl)
+  }
+}
 
 # Plot results -----------------------------------------------------------------------
 
@@ -146,7 +139,7 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 }
 
 # ELBO at every time step
-plot_start <- 3000
+plot_start <- 20000
 plot_end <- length(ELBO_track)
 # plot_end <- 2519
 plot(ELBO_track[plot_start:plot_end],

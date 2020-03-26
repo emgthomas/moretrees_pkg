@@ -8,15 +8,15 @@
 Tree-structured Shrinkage (MOReTreeS)}
 \usage{
 moretrees(X, W = NULL, y, outcomes, tr, random_init = FALSE,
-  initial_values = NULL, method = "tree", W_method = "shared",
-  family = "bernoulli", ci_level = 0.95, get_ml = FALSE,
-  update_hyper = T, update_hyper_freq = 50,
+  initial_values = NULL, family = "bernoulli", ci_level = 0.95,
+  get_ml = FALSE, update_hyper_freq = 50,
   print_freq = update_hyper_freq, hyper_fixed = NULL, tol = 1e-08,
-  max_iter = 5000, nrestarts = 3, keep_restarts = nrestarts > 1,
-  parallel = nrestarts > 1, log_restarts = nrestarts > 1,
-  log_dir = getwd(), hyper_random_init = list(omega_max = 100, tau_max
-  = 100, sigma2_max = 100), vi_random_init = list(eta_sd = 10, mu_sd =
-  10, delta_sd = 10))
+  tol_hyper = 1e-06, max_iter = 5000, nrestarts = 3,
+  keep_restarts = nrestarts > 1, parallel = nrestarts > 1,
+  log_restarts = nrestarts > 1, log_dir = getwd(),
+  random_init_vals = list(omega_lims = c(0.5, 1.5), tau_lims = c(0.5,
+  1.5), sigma2_lims = c(0.5, 1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2,
+  delta_sd_frac = 0.2))
 }
 \arguments{
 \item{X}{An n x K matrix of exposure data, where K is the dimension of the exposure.
@@ -36,15 +36,13 @@ outcome experienced by unit i.}
 among the outcomes. The leaves represent individual outcomes, and internal nodes
 represent outcome categories consisting of their leaf descendants. All nodes
 of tr must have unique names as given by names(V(tr)). The names of the leaves must 
-be equal to the unique elements of outcomes.}
+be equal to the unique elements of outcomes. The vertices of tr, V(tr), may have 
+an attribute 'levels' containing integer values from 1 to max(V(tr)$levels). 
+In this case, the levels attribute specifies groups of nodes that share common 
+hyperparameters rho[f], tau[f], and omega[f]. If V(tr)$levels is NULL, 
+levels will be automatically chosen based on distance from the root node of the tree.}
 
-\item{method}{= "matrix" or "tree". "matrix" uses a transformation of the 
-design matrix to fit the MOReTreeS model; "tree" uses the information in tr. "matrix" may
-be more efficient for small trees; "tree" may be more efficient for large trees. (?)}
-
-\item{W_method}{= "shared" if information about the effect of variables in W wil be shared
-across the outcomes according to the tree structure. If W_method = "individual", the effect of
-W will be estimated separately for each outcome (no infromation sharing).}
+\item{random_init}{If TRUE, initial values will be randomly permuted.}
 
 \item{family}{A string specifying the distribution of the outcomes: 
 either "bernoulli" (for classification) or "gaussian" (for regression)}
@@ -55,22 +53,23 @@ For example, ci_level = 0.95 (the default) returns a 95\% credible interval}
 \item{get_ml}{If TRUE, moretrees will also return the maximum likelihood estimates of the
 coefficients for each outcome group discovered by the model. The default is FALSE.}
 
-\item{update_hyper}{Update hyperparameters? Default = TRUE.}
-
 \item{update_hyper_freq}{How frequently to update hyperparameters. 
 Default = every 50 iterations.}
 
-\item{print_freq}{How often to print out iteration number.}
+\item{print_freq}{How often to print out iteration number and current value of epsilon
+(the difference in objective function value for the two most recent iterations).}
 
-\item{hyper_fixed}{Fixed values of hyperparameters to use if update_hyper = FALSE.
+\item{hyper_fixed}{Fixed values of hyperprior parameters for rho.
 If family = "bernoulli", this should be a list including the following elements:
-tau (prior variance for sparse node coefficients)
-rho (prior node selection probability for sparse node coefficients)
-omega (prior variance for non-sparse node coefficients)
+a_rho, b_rho (parameters of beta prior on rho for each level)
 If family = "gaussian", in addition to the above, the list should also include:
 sigma2 (variance of residuals)}
 
 \item{tol}{Convergence tolerance for ELBO. Default = 1E-8.}
+
+\item{tol_hyper}{If hyper_method = "EB", the convergence tolerance for ELBO
+between subsequent hyperparmeter updates. Typically a more generous
+tolerance than tol. Default = 1E-6.}
 
 \item{nrestarts}{Number of random re-starts of the VI algorithm. The result that 
 gives the highest ELBO will be returned. It is recommended to choose nrestarts > 1.
@@ -89,25 +88,9 @@ file in log_dir.}
 \item{log_dir}{Directory for logging progress of random restarts.
 Default is the working directory.}
 
-\item{hyper_random_init}{If update_hyper = TRUE, this is a list containing the 
-maximum values of the hyperparameters. Each hyperparameter will be initialised
-uniformly at random between 0 and the maximum values given by the list elements
-below. If multiple random restarts are being used, it is recommended
-to use a large range for these initial values so that the parameter space
-can be more effectively explored. The list contains the following elements:
-tau_max (maxmimum of prior sparse node variance)
-omega_max (maximum of prior non-sparse node variance)
-sigma2_max (maximum of residual error variance--- for gaussian data only)}
-
-\item{vi_random_init}{A list with parameters that determine the distributions from
-which the initial VI parameters will be randomly chosen. All parameters will be randomly
-selected from independent normal distributions with the standard deviations given by
-the list elements below. If multiple random restarts are being used, it is recommended
-to use large standard deviations for these initial values so that the parameter space
-can be more effectively explored. The list contains the following elements:
-mu_sd (standard deviation for posterior means of sparse node coefficients)
-delta_sd (standard deviation for posterior means of non-sparse node coefficients)
-xi_sd (standard deviation for auxilliary parameters xi--- for bernoulli data only)}
+\item{random_init_vals}{If random_init = TRUE, 
+this is a list containing parameters for randomly permuting the inital values.
+The list contains the following elements:}
 
 \item{maxiter}{Maximum number of iterations of the VI algorithm.}
 }
@@ -135,10 +118,7 @@ Describe MOReTreeS model and all parameters here.
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
   \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
   \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_W_logistic}},
-  \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees_init_rand}}
+  \code{\link{moretrees_init_logistic}}
 }
 \concept{MOReTreeS functions}

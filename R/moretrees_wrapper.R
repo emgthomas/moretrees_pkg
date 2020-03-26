@@ -77,9 +77,7 @@
 #' @family MOReTreeS functions
 
 moretrees <- function(X, W = NULL, y, outcomes, tr,
-                      random_init = FALSE,
                       initial_values = NULL,
-                      family = "bernoulli",
                       ci_level = 0.95,
                       get_ml = FALSE,
                       update_hyper_freq = 50,
@@ -93,25 +91,20 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                       parallel = nrestarts > 1,
                       log_restarts = nrestarts > 1,
                       log_dir = getwd(),
+                      random_init = nrestarts > 1,
                       random_init_vals = list(omega_lims = c(0.5, 1.5),
-                                               tau_lims = c(0.5, 1.5),
-                                               sigma2_lims = c(0.5, 1.5),
-                                               eta_sd_frac = 0.2,
-                                               mu_sd_frac = 0.2,
-                                               delta_sd_frac = 0.2)) {
+                                              tau_lims = c(0.5, 1.5),
+                                              eta_sd_frac = 0.2,
+                                              mu_sd_frac = 0.2,
+                                              delta_sd_frac = 0.2)) {
   
-  if (!(family %in% c("bernoulli", "gaussian"))) {
-    stop("family must be a string (\"bernoulli\" or \"gaussian\")")
-  }
   if (!is.matrix(X)) stop("X must be a matrix")
   if (!is.null(W) & !(is.matrix(W))) stop("If W is not NULL, must be a matrix")
-  if (family == "bernoulli") ss_fun <- spike_and_slab_logistic_moretrees
-  if (family == "gaussian") ss_fun <- spike_and_slab_normal_moretrees
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   
   # Get MOReTreeS design elements
   dsgn <- moretrees_design_tree(X = X, W = W, y = y, outcomes = outcomes, tr = tr)
-
+  
   # Setting up parallelization
   if (parallel) {
     `%doRestarts%` <- foreach::`%dopar%`
@@ -119,22 +112,22 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
     `%doRestarts%` <- foreach::`%do%`
   }
   
-  # # Run algorithm
-  # mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
-  #   if (log_restarts) {
-  #     sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
-  #     cat("Initialising random restart", i, "...\n\n")
-  #   }
-  #   mod <- 
-  mod_restarts <- list(R.utils::doCall(ss_fun, 
-                       dsgn = dsgn,
-                       args = as.list(stackoverflow::match.call.defaults())))
-  #   if (log_restarts) {
-  #     cat("\nRestart", i, "complete.")
-  #     sink()
-  #   }
-  #   mod
-  # }
+  # Run algorithm
+  args <- sapply(as.list(stackoverflow::match.call.defaults()), eval)
+  mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
+    if (log_restarts) {
+      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+      cat("Initialising random restart", i, "...\n\n")
+    }
+    mod <- R.utils::doCall("spike_and_slab_logistic_moretrees", 
+                           dsgn = dsgn,
+                           args = args)
+    if (log_restarts) {
+      cat("\nRestart", i, "complete.")
+      sink()
+    }
+    mod
+  }
   
   # Select random restart that gave the highest ELBO
   ELBO_restarts <- sapply(mod_restarts, FUN = function(mod) mod$ELBO_track[length(mod$ELBO_track)])
@@ -150,23 +143,22 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
   # Compute MOReTreeS exposure coefficient estimates from model output
   betas <- moretrees_compute_betas(mod = mod, ci_level = ci_level,
                                    outcomes = outcomes,
-              A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+                                   A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   
   # Compute MOReTreeS covariate coefficient estimates from model output
   if (!is.null(W)) {
     theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
-                      m = ncol(W), A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+                                          m = ncol(W), A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
   } else {
     theta_est <- NULL
   }
-  
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {
     beta_ml <- ml_by_group(X = X, W = W, y = y, outcomes = outcomes,
                            outcome_groups = betas$beta_moretrees$outcomes,
                            ci_level = ci_level,
-                           family = family)
+                           family = "binomial")
   } else {
     beta_ml <- NULL
   }

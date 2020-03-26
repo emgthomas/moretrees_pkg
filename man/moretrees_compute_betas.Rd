@@ -32,11 +32,8 @@ NA
 
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
   \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_W_logistic}},
   \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees_init_rand}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}

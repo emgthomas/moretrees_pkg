@@ -7,8 +7,8 @@
 \usage{
 update_hyperparams_logistic_moretrees(X, W, y, outcomes_units, ancestors,
   levels, n, K, p, m, Fg, prob, mu, Sigma, Sigma_det, tau_t, delta, Omega,
-  Omega_det, a, b, a_t_tau, b_t_tau, a_t_omega, b_t_omega, eta, g_eta,
-  a_tau, b_tau, a_omega, b_omega)
+  Omega_det, a_t_rho, b_t_rho, eta, g_eta, tau, omega, a_rho, b_rho,
+  update_hyper)
 }
 \description{
 \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
