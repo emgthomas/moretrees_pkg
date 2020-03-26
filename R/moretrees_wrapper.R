@@ -128,7 +128,6 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
     }
     mod
   }
-  
   # Select random restart that gave the highest ELBO
   ELBO_restarts <- sapply(mod_restarts, FUN = function(mod) mod$ELBO_track[length(mod$ELBO_track)])
   best_restart <- which.max(ELBO_restarts)

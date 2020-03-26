@@ -38,7 +38,7 @@ rho1 <- rbeta(1, shape1 = hyper_fixed$a_rho[1], shape2 = hyper_fixed$b_rho[1]) #
 rho2 <- rbeta(1, shape1 = hyper_fixed$a_rho[2], shape2 = hyper_fixed$b_rho[2]) # rho for leaf nodes
 omega <- 2
 doParallel::registerDoParallel(cores = nrestarts)
-log_dir <- "./tests/"
+log_dir <- "./tests/logs/"
 
 # Generate randomly grouped beta (groups follow tree)
 gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
@@ -83,7 +83,7 @@ y <- as.integer(y <= p_success)
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
 keep(X, W, y, outcomes, tr, nrestarts, hyper_fixed,
-    s_true, groups_true, beta, theta, sure = T)
+    s_true, groups_true, beta, theta, log_dir, sure = T)
 # Run model without W
 mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
                        tr = tr,
@@ -94,17 +94,21 @@ mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
                        max_iter = 3E4,
                        print_freq = 50,
                        nrestarts = nrestarts,
-                       parallel = F,
-                       get_ml = T,
-                       log_dir = "./tests/")
+                       get_ml = F,
+                       log_dir = log_dir)
+# strip out unnecessary parts of initial values
+initial_values <- mod_start$mod[c("vi_params", "hyperparams")]
+initial_values$vi_params[c("delta", "Omega", "Omega_inv", "Omega_det")] <- NULL
+initial_values$hyperparams[c("omega", "ELBO", "g_eta")] <- NULL
+# run next model using initial values from previous model
 mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
-                     initial_values = mod_start,
+                     initial_values = initial_values,
                      tr = tr,
                      update_hyper_freq = 50,
                      hyper_fixed = hyper_fixed,
                      tol = 1E-8, 
                      tol_hyper = 1E-4,
-                     max_iter = 3E4,
+                     max_iter = 1E5,
                      print_freq = 50,
                      nrestarts = nrestarts,
                      get_ml = T,
@@ -137,9 +141,11 @@ if(min(ELBO_track[2:length(ELBO_track)] - ELBO_track[1:(length(ELBO_track)-1)]) 
 } else {
   print("ELBO always increases!")
 }
+# Note: if we are adding randomness to initial values (default when nrestarts > 1),
+# we should get a point where the ELBO decreases when we run mod2.
 
 # ELBO at every time step
-plot_start <- 20000
+plot_start <- 20
 plot_end <- length(ELBO_track)
 # plot_end <- 2519
 plot(ELBO_track[plot_start:plot_end],
@@ -170,6 +176,5 @@ k <- 1
 clmn <- paste0("est", k)
 plot(beta_ml[, clmn], beta_moretrees[ , clmn])
 abline(a = 0, b = 1, col = "red")
-# cbind(beta_ml[, clmn], beta_moretrees[ , clmn])
 
 

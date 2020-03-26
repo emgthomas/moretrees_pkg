@@ -66,13 +66,15 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   init <- R.utils::doCall(moretrees_init_logistic, 
                           hyper_fixed = hyper_fixed,
                           args = dsgn)
-  if (!is.null(initial_values)) {
-    # replace init with any initial values supplied by user
-    init[names(initial_values)] <- initial_values
-  }
   vi_params <- init$vi_params
   hyperparams <- init$hyperparams
   hyper_fixed <- init$hyper_fixed
+  if (!is.null(initial_values)) {
+    # replace init with any initial values supplied by user
+    vi_params[names(initial_values$vi_params)] <- initial_values$vi_params
+    hyperparams[names(initial_values$hyperparams)] <- initial_values$hyperparams
+    hyperparams$g_eta <- gfun(hyperparams$eta)
+  }
   if (random_init) {
     vi_params$mu <- lapply(vi_params$mu,
           function(mu) mu + rnorm(nrow(mu), 
