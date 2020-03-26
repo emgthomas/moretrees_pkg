@@ -7,16 +7,16 @@ rm(list = ls(), inherits = T)
 devtools::load_all() # Sources all files in R/
 
 # Parameter choices to be tested -----------------------------------------------------
-params_list <- list(K_g = 1:2, 
+params_list <- list(K = 1:2, 
                     m = 0:2,
                     nrestarts = c(1, 2))
 params <- do.call(expand.grid, params_list)
-i <- 12
+i <- 1
 params[i, ]
 
 # Input parameters -------------------------------------------------------------------
 nrestarts <- params$nrestarts[i]
-n <- 1E3
+n <- 3E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
@@ -26,11 +26,9 @@ igraph::V(tr)$levels[igraph::V(tr)$leaf] <- 2
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1
-G <- length(igraph::V(tr))
-p <- G
+p <- length(igraph::V(tr))
 pL <- sum(igraph::V(tr)$leaf)
-K_g <- params$K_g[i] # number of variables
-K <- rep(K_g, G)
+K <- params$K[i] # number of variables
 m <- params$m[i]
 tau <- 3
 hyper_fixed <- list(a_rho = c(0.9, 0.5), b_rho = c(3 , 2))
@@ -41,26 +39,30 @@ doParallel::registerDoParallel(cores = nrestarts)
 log_dir <- "./tests/logs/"
 
 # Generate randomly grouped beta (groups follow tree)
-gamma_true <- sapply(K, rnorm, mean = 0, sd = sqrt(tau), simplify = F)
+gamma_true <- sapply(rep(K, p), rnorm, mean = 0, sd = sqrt(tau), simplify = F)
 s_true <- c(1, rbinom(n = p - pL - 1, size = 1, prob = rho1), 
             rbinom(n = pL, size = 1, prob = rho2))
 xi <- mapply(function(gamma, s) matrix(gamma * s, nrow = 1),
              gamma = gamma_true, s = s_true,
              SIMPLIFY = T) %>% t
-if (K_g == 1) xi <- t(xi)
+if (K == 1) xi <- t(xi)
 beta <- A[leaves, ] %*% xi
-zeta <- matrix(rnorm(m * G, mean = 0, sd = sqrt(omega)), nrow = G, ncol = m)
+zeta <- matrix(rnorm(m * p, mean = 0, sd = sqrt(omega)), nrow = p, ncol = m)
 theta <- A[leaves, ] %*% zeta
 groups_true <- as.integer(as.factor(as.numeric(beta[ , 1])))
 table(groups_true)
 
 # Generate some data -----------------------------------------------------------------
-X <- matrix(rnorm(n * K_g), nrow = n, ncol = K_g)
+X1 <- matrix(rnorm(n * K), nrow = n, ncol = K)
+X2 <- matrix(rnorm(n * K), nrow = n, ncol = K)
+X <- X1 - X2
 outcomes <- c(leaves, sample(leaves, size = n - pL, replace = T))
 
 # Create non-sparse design matrix
 if (m > 0) {
-  W <- matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
+  W1 <- matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
+  W2 <- matrix(rnorm(m * n, sd = 0.5), nrow = n, ncol = m)
+  W <- W1 - W2
 } else {
   W <- NULL
 }
@@ -79,13 +81,37 @@ for (v in leaves) {
 p_success <- expit(lp)
 y <- runif(n)
 y <- as.integer(y <= p_success)
+# if y = 1, unit 1 is the case.
+# if y = 0, unit 2 is the case.
+
+# Convert to "matched case-control" format
+# X
+Xcase <- diag(y) %*% X1 + diag(1 - y) %*% X2
+Xcontrol <- diag(1 - y) %*% X1 + diag(y) %*% X2
+# check
+y2 <- y
+y2[y2 == 0] <- -1
+all.equal(Xcase - Xcontrol, diag(y2) %*% X)
+# W
+if (m > 0) {
+  # W
+  Wcase <- diag(y) %*% W1 + diag(1 - y) %*% W2
+  Wcontrol <- diag(1 - y) %*% W1 + diag(y) %*% W2
+  # check
+  all.equal(Wcase - Wcontrol, diag(y2) %*% W)
+} else {
+  Wcase <- NULL
+  Wcontrol <- NULL
+}
 
 # Run algorithm ----------------------------------------------------------------------
 require(gdata)
-keep(X, W, y, outcomes, tr, nrestarts, hyper_fixed,
+keep(Xcase, Xcontrol, Wcase, Wcontrol, outcomes, tr, nrestarts, hyper_fixed,
     s_true, groups_true, beta, theta, log_dir, sure = T)
 # Run model without W
-mod_start <- moretrees(X = X, W = NULL, y = y, outcomes = outcomes,
+mod_start <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                       Wcase = NULL, Wcontrol = NULL,
+                       outcomes = outcomes,
                        tr = tr,
                        update_hyper_freq = 50,
                        hyper_fixed = hyper_fixed,
@@ -101,7 +127,9 @@ initial_values <- mod_start$mod[c("vi_params", "hyperparams")]
 initial_values$vi_params[c("delta", "Omega", "Omega_inv", "Omega_det")] <- NULL
 initial_values$hyperparams[c("omega", "ELBO", "g_eta")] <- NULL
 # run next model using initial values from previous model
-mod_end <- moretrees(X = X, W = W, y = y, outcomes = outcomes,
+mod_end <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                     Wcase = Wcase, Wcontrol = Wcontrol,
+                     outcomes = outcomes,
                      initial_values = initial_values,
                      tr = tr,
                      update_hyper_freq = 50,

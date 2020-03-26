@@ -76,7 +76,9 @@
 #' @examples 
 #' @family MOReTreeS functions
 
-moretrees <- function(X, W = NULL, y, outcomes, tr,
+moretrees <- function(Xcase, Xcontrol, 
+                      Wcase = NULL, Wcontrol = NULL,
+                      outcomes, tr,
                       initial_values = NULL,
                       ci_level = 0.95,
                       get_ml = FALSE,
@@ -98,11 +100,22 @@ moretrees <- function(X, W = NULL, y, outcomes, tr,
                                               mu_sd_frac = 0.2,
                                               delta_sd_frac = 0.2)) {
   
-  if (!is.matrix(X)) stop("X must be a matrix")
-  if (!is.null(W) & !(is.matrix(W))) stop("If W is not NULL, must be a matrix")
+  if (!(is.matrix(Xcase) & is.matrix(Xcontrol))) stop("Xcase and Xcontrol must be matrices")
+  if (!identical(dim(Wcase), dim(Wcontrol))) stop("Xcase and Xcontrol must have same dimension")
+  if (!is.null(Wcase)) {
+    if (!(is.matrix(Wcase) & is.matrix(Wcontrol))) stop("If not NULL, Wcase & Wcontrol must be matrices")
+    if (!identical(dim(Wcase), dim(Wcontrol))) stop("If not NULL, Wcase and Wcontrol must have same dimension")
+  }
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   
   # Get MOReTreeS design elements
+  X <- Xcase - Xcontrol
+  if (!is.null(Wcase)) {
+    W <- Wcase - Wcontrol
+  } else {
+    W <- NULL
+  }
+  y <- rep(1, nrow(X))
   dsgn <- moretrees_design_tree(X = X, W = W, y = y, outcomes = outcomes, tr = tr)
   
   # Setting up parallelization
