@@ -36,7 +36,8 @@
 #' an attribute 'levels' containing integer values from 1 to max(V(tr)$levels). 
 #' In this case, the levels attribute specifies groups of nodes that share common 
 #' hyperparameters rho[f], tau[f], and omega[f]. If V(tr)$levels is NULL, 
-#' levels will be automatically chosen based on distance from the root node of the tree.
+#' the default is two levels of hyperparameters: one for all leaf nodes, and one
+#' for all internal nodes.
 #' @param ci_level A number between 0 and 1 giving the desired credible interval. 
 #' For example, ci_level = 0.95 (the default) returns a 95\% credible interval
 #' @param get_ml If TRUE, moretrees will also return the maximum likelihood estimates of the

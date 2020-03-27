@@ -20,9 +20,6 @@ n <- 3E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
-# If desired, specify levels 
-igraph::V(tr)$levels <- 1
-igraph::V(tr)$levels[igraph::V(tr)$leaf] <- 2
 A <- igraph::as_adjacency_matrix(tr, sparse = T)
 A <- Matrix::expm(Matrix::t(A))
 A[A > 0 ] <- 1

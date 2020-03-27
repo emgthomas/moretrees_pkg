@@ -66,12 +66,18 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   nodes <- c(nodes[!(nodes %in% leaves)], leaves)
   # Get levels for specifying groups of hyperparameters
   if (is.null(igraph::V(tr)$levels)) {
-    # The default is to use distance from the root node as levels
-    root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
-    levels <- as.numeric(igraph::distances(tr, v = root, to = nodes, mode = "out") + 1)
+    # The default is to have two levels: one for leaf nodes, one for internal nodes
+    levels <- rep(1, length(nodes))
+    levels[nodes %in% leaves] <- 2
   } else {
     # Otherwise, use levels supplied
     levels <- igraph::V(tr)[nodes]$levels
+    levels <- levels[match(names(igraph::V(tr)), nodes)]
+  }
+  if (sum(table(levels) < 5) > 0) {
+    warning("Some levels contain fewer than five nodes: this may lead to problems
+            with estimating variance parameters. Recommend increasing the number
+            of nodes per level.")
   }
 
   # Extract relevant parameters
