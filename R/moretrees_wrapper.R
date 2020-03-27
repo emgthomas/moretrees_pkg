@@ -183,8 +183,8 @@ moretrees <- function(Xcase, Xcontrol,
   mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
     if (log_restarts) {
       sink(file = paste0(log_dir, "/restart_", i, "_log.txt"))
-      cat("Initialising random restart", i, "...\n\n")
     }
+    if (nrestarts > 1) cat("\nInitialising restart", i, "...\n\n")
     mod <- spike_and_slab_logistic_moretrees(dsgn = dsgn,
                                              initial_values = initial_values,
                                              random_init = random_init,
@@ -195,8 +195,8 @@ moretrees <- function(Xcase, Xcontrol,
                                              print_freq = print_freq,
                                              update_hyper_freq = update_hyper_freq,
                                              hyper_fixed = hyper_fixed)
+    if (nrestarts > 1) cat("\nRestart", i, "complete.\n")
     if (log_restarts) {
-      cat("\nRestart", i, "complete.")
       sink()
     }
     mod
