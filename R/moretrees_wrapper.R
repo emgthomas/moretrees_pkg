@@ -41,20 +41,29 @@
 #' @param ci_level A number between 0 and 1 giving the desired credible interval. 
 #' For example, ci_level = 0.95 (the default) returns a 95\% credible interval
 #' @param get_ml If TRUE, moretrees will also return the maximum likelihood estimates of the
-#' coefficients for each outcome group discovered by the model. The default is FALSE.
-#' @param tol Convergence tolerance for ELBO. Default = 1E-8.
+#' coefficients for each outcome group discovered by the model. 
+#' Default is TRUE.
+#' @param tol Convergence tolerance for ELBO. 
+#' Default is 1E-8.
 #' @param tol_hyper If hyper_method = "EB", the convergence tolerance for ELBO
 #' between subsequent hyperparmeter updates. Typically a more generous
-#' tolerance than tol. Default = 1E-4.
+#' tolerance than tol. 
+#' Default is 1E-4.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
+#' Default is 5000.
 #' @param hyper_fixed Fixed values of hyperprior parameters for rho.
-#' This should be a list including the following elements:
-#' a, b (parameters of beta prior on rho for each level)
+#' This should be a list with two elements: 
+#' a and b, both numeric vectors of length L, representing the 
+#' parameters of the beta prior on rho for each level, where L is the
+#' number of levels.
+#' Default is list(a = rep(1, L), b = rep(1, L)).
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
 #' @param random_init The initial values for the MOReTreeS model are selected based
 #' on maximum likelihood estimates of the effect size at every level of the tree.
 #' If random_init = TRUE, some randomness will be added to these initial values.
+#' The default is FALSE, unless nrestarts > 1, in which case random_init will be set
+#' to TRUE and a warning message will be printed.
 #' @param random_init_vals If random_init = TRUE, 
 #' this is a list containing the following parameters for randomly permuting 
 #' the inital values:
@@ -87,12 +96,15 @@
 #' gives the highest ELBO will be returned. It is recommended to choose nrestarts > 1.
 #' The default is 3.
 #' @param keep_restarts If TRUE, the results from all random restarts will be returned.
-#' If FALSE, only the restart with the highest ELBO is returned.
-#' @param parallel If TRUE, the random restarts will be run in parallel. It is recommended
-#' to first set the number of cores using doParallel::registerDoParallel(). Otherwise,
-#' the default number of cores specified by the doParallel package will be used.
-#' @param log_restarts If TRUE, progress of each random restart will be logged to a text
-#' file in log_dir.
+#' If FALSE, only the restart with the highest ELBO is returned. Default is TRUE.
+#' @param parallel If TRUE, the random restarts will be run in parallel.
+#' It is recommended to first set the number of cores using doParallel::registerDoParallel(). 
+#' Otherwise, the default number of cores specified by the doParallel package will be used.
+#' Default is TRUE.
+#' @param log_restarts If TRUE, when nrestarts > 1 progress of each random restart will be 
+#' logged to a text file in log_dir. If FALSE and nrestarts > 1, progress will not be shown.
+#' If nrestarts = 1, progress will always be printed to the console.
+#' Default is FALSE.
 #' @param log_dir Directory for logging progress of random restarts.
 #' Default is the working directory.
 #' @return A list containing the following elements:
@@ -107,20 +119,19 @@ moretrees <- function(Xcase, Xcontrol,
                       tr,
                       initial_values = NULL,
                       ci_level = 0.95,
-                      get_ml = FALSE,
+                      get_ml = TRUE,
                       update_hyper_freq = 50,
-                      print_freq = update_hyper_freq,
-                      hyper_fixed = list(a = c(1, 1),
-                                         b = c(1, 1)),
+                      print_freq = 50,
+                      hyper_fixed = NULL,
                       tol = 1E-8, 
                       tol_hyper = 1E-4,
                       max_iter = 5000,
                       nrestarts = 3,
-                      keep_restarts = nrestarts > 1,
-                      parallel = nrestarts > 1,
-                      log_restarts = nrestarts > 1,
-                      log_dir = getwd(),
-                      random_init = nrestarts > 1,
+                      keep_restarts = TRUE,
+                      parallel = TRUE,
+                      log_restarts = FALSE,
+                      log_dir = ".",
+                      random_init = TRUE,
                       random_init_vals = list(omega_lims = c(0.5, 1.5),
                                               tau_lims = c(0.5, 1.5),
                                               eta_sd_frac = 0.2,
@@ -134,10 +145,16 @@ moretrees <- function(Xcase, Xcontrol,
     if (!identical(dim(Wcase), dim(Wcontrol))) stop("If not NULL, Wcase and Wcontrol must have same dimension")
   }
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
+  log_dir <- sub("/$", "", log_dir)
+  if (log_restarts) message("Algorithm progress for restart i will be printed to ",
+                        log_dir, "/restart_i_log.txt", sep = "")
+  
+  # Fill in some arguments
   if (nrestarts > 1 & !random_init) {
     warning("Setting random_init = TRUE since nrestarts > 1")
     random_init <- TRUE
   }
+  if (nrestarts == 1) parallel <- FALSE
   
   # Get MOReTreeS design elements
   X <- Xcase - Xcontrol
@@ -149,6 +166,12 @@ moretrees <- function(Xcase, Xcontrol,
   y <- rep(1, nrow(X))
   dsgn <- moretrees_design_tree(X = X, W = W, y = y, outcomes = outcomes, tr = tr)
   
+  # Get hyper_fixed if not supplied
+  if (is.null(hyper_fixed)) {
+    L <- max(dsgn$levels)
+    hyper_fixed <- list(a = rep(1, L), b = rep(1, L))
+  }
+  
   # Setting up parallelization
   if (parallel) {
     `%doRestarts%` <- foreach::`%dopar%`
@@ -157,15 +180,21 @@ moretrees <- function(Xcase, Xcontrol,
   }
   
   # Run algorithm
-  args <- sapply(as.list(stackoverflow::match.call.defaults()), eval)
   mod_restarts <- foreach::foreach(i = 1:nrestarts) %doRestarts% {
     if (log_restarts) {
-      sink(file = paste0(log_dir, "restart_", i, "_log.txt"))
+      sink(file = paste0(log_dir, "/restart_", i, "_log.txt"))
       cat("Initialising random restart", i, "...\n\n")
     }
-    mod <- R.utils::doCall("spike_and_slab_logistic_moretrees", 
-                           dsgn = dsgn,
-                           args = args)
+    mod <- spike_and_slab_logistic_moretrees(dsgn = dsgn,
+                                             initial_values = initial_values,
+                                             random_init = random_init,
+                                             random_init_vals = random_init_vals,
+                                             tol = tol,
+                                             tol_hyper = tol_hyper,
+                                             max_iter = max_iter,
+                                             print_freq = print_freq,
+                                             update_hyper_freq = update_hyper_freq,
+                                             hyper_fixed = hyper_fixed)
     if (log_restarts) {
       cat("\nRestart", i, "complete.")
       sink()
