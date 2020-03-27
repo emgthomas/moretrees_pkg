@@ -50,6 +50,8 @@ moretrees_init_logistic <- function(X, W, y, A,
                                     ancestors,
                                     levels,
                                     xxT, wwT,
+                                    vi_params,
+                                    hyperparams,
                                     hyper_fixed) {
   
   n <- length(y)
@@ -58,103 +60,128 @@ moretrees_init_logistic <- function(X, W, y, A,
   pL <- length(ancestors)
   K <- ncol(X)
   Fg <- max(levels)
-  vi_params <- list()
-  hyperparams <- list()
   
   # Get coefficient estimates from maximum likelihood ----------------------------------
-  beta_ml <- matrix(0, nrow = p, ncol = K)
-  theta_ml <- matrix(0, nrow = p, ncol = m)
-  for (v in 1:p) {
-    u <- outcomes_nodes[[v]]
-    units <- unlist(outcomes_units[u])
-    suppressWarnings(suppressMessages(
-      if (m > 0){
-        mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F] 
-                   + W[units,  , drop = F],
-                   family = "binomial")
-      } else {
-        mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F],
-                   family = "binomial")
+  if (is.null(vi_params[["mu"]]) | is.null(vi_params[["delta"]])) {
+    beta_ml <- matrix(0, nrow = p, ncol = K)
+    theta_ml <- matrix(0, nrow = p, ncol = m)
+    for (v in 1:p) {
+      u <- outcomes_nodes[[v]]
+      units <- unlist(outcomes_units[u])
+      suppressWarnings(suppressMessages(
+        if (m > 0){
+          mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F] 
+                     + W[units,  , drop = F],
+                     family = "binomial")
+        } else {
+          mod <- glm(y[units] == 1 ~ 0 + X[units,  , drop = F],
+                     family = "binomial")
+        }
+      ))
+      beta_ml[v, ] <- mod$coefficients[1:K]
+      if (m > 0) {
+        theta_ml[v, ] <- mod$coefficients[(K + 1):(K + m)]
       }
-    ))
-    beta_ml[v, ] <- mod$coefficients[1:K]
-    if (m > 0) {
-      theta_ml[v, ] <- mod$coefficients[(K+1):(K + m)]
     }
+    # replace any NA vals with zero
+    beta_ml[is.na(beta_ml)] <- 0
+    theta_ml[is.na(theta_ml)] <- 0
+    # transform to get initial values of mu and delta
+    A_inv <- solve(A)
+    mu <- A_inv %*% beta_ml
+    delta <- A_inv %*% theta_ml
   }
-  # replace any NA vals with zero
-  beta_ml[is.na(beta_ml)] <- 0
-  theta_ml[is.na(theta_ml)] <- 0
-  # transform to get initial values of mu and delta
-  A_inv <- solve(A)
-  mu <- A_inv %*% beta_ml
-  delta <- A_inv %*% theta_ml
-  vi_params$mu <- lapply(1:p, function(v, mu) matrix(mu[v, ], ncol = 1),
-                         mu = mu)
-  vi_params$delta <- lapply(1:p, function(v, delta) matrix(delta[v, ], ncol = 1),
-                            delta = delta)
+  if(is.null(vi_params[["mu"]])) {
+    vi_params$mu <- lapply(1:p, function(v, mu) matrix(mu[v, ], ncol = 1),
+                           mu = mu)
+  }
+  if(is.null(vi_params[["delta"]])) {
+    vi_params$delta <- lapply(1:p, function(v, delta) matrix(delta[v, ], ncol = 1),
+                              delta = delta)
+  }
   
   # Initial values for hyperparms to be updated via EB --------------------------------------
-  hyperparams$tau <- sapply(1:Fg, function(l) mean(mu[levels == l, ] ^ 2))
+  if (is.null(hyperparams[["tau"]])) {
+    hyperparams$tau <- sapply(1:Fg, function(l) mean(unlist(vi_params$mu[levels == l]) ^ 2))
+  }
   if (m > 0) {
-    hyperparams$omega <- sapply(1:Fg, function(l) mean(delta[levels == l, ] ^ 2))
+    if (is.null(hyperparams[["omega"]])) {
+      hyperparams$omega <- sapply(1:Fg, function(l) mean(unlist(vi_params$delta[levels == l]) ^ 2))
+    }
   } else {
     hyperparams$omega <- rep(1 , Fg)
   }
   
   # Set initial values for hyperpriors ------------------------------------------------------
-  vi_params$prob <- rep(0.95, p)
-  vi_params$a_t <- numeric(Fg)
-  vi_params$b_t <- numeric(Fg)
-  for (f in 1:Fg) {
-    # initialise these parameters using VI updates
-    vi_params$a_t[f] <- hyper_fixed$a[f] + sum(vi_params$prob[levels == f]) 
-    vi_params$b_t[f] <- hyper_fixed$b[f] + sum(1 - vi_params$prob[levels == f]) 
+  if (is.null(vi_params[["prob"]])) vi_params$prob <- rep(0.95, p)
+  if (is.null(vi_params[["a_t"]])) {
+    vi_params$a_t <- numeric(Fg)
+    for (f in 1:Fg) {
+      # initialise these parameters using VI updates
+      vi_params$a_t[f] <- hyper_fixed$a[f] + sum(vi_params$prob[levels == f]) 
+    }
+  } 
+  if (is.null(vi_params[["b_t"]])) {
+    vi_params$b_t <- numeric(Fg)
+    for (f in 1:Fg) {
+      # initialise these parameters using VI updates
+      vi_params$b_t[f] <- hyper_fixed$b[f] + sum(1 - vi_params$prob[levels == f]) 
+    }
   }
   
   # Get starting values for eta --------------------------------------------------------
   # Use expected linear predictor squared 
   # (this is close to the real update for eta)
-  xi <- mapply(FUN = function(prob, mu) prob * mu,
-               prob = vi_params$prob, mu = vi_params$mu, SIMPLIFY = F)
-  lp <- numeric(n) + 0
-  for (v in 1:pL) {
-    beta_v <- Reduce(`+`, xi[ancestors[[v]]])
-    theta_v <- Reduce(`+`, vi_params$delta[ancestors[[v]]])
-    lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], , drop = F] %*% beta_v +
-      W[outcomes_units[[v]], , drop = F ] %*% theta_v
+  if (is.null(vi_params[["eta"]])) {
+    xi <- mapply(FUN = function(prob, mu) prob * mu,
+                 prob = vi_params$prob, mu = vi_params$mu, SIMPLIFY = F)
+    lp <- numeric(n) + 0
+    for (v in 1:pL) {
+      beta_v <- Reduce(`+`, xi[ancestors[[v]]])
+      theta_v <- Reduce(`+`, vi_params$delta[ancestors[[v]]])
+      lp[outcomes_units[[v]]] <- X[outcomes_units[[v]], , drop = F] %*% beta_v +
+        W[outcomes_units[[v]], , drop = F ] %*% theta_v
+    }
+    hyperparams$eta <- abs(lp)
   }
-  hyperparams$eta <- abs(lp)
   hyperparams$g_eta <- gfun(hyperparams$eta)
   
   # Sigma and Omega initial values ---------------------------------------------------
-  xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
-                      xxT = xxT, g_eta = hyperparams$g_eta, K = K)
-  vi_params$tau_t <- hyperparams$tau[levels]
-  vi_params$Sigma_inv <- lapply(X = 1:length(outcomes_nodes), 
-                                FUN = function(v, outcomes, x, K, tau_t) 2 * 
-                                  Reduce(`+`, x[outcomes[[v]]]) + 
-                                  diag(1 / tau_t[v], nrow = K),
-                                outcomes = outcomes_nodes,
-                                x = xxT_g_eta,
-                                K = K,
-                                tau_t = vi_params$tau_t)
-  vi_params$Sigma <- lapply(vi_params$Sigma_inv, solve)
-  vi_params$Sigma_det <- sapply(vi_params$Sigma, det)
-  if (m > 0) {
-    wwT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
-                        xxT = wwT, g_eta = hyperparams$g_eta, K = m)
-    omega_t <- hyperparams$omega[levels]
-    vi_params$Omega_inv <- lapply(X = 1:length(outcomes_nodes), 
-                                  FUN = function(v, outcomes, w, m, omega_t) 2 * 
-                                    Reduce(`+`, w[outcomes[[v]]]) + 
-                                    diag(1 / omega_t[v], nrow = m),
+  if (is.null(vi_params[["tau_t"]])) vi_params$tau_t <- hyperparams$tau[levels]
+  if (is.null(vi_params[["Sigma_inv"]])) {
+    xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
+                        xxT = xxT, g_eta = hyperparams$g_eta, K = K)
+    vi_params$Sigma_inv <- lapply(X = 1:length(outcomes_nodes), 
+                                  FUN = function(v, outcomes, x, K, tau_t) 2 * 
+                                    Reduce(`+`, x[outcomes[[v]]]) + 
+                                    diag(1 / tau_t[v], nrow = K),
                                   outcomes = outcomes_nodes,
-                                  w = wwT_g_eta,
-                                  m = m,
-                                  omega_t = omega_t)
-    vi_params$Omega <- sapply(vi_params$Omega_inv, solve, simplify = F)
-    vi_params$Omega_det <- sapply(vi_params$Omega, det, simplify = T)
+                                  x = xxT_g_eta,
+                                  K = K,
+                                  tau_t = vi_params$tau_t)
+  }
+  if (is.null(vi_params[["Sigma"]])) vi_params$Sigma <- lapply(vi_params$Sigma_inv, solve)
+  if (is.null(vi_params[["Sigma_det"]])) vi_params$Sigma_det <- sapply(vi_params$Sigma, det)
+  if (m > 0) {
+    if (is.null(vi_params[["Omega_inv"]])) {
+      wwT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
+                          xxT = wwT, g_eta = hyperparams$g_eta, K = m)
+      omega_t <- hyperparams$omega[levels]
+      vi_params$Omega_inv <- lapply(X = 1:length(outcomes_nodes), 
+                                    FUN = function(v, outcomes, w, m, omega_t) 2 * 
+                                      Reduce(`+`, w[outcomes[[v]]]) + 
+                                      diag(1 / omega_t[v], nrow = m),
+                                    outcomes = outcomes_nodes,
+                                    w = wwT_g_eta,
+                                    m = m,
+                                    omega_t = omega_t)
+    }
+    if (is.null(vi_params[["Omega"]])) {
+      vi_params$Omega <- sapply(vi_params$Omega_inv, solve, simplify = F)
+    }
+    if (is.null(vi_params[["Omega_det"]])) {
+      vi_params$Omega_det <- sapply(vi_params$Omega, det, simplify = T)
+    }
   } else {
     vi_params$Omega <- rep(list(matrix(nrow = 0, ncol = 0)), p)
     vi_params$Omega_inv <- rep(list(matrix(nrow = 0, ncol = 0)), p)

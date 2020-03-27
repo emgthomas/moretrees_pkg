@@ -4,9 +4,10 @@
 
 #' Here's a brief description.
 #'   \code{moretrees} Fits Multi-Outcome Regression with Tree-structured Shrinkage
-#'   (MOReTreeS) model to normally-distributed or binary outcome data.
+#'   (MOReTreeS) model to matched case-control or case-crossover data.
 #'   The posterior is approximated via variational inference.
-#'   Returns coefficient estimates and 95% credible intervals.
+#'   Returns estimated outcome groups and group-specific coefficient 
+#'   estimates with credible intervals.
 #' 
 #' All the details go here!
 #' 
@@ -117,7 +118,8 @@ moretrees <- function(Xcase, Xcontrol,
                       Wcase = NULL, Wcontrol = NULL,
                       outcomes, 
                       tr,
-                      initial_values = NULL,
+                      vi_params_init = list(),
+                      hyperparams_init = list(),
                       ci_level = 0.95,
                       get_ml = TRUE,
                       update_hyper_freq = 50,
@@ -131,7 +133,7 @@ moretrees <- function(Xcase, Xcontrol,
                       parallel = TRUE,
                       log_restarts = FALSE,
                       log_dir = ".",
-                      random_init = TRUE,
+                      random_init = FALSE,
                       random_init_vals = list(omega_lims = c(0.5, 1.5),
                                               tau_lims = c(0.5, 1.5),
                                               eta_sd_frac = 0.2,
@@ -147,11 +149,11 @@ moretrees <- function(Xcase, Xcontrol,
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   log_dir <- sub("/$", "", log_dir)
   if (log_restarts) message("Algorithm progress for restart i will be printed to ",
-                        log_dir, "/restart_i_log.txt", sep = "")
+                        log_dir, "/restart_i_log.txt\n", sep = "")
   
   # Fill in some arguments
   if (nrestarts > 1 & !random_init) {
-    warning("Setting random_init = TRUE since nrestarts > 1")
+    message("Setting random_init = TRUE since nrestarts > 1\n")
     random_init <- TRUE
   }
   if (nrestarts == 1) parallel <- FALSE
@@ -184,9 +186,10 @@ moretrees <- function(Xcase, Xcontrol,
     if (log_restarts) {
       sink(file = paste0(log_dir, "/restart_", i, "_log.txt"))
     }
-    if (nrestarts > 1) cat("\nInitialising restart", i, "...\n\n")
-    mod <- spike_and_slab_logistic_moretrees(dsgn = dsgn,
-                                             initial_values = initial_values,
+    cat("\nInitialising restart", i, "...\n\n")
+    mod <- moretrees:::spike_and_slab_logistic_moretrees(dsgn = dsgn,
+                                             vi_params_init = vi_params_init,
+                                             hyperparams_init = hyperparams_init,
                                              random_init = random_init,
                                              random_init_vals = random_init_vals,
                                              tol = tol,
@@ -195,7 +198,7 @@ moretrees <- function(Xcase, Xcontrol,
                                              print_freq = print_freq,
                                              update_hyper_freq = update_hyper_freq,
                                              hyper_fixed = hyper_fixed)
-    if (nrestarts > 1) cat("\nRestart", i, "complete.\n")
+    cat("\nRestart", i, "complete.\n")
     if (log_restarts) {
       sink()
     }
@@ -215,12 +218,13 @@ moretrees <- function(Xcase, Xcontrol,
   # Compute MOReTreeS exposure coefficient estimates from model output
   betas <- moretrees_compute_betas(mod = mod, ci_level = ci_level,
                                    outcomes = outcomes,
-                                   A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+                                   A_leaves = dsgn$A_leaves)
   
   # Compute MOReTreeS covariate coefficient estimates from model output
   if (!is.null(W)) {
     theta_est <- moretrees_compute_thetas(mod = mod, ci_level = ci_level, 
-                                          m = ncol(W), A_leaves = dsgn$A[names(igraph::V(tr))[igraph::V(tr)$leaf], ])
+                                          m = ncol(W), 
+                                          dsgn$A_leaves)
   } else {
     theta_est <- NULL
   }

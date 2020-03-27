@@ -134,6 +134,7 @@ moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
               X = X, 
               W = W, 
               A = A,
+              A_leaves = A[nodes %in% leaves, ],
               outcomes = outcomes,
               outcomes_units = outcomes_units, 
               outcomes_nodes = outcomes_nodes,
