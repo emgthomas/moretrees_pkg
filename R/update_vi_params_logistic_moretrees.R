@@ -11,10 +11,10 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                                 prob, mu, Sigma, 
                                                 Sigma_inv, Sigma_det, tau_t, 
                                                 delta, Omega, Omega_inv, Omega_det, 
-                                                a_t_rho, b_t_rho, # vi_params
+                                                a_t, b_t, # vi_params
                                                 eta, g_eta, 
                                                 tau, omega, # hyperparams
-                                                a_rho, b_rho) { # hyper_fixed
+                                                a, b) { # hyper_fixed
 
   # Update sparse coefficients ------------------------------------------------------
   xi <- mapply(`*`, prob, mu, SIMPLIFY = F)
@@ -46,7 +46,7 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
     }
     mu[[v]] <- Sigma[[v]] %*% mu[[v]]
     # Update u_v
-    u_v <-  digamma(a_t_rho[levels[v]]) - digamma(b_t_rho[levels[v]]) +
+    u_v <-  digamma(a_t[levels[v]]) - digamma(b_t[levels[v]]) +
       crossprod(mu[[v]], Sigma_inv[[v]]) %*% mu[[v]] / 2 +
       (log(Sigma_det[v]) - K * log(tau_t[v])) / 2
     prob[v] <- expit(u_v)
@@ -56,8 +56,8 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   
   # Update rho ------------------------------------------------------------------------
   for (f in 1:Fg) {
-    a_t_rho[f] <- a_rho[f] + sum(prob[levels == f])
-    b_t_rho[f] <- b_rho[f] + sum(1 - prob[levels == f])
+    a_t[f] <- a[f] + sum(prob[levels == f])
+    b_t[f] <- b[f] + sum(1 - prob[levels == f])
   }
   
   # Update non-sparse coefficients ----------------------------------------------------
@@ -96,5 +96,5 @@ update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
   return(list(prob = prob, mu = mu, Sigma = Sigma, Sigma_inv = Sigma_inv,
               Sigma_det = Sigma_det, tau_t = tau_t, delta = delta,
               Omega = Omega, Omega_inv = Omega_inv, Omega_det = Omega_det,
-              a_t_rho = a_t_rho, b_t_rho = b_t_rho))
+              a_t = a_t, b_t = b_t))
 }

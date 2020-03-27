@@ -28,9 +28,9 @@ pL <- sum(igraph::V(tr)$leaf)
 K <- params$K[i] # number of variables
 m <- params$m[i]
 tau <- 3
-hyper_fixed <- list(a_rho = c(0.9, 0.5), b_rho = c(3 , 2))
-rho1 <- rbeta(1, shape1 = hyper_fixed$a_rho[1], shape2 = hyper_fixed$b_rho[1]) # rho for internal nodes
-rho2 <- rbeta(1, shape1 = hyper_fixed$a_rho[2], shape2 = hyper_fixed$b_rho[2]) # rho for leaf nodes
+hyper_fixed <- list(a = c(0.9, 0.5), b = c(3 , 2))
+rho1 <- rbeta(1, shape1 = hyper_fixed$a[1], shape2 = hyper_fixed$b[1]) # rho for internal nodes
+rho2 <- rbeta(1, shape1 = hyper_fixed$a[2], shape2 = hyper_fixed$b[2]) # rho for leaf nodes
 omega <- 2
 doParallel::registerDoParallel(cores = nrestarts)
 log_dir <- "./tests/logs/"

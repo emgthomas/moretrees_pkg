@@ -104,12 +104,12 @@ moretrees_init_logistic <- function(X, W, y, A,
   
   # Set initial values for hyperpriors ------------------------------------------------------
   vi_params$prob <- rep(0.95, p)
-  vi_params$a_t_rho <- numeric(Fg)
-  vi_params$b_t_rho <- numeric(Fg)
+  vi_params$a_t <- numeric(Fg)
+  vi_params$b_t <- numeric(Fg)
   for (f in 1:Fg) {
     # initialise these parameters using VI updates
-    vi_params$a_t_rho[f] <- hyper_fixed$a_rho[f] + sum(vi_params$prob[levels == f]) 
-    vi_params$b_t_rho[f] <- hyper_fixed$b_rho[f] + sum(1 - vi_params$prob[levels == f]) 
+    vi_params$a_t[f] <- hyper_fixed$a[f] + sum(vi_params$prob[levels == f]) 
+    vi_params$b_t[f] <- hyper_fixed$b[f] + sum(1 - vi_params$prob[levels == f]) 
   }
   
   # Get starting values for eta --------------------------------------------------------

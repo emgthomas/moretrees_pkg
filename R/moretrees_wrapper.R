@@ -49,7 +49,7 @@
 #' @param maxiter Maximum number of iterations of the VI algorithm.
 #' @param hyper_fixed Fixed values of hyperprior parameters for rho.
 #' This should be a list including the following elements:
-#' a_rho, b_rho (parameters of beta prior on rho for each level)
+#' a, b (parameters of beta prior on rho for each level)
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
 #' @param random_init The initial values for the MOReTreeS model are selected based
@@ -110,7 +110,8 @@ moretrees <- function(Xcase, Xcontrol,
                       get_ml = FALSE,
                       update_hyper_freq = 50,
                       print_freq = update_hyper_freq,
-                      hyper_fixed = NULL,
+                      hyper_fixed = list(a = c(1, 1),
+                                         b = c(1, 1)),
                       tol = 1E-8, 
                       tol_hyper = 1E-4,
                       max_iter = 5000,
