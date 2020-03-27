@@ -16,13 +16,16 @@
 #' @section Model Description:
 #' Describe MOReTreeS model and all parameters here.
 #' 
-#' @param y Vector of length n containing outcomes data.
-#' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
-#' If family = "gaussian", y must be a numeric vector containing continuous data.
-#' @param X An n x K matrix of exposure data, where K is the dimension of the exposure.
-#' Grouping of the outcomes will be based on their relationships with the variables in X.
-#' @param W Matrix of covariates of dimension n x m.
+#' @param Xcase An n x K matrix of exposure data for cases, where K is the dimension of the exposure.
+#' Grouping of the outcomes is based on their associations with variables in Xcase.
+#' Rows of Xcase correspond to inividual cases, columns correspond to variables.
+#' @param Xcontrol An n x K matrix of exposure data for controls; row i in Xcontrol is the matched
+#' control for case i.
+#' @param Wcase An n x m matrix of covariate data for cases, where m is the dimension of the exposure.
 #' Coefficients for these variables do not affect grouping of the outcomes.
+#' Rows of Wcase correspond to inividual cases, columns correspond to variables.
+#' @param Wcontrol An n x m matrix of covariate data for controls; row i in Wcontrol is the matched
+#' control for case i.
 #' @param outcomes Character vector of length n. outcomes[i] is a string indicating the 
 #' outcome experienced by unit i.
 #' @param tr A directed igraph object. This is a tree representing the relationships
@@ -34,8 +37,6 @@
 #' In this case, the levels attribute specifies groups of nodes that share common 
 #' hyperparameters rho[f], tau[f], and omega[f]. If V(tr)$levels is NULL, 
 #' levels will be automatically chosen based on distance from the root node of the tree.
-#' @param family A string specifying the distribution of the outcomes: 
-#' either "bernoulli" (for classification) or "gaussian" (for regression)
 #' @param ci_level A number between 0 and 1 giving the desired credible interval. 
 #' For example, ci_level = 0.95 (the default) returns a 95\% credible interval
 #' @param get_ml If TRUE, moretrees will also return the maximum likelihood estimates of the
@@ -43,19 +44,42 @@
 #' @param tol Convergence tolerance for ELBO. Default = 1E-8.
 #' @param tol_hyper If hyper_method = "EB", the convergence tolerance for ELBO
 #' between subsequent hyperparmeter updates. Typically a more generous
-#' tolerance than tol. Default = 1E-6.
+#' tolerance than tol. Default = 1E-4.
 #' @param maxiter Maximum number of iterations of the VI algorithm.
 #' @param hyper_fixed Fixed values of hyperprior parameters for rho.
-#' If family = "bernoulli", this should be a list including the following elements:
+#' This should be a list including the following elements:
 #' a_rho, b_rho (parameters of beta prior on rho for each level)
-#' If family = "gaussian", in addition to the above, the list should also include:
-#' sigma2 (variance of residuals)
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
-#' @param random_init If TRUE, initial values will be randomly permuted.
+#' @param random_init The initial values for the MOReTreeS model are selected based
+#' on maximum likelihood estimates of the effect size at every level of the tree.
+#' If random_init = TRUE, some randomness will be added to these initial values.
 #' @param random_init_vals If random_init = TRUE, 
-#' this is a list containing parameters for randomly permuting the inital values.
-#' The list contains the following elements:
+#' this is a list containing the following parameters for randomly permuting 
+#' the inital values:
+#' 1. tau_lims: a vector of length 2, where tau_lims[1] is between 0 and 1,
+#' and tau_lims[2] > 1. The initial values for the hyperparameter tau will
+#' be chosen uniformly at random in the range (tau_init \* tau_lims[1], tau_init \* tau_lims[2]),
+#' where tau_init is the initial value for tau either supplied in initial_values or guessed
+#' using moretrees_init_logistic().
+#' 1. omega_lims: a vector of length 2, where omega_lims[1] is between 0 and 1,
+#' and omega_lims[2] > 1. The initial values for the hyperparameter omega will
+#' be chosen uniformly at random in the range (omega_init \* omega_lims[1], omega_init \* omega_lims[2]),
+#' where omega_init is the initial value for omega either supplied in initial_values or guessed
+#' using moretrees_init_logistic().
+#' 1. eta_sd_frac: a value between 0 and 1. The initial values for the auxilliary parameters
+#' eta will have a normal random variate added to them with standard deviation equal to 
+#' eta_sd_frac multiplied by the initial value for eta either supplied in initial_values or guessed
+#' using moretrees_init_logistic(). Absolute values are then taken for any 
+#' values of eta that are < 0.
+#' 1. mu_sd_frac: a value between 0 and 1. The initial values for the exposure effects
+#' mu will have a normal random variate added to them with standard deviation equal to 
+#' mu_sd_frac multiplied by the absolute value of the initial value for mu either supplied in 
+#' initial_values or guessed using moretrees_init_logistic().
+#' 1. delta_sd_frac: a value between 0 and 1. The initial values for the exposure effects
+#' delta will have a normal random variate added to them with standard deviation equal to 
+#' delta_sd_frac multiplied by the absolute value of the initial value for delta either supplied in 
+#' initial_values or guessed using moretrees_init_logistic().
 #' @param print_freq How often to print out iteration number and current value of epsilon
 #' (the difference in objective function value for the two most recent iterations). 
 #' @param nrestarts Number of random re-starts of the VI algorithm. The result that 
@@ -78,7 +102,8 @@
 
 moretrees <- function(Xcase, Xcontrol, 
                       Wcase = NULL, Wcontrol = NULL,
-                      outcomes, tr,
+                      outcomes, 
+                      tr,
                       initial_values = NULL,
                       ci_level = 0.95,
                       get_ml = FALSE,
@@ -86,7 +111,7 @@ moretrees <- function(Xcase, Xcontrol,
                       print_freq = update_hyper_freq,
                       hyper_fixed = NULL,
                       tol = 1E-8, 
-                      tol_hyper = 1E-6,
+                      tol_hyper = 1E-4,
                       max_iter = 5000,
                       nrestarts = 3,
                       keep_restarts = nrestarts > 1,
@@ -107,6 +132,10 @@ moretrees <- function(Xcase, Xcontrol,
     if (!identical(dim(Wcase), dim(Wcontrol))) stop("If not NULL, Wcase and Wcontrol must have same dimension")
   }
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
+  if (nrestarts > 1 & !random_init) {
+    warning("Setting random_init = TRUE since nrestarts > 1")
+    random_init <- TRUE
+  }
   
   # Get MOReTreeS design elements
   X <- Xcase - Xcontrol

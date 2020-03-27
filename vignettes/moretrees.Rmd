@@ -1,0 +1,361 @@
+---
+title: "moretrees: an R package to fit Multi-Outcome Regression with Tree-Structured Shrinkage models via variational inference"
+author: "Emma Thomas"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{moretrees}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+The `moretrees` package fits Multi-Outcome Regression with Tree-structured Shrinkage (MOReTreeS) models to case-crossover or matched case-control data with multiple related outcomes.
+MOReTreeS models require that the outcomes are related according to a known tree.
+For example, the outcomes might be diseases that be classified using a hierarchical classification that can be expressed as a tree; examples will be given below.
+The MOReTreeS model simultaneously achieves three core functions:
+
+1. discovers *de novo* groups of outcomes that have a similar association with the exposure conditional on matching factors and covariates;
+1. estimates a group-specific measure of association with the exposure for each outcome group;
+1. allows `information sharing` across the outcomes by shrinking the coefficient estimates for different outcomes towards each other, with the degree of shrinkage determined by how related those outcomes are on the tree.
+
+The model is fit using variational inference (VI), a popular (and typically much faster) alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
+
+This vignette has three main objectives:
+
+1. to detail the functionality of the `moretrees` package in a readable form;
+1. to guide potential users through typical usage of the `moretrees` package;
+1. to explain the VI algorithm used in sufficient detail that a user with knowledge of VI would be able replicate the code.
+
+`moretrees()` supports the following functionality:
+
+1. Fitting to matched case-control or case-crossover data: currently supports only one control per case;
+1. Multiple exposure types: `moretrees()` supports univariate, mulitvariate, and categorical exposures, as well as non-linear exposure effects;
+1. Control for confounding in regression models: confounders which would not be matched on can be controlled for in the regression model, with information about effect sizes shared across the outcomes;
+1. Hyperparameter estimation: the user need not specify the values of hyperparameters which are instead estimated via an approximate empirial Bayes scheme, as detailed below.
+
+# Model details
+
+We being by giving details of the model implemented by the `moretrees()` function.
+The model is very similar to the one presented in \cite{thomas2020estimating}, with extensions to allow for: (1) a multivariate exposure; (2) control for covariates in regression analyses, and; (3) more flexible hyperparameter specification.
+MOReTreeS priors can be used with a range of different outcome distributions or likelihoods; the `moretrees()` function currently implements the conditional logistic likelihood used in conditional logistic regression (CLR) analyses, the standard method for both matched case-control studies and case-crossover studies.
+We first define the CLR likelihood used in our study, and then the MOReTreeS prior.
+
+## Likelihood
+
+Let $\mathcal{V}$ be the set of outcomes under study.
+For outcome $v$ in $\mathcal{V}$, let $Y_{i,j}^{(v)}$ be a binary variable indicating whether a hospitalization for disease $v$ occurred on day $j$ for individual $i$, where without loss of generality we assume $j = 1$ represents the case day and $j = 2$ represents the control day.
+Let $\mathbf{x}_{i,j}^{(v)}$ be the exposure vector of length $k$ and $\mathbf{w}_{i,j}^{(v)}$ be a vector of covariates of length $m$.
+For notational convenience, we let $\mathbf{x}_i^{(v)} = \mathbf{x}_{i,1}^{(v)} - \mathbf{x}_{i,2}^{(v)}$ and $\mathbf{w}_i^{(v)} = \mathbf{w}_{i,1}^{(v)} - \mathbf{w}_{i,2}^{(v)}$.
+
+The conditional logistic likelihood for each matched pair is: ## \citep{maclure1991case}
+
+\begin{equation}
+\tag{1}
+P\left(Y_{i,1}^{(v)} = 1, Y_{i,2}^{(v)} = 0 \middle\vert Y_{i,1}^{(v)} + Y_{i,2}^{(v)} = 1, \boldsymbol{\beta}_v, \boldsymbol{\theta}_v \right) = \textrm{logit} \left( \boldsymbol{\beta}_v^T \mathbf{x}_{i}^{(v)} + \boldsymbol{\theta}_v^T \mathbf{w}_i^{(v)} \right).
+\end{equation}
+
+where $\boldsymbol{\beta}$ is the coefficient vector for the effect of the exposure on outcome $v$, $\boldsymbol{\theta}_v$ is the vector of covariate effects for outcome $v$, and $\textrm{logit}(y) = 1 / (1+ e^{-y})$ is the logistic or sigmoid function.
+The full data likelihood is obtained by multiplying over all matched pairs.
+
+## Prior
+
+The MOReTreeS spike and slab prior enables data-driven discovery of groups of outcomes that have a similar relationship with PM$_{2.5}$. ## \citep{thomas2020estimating}
+Let $\mathcal{V}$ be the set of nodes on the tree of outcome relationships, and let $\mathcal{V}_L \subset \mathcal{V}$ be the set of leaves.
+Internal nodes $u \in \mathcal{V}$ represent outcome categories and leaf nodes $v \in \mathcal{V}_L$ individual outcomes.
+Let $a(v)$ be the set of ancestors nodes of $v \in \mathcal{V}_L$, including $v$ itself.
+Finally, let $l_u \in \lbrace 1, \dots, L \rbrace$ indicate which hyperparameters apply to variables at node $u \in \mathcal{V}$ on the tree.
+We explain below what is meant by this.
+
+The prior is:
+
+<center>
+$\begin{aligned}
+\boldsymbol{\beta}_v & = \sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u \\
+\boldsymbol{\theta}_v & = \sum_{u \in a(v)} \boldsymbol{\zeta}_u \\
+s_u & \sim \mathcal{Bern}(\rho_{l_u}) \\
+\boldsymbol{\gamma}_u & \sim \mathcal{MVN}\left(\boldsymbol{0},\tau_{l_u} I_k\right) \\
+\boldsymbol{\zeta}_u & \sim \mathcal{MVN} \left( \boldsymbol{0}, \omega_{l_u} I_m \right) \\
+\rho_{l} & \sim \mathcal{Beta}(a_l, b_l) \\
+\end{aligned}$
+</center>
+
+Here the 'node parameters' $s_u \boldsymbol{\gamma}_u$ and $\boldsymbol{\zeta}_u$ can be interpreted as the difference in the exposure effect for outcome category $u$ compared to its parent category.
+$\rho_l$, $\tau_l$, and $\omega_l$ for $l = 1, \dots, L$ are hyperparameters representing, respectively the prior probability of inclusion for node parameters $\boldsymbol{\gamma}_u$, the prior variance of all elements of $\boldsymbol{\gamma}_u$, and the prior variance of all elements of $\boldsymbol{\zeta}_u$ for $u$ such that $l_u = u$.
+The $l_u$ should be defined by the user in advance: they specify which nodes on the tree 'share' common hyperparameters $\rho_l$, $\tau_l$ and $\omega_l$.
+$\tau_l$ and $\omega_l$ are estimated via approximated empirical Bayes, discussed below; we place a conditionally conjugate beta hyperprior on $\rho_l$.
+
+The above hierarchical model leads to the formation of groups of outcomes with the same exposure effects by setting coefficients for different outcomes to be equal as follows.
+The coefficients $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ for any two outcomes $v_1, v_2 \in \mathcal{V}_L$ will be exactly equal if and only if $s_u = 0$ for all $u \in d(v_1, v_2)$, where $d(v_1, v_2) = (a(v_1) \cup a(v_2)) \backslash (a(v_1) \cap a(v_2))$ is the set of nodes that are ancestors of either $v_1$ or $v_2$ but not both.
+The result is that the prior probability that $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ are equal, meaning $v_1$ and $v_2$ are grouped together, depends on both on the set of nodes $d(v_1, v_2)$ that 'separate' the two leaf nodes $v_1$ and $v_2$ on the tree, as well as on the hyperparameters $\rho_l$.
+Specifically, conditional on the $\rho_l$,
+
+<center>
+$P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2} \vert \rho_1, \dots, \rho_L \right) = \prod_{l=1}^L (1 - \rho_l)^{\left\vert d(v_1, v_2) \cap \lbrace u: l_u = l \rbrace \right\vert}$.
+</center>
+
+# Fitting MOReTreeS models using `moretrees()`: a worked example
+
+First, we load a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $G = 10$ sparse variable groups containing one to four variables each, and $m = 4$ non-sparse variables including the intercept.
+The data are stored as a list with three elements:
+
+1. `X`: a matrix of class `dgCMatrix` (from the `Matrix` package) of predictors that will be subject to variable selection;
+1. `W`: a matrix of class `dgCMatrix` of predictors that will be forced into the model--- the first column is all 1s and represents the intercept;
+1. `y`: a numeric vector of response data.
+
+The names of the matrix `X` indicate to which group each variable belongs.
+Using these names, we first construct a list, `groups`, of length equal to the number of variable groups.
+Each element `groups[[g]]` of `groups` is an integer vector denoting which columns of `X` belong to group `g`.
+
+```{r ss_data, eval = FALSE, cache = T}
+library(moretrees)
+data("normalSpikeAndSlabData")
+(Xnames <- colnames(normalSpikeAndSlabData$X))
+groups <- as.integer(stringr::str_extract(Xnames, "\\d+"))
+groups <- lapply(1:max(groups), function(i) which(groups == i))
+```
+
+Next, we run the VI algorithm to get posterior estimates.
+We use a random seed because by default, `spike_and_slab()` generates random initial values for the VI algorithm.
+
+```{r ss_mod, eval = FALSE, cache = T}
+set.seed(235897)
+mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
+                       X = normalSpikeAndSlabData$X, 
+                       W = normalSpikeAndSlabData$W,
+                       groups = groups, family = "gaussian",
+                       nrestarts = 1, tol = 1E-16, 
+                       print_freq = 100)
+```
+
+We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16` (the option `print_freq` determines how frequently the algorithm's progress will be printed).
+
+Next, we inspect the marginal posterior probabilities of variable inclusion for each sparse variable group.
+
+```{r ss_pip, eval = FALSE}
+cbind(paste0("Group ", 1:length(groups), ":"), 
+      format(mod$mod$vi_params$prob, digits = 1))
+```
+
+We see that only Groups 2 and 3 have a high posterior probability of inclusion in the model.
+Next, we inspect the results for those groups.
+`spike_and_slab()` returns coefficient estimates and 95\% credible intervals (CIs) for each variable based on the *median probability model*, defined as the model that includes all variables whose marginal posterior inclusion probability is greater than $\frac{1}{2}$ (CITE).
+
+```{r ss_sparse_est, eval = FALSE}
+mod$sparse_est[2:3]
+```
+
+The estimates for all other variable groups will be zero, as they have not been selected into the model.
+
+Finally, we inspect the results for the variables that were forced into the model:
+
+```{r ss_nonsparse_est, eval = FALSE}
+mod$nonsparse_est
+```
+
+#### A note on random restarts
+
+Note that in the example above, we have used only `nrestarts = 1` random restarts for illustration purposes.
+This means we have chosen only one random set of initial values for the VI algorithm.
+However, in practice we recommend using `nrestarts > 1`.
+This will cause `spike_and_slab()` to run multiple versions of the VI algorithm from different random initial values.
+These restarts may converge to different local optima; if so, the "best" restart will be returned (highest value of the objective function).
+The unevaluated code chunk below illustrates registering a parallel backend for running three random restarts on multiple cores.
+The progress of restart `i` will be logged to a text file `log_dir/restart_i_log.txt` which is deleted at the end of the run. 
+
+```{r ss_parallel, eval = FALSE}
+nrestarts <- 3
+doParallel::registerDoParallel(cores = nrestarts)
+set.seed(463456)
+log_dir <- "restart_logs"
+dir.create(log_dir)
+mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
+                      X = normalSpikeAndSlabData$X, 
+                      W = normalSpikeAndSlabData$W,
+                      groups = groups, family = "gaussian", 
+                      tol = 1E-16, print_freq = 10,
+                      nrestarts = nrestarts, log_restarts = T,
+                      log_dir = log_dir)
+unlink(log_dir, recursive = T)
+```
+
+When `nrestarts > 1`, `spike_and_slab()` runs the restarts on multiple cores by default.
+To prevent this behaviour and run the restarts on one core, use the option `parallel = FALSE`.
+
+# Details of variational inference algorithm
+
+VI is a method for approximating the posterior distribution of a Bayesian model.
+This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where "distance" is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
+Using this technique, VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
+A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see Blei 2017 (CITE).
+This section of the vignette is *not* required reading.
+Rather, it is intended for readers with some knowledge of variational Bayes who may wish to verify the details of the VI algorithm used by `moretrees`.
+
+## Preliminaries
+
+We assume only that the variational approximation $q$ factorizes as $q\left(\boldsymbol{\gamma},\mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) =  \prod_{u \in \mathcal{V}} q \left( \boldsymbol{\theta}_u \right) q\left(\boldsymbol{\gamma}_u, s_u \right) \prod_{l=1}^L q(\rho_l)$, where $\boldsymbol{\gamma}$, $\mathbf{s}$, $\boldsymbol{\theta}$, and $\boldsymbol{\rho}$ are vectors containing all $\boldsymbol{\gamma}_u$, $\mathbf{s}_u$, $\boldsymbol{\theta}_u$ and $\boldsymbol{\rho}_l$ respectively.
+Rather than minimizing $K(q || \pi)$, which depends on the intractable posterior $\pi$, we maximize a quantity known as the evidence lower bound (ELBO) $\mathcal{E}(q)$, which is equal to $- K(q || \pi)$ up to an additive constant that does not depend on $q$:
+
+\begin{equation}
+\tag{2}
+\mathcal{E}(q) = E_{q} \left[\log f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] - E_{q} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] 
+\end{equation}
+where $f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right)$ is the joint density of data and parameters, and $E_q$ denotes expectation taken with respect to $q$.
+
+The `moretrees` packages uses a co-ordinate ascent variational inference (CAVI) algorithm to maximize $\mathcal{E}(q)$ in $q$.
+However, attempting to maximize $\mathcal{E}(q)$ directly would lead to intractable updates due to the logistic form of the likelihood in Equation 1.
+We therefore replace this likelihood in the expression for $\mathcal{E}(q)$ with a quadratic approximation that leads to tractable updates in the CAVI algorithm.
+Here, we state the result; for a derivation, see CITATIONS.
+
+First, the joint density of data and parameters is:
+
+<center>
+$\begin{aligned}
+f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) 
+& = \prod_{v \in \mathcal{V}_l} \prod_{i = 1}^{n_v} \left(1 + \exp \left[-\left(\sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u^T \mathbf{x}_{i}^{(u)} + \boldsymbol{\theta}_u^T \mathbf{w}_i^{(u)} \right) \right] \right)^{-1} \\
+& \times \prod_{u \in \mathcal{V}} \rho_{l_u}^{s_u} (1-\rho_{l_u})^{1-s_u} \dfrac{1}{\left(2\pi\tau_{l_u}\right)^{k/2}} \exp\left[-\dfrac{\boldsymbol{\gamma}_u^T\boldsymbol{\gamma}_u}{2\tau_{l_u}}\right] \\
+& \times \prod_{u \in \mathcal{V}} \dfrac{1}{\left(2\pi\omega_{l_u}\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{\theta}_u^T\boldsymbol{\theta}_u}{2\omega_{l_u}}\right] \\
+& \times \prod_{l=1}^L \dfrac{\rho_l^{a_l -1} (1 - \rho_l)^{b_l - 1}}{\mathcal{B}(a_l, b_l)}.
+\end{aligned}$
+</center>
+
+Next, let
+
+$$r_i^{(v)} = \sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u^T \mathbf{x}_{i}^{(u)} + \boldsymbol{\theta}_u^T \mathbf{w}_i^{(u)}.$$
+
+Then the likelihood contribution from a single matched pair can lower-bounded as follows:
+<center>
+$\begin{aligned}
+     \left(1 + \exp(-r_i^{(v)}) \right)^{-1}
+    & \geq \sigma(\eta_i^{(v)}) \exp \left[ r_i^{(v)} - \left(r_i^{(v)} + \eta_i^{(v)} \right) /2 -g(\eta_i^{(v)}) \left[r_i^{(v)2} - \eta_i^{(v)2} \right] \right] \\
+    & := h\left(\eta_i^{(v)}, r_i^{(v)} \right).
+\end{aligned}$
+</center>
+
+where $\sigma(x) = (1 + e^{-x})^{-1}$ and $g(x) = \dfrac{1}{2x}(\sigma(x) - 1/2)$.
+$\eta_i^{(v)}$ is an introduced variational parameter.
+
+Let $h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) = \prod_{v \in \mathcal{V}_L} \prod_{i=1}^{n_v} h\left(\eta_i^{(v)}, r_i^{(v)} \right)$.
+We get the following approximation to the joint density of data and parameters:
+
+\begin{equation}
+f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \geq h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right)
+\end{equation}
+where $\pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right)$ is the prior.
+We ensure this lower bound is as tight as possible by maximizing it in $\boldsymbol{\eta}$ at every step.
+
+Replace the joint density of data and parameters in Equation 2 with the above lower bound gives the following approximation to the ELBO:
+\begin{align}
+\mathcal{E}^*(q) & :=  E_{q} \left[\log h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] - E_{q} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] \leq \mathcal{E}(q).
+\end{align}
+
+## Co-ordinate ascent variational inference algorithm
+
+The CAVI algorithm involves maximizing $\mathcal{E}^*(q)$ in each of the factors $q\left(\boldsymbol{\gamma}_u, s_u \right)$, $q \left( \boldsymbol{\theta}_u \right)$, and $q(\rho_l)$ in turn.
+In what follows we use the subscript $t$ or superscript $(t)$ to denote the next iteration or update in the CAVI algorithm; the absence of a subscript indicates that the last or most recent value of that parameter should be used.
+
+The updates for each factor in the CAVI algorithm can be obtained using the following well-known result (see Blei 2017 for a derivation).
+As an example, consider the factor $q\left(\boldsymbol{\gamma}_u, s_u \right)$.
+Let $q_{-\left(\boldsymbol{\gamma}_u, s_u \right)}$ be the variational distribution marginalized over $(\boldsymbol{\gamma}_u, s_u)$.
+Then the $t^{th}$ coordinate ascent update for $q(\boldsymbol{\gamma}_u, s_u)$ is given by:
+
+$$ q_t \left( \boldsymbol{\gamma}_u, s_u \right) \propto \exp \left( E_{q_{-\left(\boldsymbol{\gamma}_u, s_u \right)}} \left[ \log f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] \right).$$
+However, here replace the joint density $f$ with its quadratic approximation to get
+
+$$q_t \left( \boldsymbol{\gamma}_u, s_u \right) \propto \exp \left( E_{q_{-\left(\boldsymbol{\gamma}_u, s_u \right)}} \left[ \log h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] \right).$$
+
+The equivalent results hold for all other factors $q(\rho_l)$, $q(\boldsymbol{\theta}_u)$, and $q(\boldsymbol{\gamma}_v, s_v)$ for $v \neq u$.
+
+Below, we give the CAVI updates for each factor.
+These updates can be straightforwardly derived from the above formula.
+In the `moretrees` package, these updates are coded in the internal function `update_vi_params_logistic_moretrees()`.
+
+### Update for $q(\boldsymbol{\gamma}_u, s_u)$
+
+$$ q_{t}\left( \boldsymbol{\gamma}_u, s_u \right) = \mathcal{MVN}\left(\boldsymbol{\gamma}_u \middle\vert s_u \boldsymbol{\mu}_u^{(t)}, s_u \Sigma_u^{(t)} + (1-s_u) \tilde{\tau}_u^{(t)} I_{k} \right) p_u^{(t)s_u} \left(1-p_u^{(t)}\right)^{1-s_u}$$
+
+where
+
+\begin{align*}
+\left(\Sigma_u^{(t)}\right)^{-1} & = \dfrac{1}{\tau_{l_u}} I_{k} + 2 \sum_{v: u \in anc(v)} \eta_i^{(v)} \mathbf{x}_i^{(v)} \mathbf{x}_i^{(v)T} \\
+\tilde{\tau}_u^{(t)} & = \tau_{l_u} \\
+\boldsymbol{\mu}_u^{(t)} & =  \Sigma_u^{(t)} \sum_{v: u \in anc(v)} \sum_{i = 1}^{n_v} \mathbf{x}_i^{(v)} \left(\dfrac{1}{2} - 2 g \left(\eta_i^{(v)}\right)\left( \sum_{u^\prime \in anc(v)} E_{q} \left[ \boldsymbol{\theta}_{u^\prime} \right]^T \mathbf{w}_i^{(v)} +   \sum_{u^\prime \in anc(v) \backslash \lbrace u \rbrace} E_{q}  \left[ \boldsymbol{\gamma}_{u^\prime} s_{u^\prime} \right]^T \mathbf{x}_i^{(v)} \right) \right) \\
+\log \left(\dfrac{p_u^{(t)}}{ 1- p_u^{(t)}} \right) & =  E_{q} \left[ \log \rho_{l_u} \right] - E_{q} \left[ \log (1-\rho_{l_u})\right] + \dfrac{\boldsymbol{\mu}_u^{(t)T} \left(\Sigma_u^{(t)}\right)^{-1} \boldsymbol{\mu}_u^{(t)}}{2} + \dfrac{1}{2} \left( \log \left\vert \Sigma_u^{(t)} \right\vert - k \log \tilde{\tau}_u^{(t)} \right).
+\end{align*}
+
+### Update for $q(\boldsymbol{\theta}_u)$
+
+$$q_t\left( \boldsymbol{\theta}_u \right) = \mathcal{MVN}\left(\boldsymbol{\delta}_u, \Omega_u \right) $$
+where
+
+\begin{align*}
+\left(\Omega_u^{(t)}\right)^{-1} & = \dfrac{1}{\omega_{l_u}} I_m + 2 \sum_{v: u \in anc(v)} \sum_{i=1}^{n_v} g(\eta_i^{(v)}) \mathbf{w}_i^{(v)} \mathbf{w}_i^{(v)T}  \\
+\boldsymbol{\delta}_u^{(t)} & =  \Omega_u^{(t)} \sum_{v: u \in anc(v)} \sum_{i=1}^{n_v} \mathbf{w}_i^{(v)} \left( \dfrac{1}{2} - 2 g\left(\eta_i^{(v)}\right) \left( \sum_{u^\prime \in anc(v) \backslash \lbrace u \rbrace} E_{q} \left[ \boldsymbol{\theta}_{u^\prime} \right]^T \mathbf{w}_i^{(v)} +   \sum_{u^\prime \in anc(v) \rbrace} E_{q}  \left[ \boldsymbol{\gamma}_{u^\prime} s_{u^\prime} \right]^T \mathbf{x}_i^{(v)} \right) \right).
+\end{align*}
+
+### Update for $q(\rho_l)$
+
+$$q_{t}(\rho_l) = Beta \left(\tilde{a}_l^{(t)}, \tilde{b}_l^{(t)} \right)$$
+
+where 
+
+\begin{align*}
+\tilde{a}_l^{(t)} & = a_l + \sum_{u: l_u = l}  E_{q} \left[ s_u \right] \\
+\tilde{b}_l^{(t)} & = b_l + \sum_{u: l_u = l}  E_{q} \left[ 1 - s_u \right].
+\end{align*}
+
+## Objective function (evidence lower bound)
+
+At the end of every iteration $t$ we must compute the objective function $\mathcal{E}^*(q_t)$ for the current value of our variational approximation $q_t$.
+We iterate through parameter updates until convergence, i.e., $\left\vert \mathcal{E}^*(q_t) - \mathcal{E}^*(q_{t-1}) \right\vert <$ `tol`.
+
+\begin{align}
+\mathcal{E}^*(q) & =  \sum_{v \in \mathcal{V}_L} \sum_{i = 1}^{n_v} \left( \dfrac{1}{2}E_q \left[ r_i^{(v)} \right] + \log \sigma\left(\eta_i^{(v)}\right) - \eta_i^{(v)} / 2 + g\left(\eta_i^{(v)}\right) \left(\eta_i^{(v)2} - E_q \left[r_i^{(v)2} \right]  \right) \right) \tag{1} \\
+& - \sum_{u \in \mathcal{V}}\left( \dfrac{E_q \left[\boldsymbol{\gamma}_u^T\boldsymbol{\gamma}_u \right]}{2\tau_{l_u}} + \dfrac{k}{2} \log(2 \pi \tau_{l_u})\right)  \tag{2} \\
+& +  \sum_{u \in \mathcal{V}} E_q \left[ \log \rho_{l_u} \right]  E_q \left[ s_u \right]  + E \left[ \log \left(1 - \rho_{l_u} \right) \right] \left(1-E \left[s_u\right] \right)   \tag{3} \\
+& - \sum_{u \in \mathcal{V}} \dfrac{E \left[\boldsymbol{\theta}_u^T \boldsymbol{\theta}_u \right]}{2 \omega_{l_u}} - \dfrac{m}{2} \log (2 \pi \omega_{l_u})  \tag{4} \\
+& + \sum_{l = 1}^L \left((a_l - 1) E_q \left[\log \rho_l \right] + (b_l - 1) E_q \left[\log (1 - \rho_l) \right] - \log \mathcal{B} (a_l, b_l) \right)  \tag{5} \\
+& + \dfrac{1}{2} \sum_{u \in \mathcal{V}} E_q\left[s_u \left(\boldsymbol{\gamma}_u - \boldsymbol{\mu}_u \right)^T \Sigma_u^{-1} \left(\boldsymbol{\gamma}_u - \boldsymbol{\mu}_u \right) \right] + \dfrac{1}{2} E_q\left[ s_u \right] \left( \log \left\vert \Sigma_u \right\vert + k \log (2\pi)\right)  \tag{6} \\
+& + \dfrac{1}{2} \sum_{u \in \mathcal{V}} \dfrac{1}{\tilde{\tau}_u} E_q\left[(1-s_u) \boldsymbol{\gamma}_u^T \boldsymbol{\gamma}_u \right] +  \dfrac{k}{2} \log (2\pi \tilde{\tau}_u) E_q\left[ 1-s_u \right]  \tag{7} \\
+& - \sum_{u \in \mathcal{V}} \left( E_q[s_u] \log(p_u) + E_q[1-s_u] \log \left( 1- p_u \right) \right)  \tag{8} \\ 
+& + \dfrac{1}{2} \sum_{u \in \mathcal{V}} E_q \left[ \left(\boldsymbol{\theta}_u - \boldsymbol{\delta}_u \right)^T \Omega_u^{-1} \left(\boldsymbol{\theta}_u - \boldsymbol{\delta}_u \right) \right] +  \dfrac{1}{2} \log \left\vert \Omega_u \right\vert + \dfrac{m}{2} \log(2 \pi)  \tag{9} \\
+& - \sum_{l = 1}^L \left((\tilde{a}_l - 1) E_q \left[\log \rho_l \right] + (\tilde{b}_l - 1) E \left[\log (1 - \rho_l) \right] - \log \mathcal{B} (\tilde{a}_l, \tilde{b}_l) \right).  \tag{10}
+\end{align}
+
+where $\mathcal{B}(\cdot,\cdot)$ is the Beta function.
+The expectations with respect to $q$ can be computed using the known expressions for each factor of $q$ given in the previous sections (recall that $r_i^{(v)}$ depends on the parameters $\boldsymbol{\gamma}$, $\mathbf{s}$, and $\boldsymbol{\theta}$).
+The line numbers above correspond exactly to those used in the internal function `update_hyperparams_logistic_moretrees()`, which both computes $\mathcal{E}^*(q)$ and performs the hyperparameter updates described in the next section.
+
+## Hyperparameter selection
+
+The hyperparameters $\tau_l$ and $\omega_l$ for $l = 1, \dots, L$ are selected via approximate empirical Bayes.
+Specifically, every `update_hyper_freq` iterations, we maximize $\mathcal{E}^*(q)$, which can be viewed as an approximation to the marginal likelihood, in each hyperparameter.
+This gives the following hyperparameter updates:
+
+\begin{align*}
+\tau_l^{(t)} & = \dfrac{\sum_{u: l_u = u} E_{q}\left[ \boldsymbol{\gamma}_u^T \boldsymbol{\gamma}_u \right]}{\sum_{u: l_u = u} k} \\
+\omega_l^{(t)} & = \dfrac{\sum_{u: l_u = u} E_{q} \left[ \boldsymbol{\theta}_u^T \boldsymbol{\theta}_u \right]}{\sum_{u: l_u = u} m}.
+\end{align*}
+
+This convenient technique has been used elsewhere (CITATIONS).
+It is particularly useful in the case of estimating the variance parameters $\tau_l$ and $\omega_l$, since in the absence of prior information, specifying good non-informative priors for variance parameters, such as those recommended by Gelman (CITE), would require breaking the conditional conjugacy that leads to closed-form updates in the VI algorithm.
+
+Ideally, one would find the optimal VI parameters after every hyperparameter update by allowing the algorithm to converge while keeping the hyperparameters fixed.
+The hyperparameters would then be updated again, and this process would be repeated until convergence of both the VI parameters and hyperparameters.
+However, in practice this can be too time consuming; as an alternative, we set a maximum of `update_hyper_freq` VI updates between hyperparameter updates.
+The default vaue is `update_hyper_freq = 50`; if the algorithm is converging slowly, either increasing or decreasing this value may help.
+
+We also allow a different convergence tolerance, `tol_hyper`, when comparing $\mathcal{E}^*(q)$ between consecutive hyperparameter updates.
+If our aim in selecting hyperparameters is merely to identify 'good enough' values, it may be acceptable to set `tol_hyper` $<$ `tol`, the tolerance for the VI parameters.
+Because convergence of the hyperparameters can be slow, this also allows us to speed up convergence of the algorithm overall.
