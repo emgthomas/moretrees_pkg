@@ -7,7 +7,7 @@
   models. Not recommended if the model is converging slowly!}
 \usage{
 moretrees_init_logistic(X, W, y, A, outcomes_units, outcomes_nodes,
-  ancestors, levels, xxT, wwT, hyper_fixed, random_init, random_init_vals)
+  ancestors, levels, xxT, wwT, hyper_fixed)
 }
 \arguments{
 \item{xxT}{Computed from exposure matrix X}

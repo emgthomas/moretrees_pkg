@@ -107,36 +107,49 @@ $P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2} \vert \rho_1, \dots, \rho_L 
 
 # Fitting MOReTreeS models using `moretrees()`: a worked example
 
-First, we load a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $G = 10$ sparse variable groups containing one to four variables each, and $m = 4$ non-sparse variables including the intercept.
-The data are stored as a list with three elements:
+First, we load a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $p = 11$ outcomes, an exposure with dimension $k=2$ and $m = 2$ covariates.
+The data are stored as a list with the following elements:
 
-1. `X`: a matrix of class `dgCMatrix` (from the `Matrix` package) of predictors that will be subject to variable selection;
-1. `W`: a matrix of class `dgCMatrix` of predictors that will be forced into the model--- the first column is all 1s and represents the intercept;
-1. `y`: a numeric vector of response data.
+1. `Xcase`: an `n` by `k` matrix of exposure values for cases;
+1. `Xcontrol`: the corresponding exposure matrix for matched controls--- recall that only one control per case is allowed;
+1. `Wcase`: an `n` by `m` matrix of covariate values for cases;
+1. `Wcontrol`: the corresponding covariate matrix for matched controls;
+1. `outcomes`: a character vector of length `n` indicating which outcome was experienced by each case.
 
-The names of the matrix `X` indicate to which group each variable belongs.
-Using these names, we first construct a list, `groups`, of length equal to the number of variable groups.
-Each element `groups[[g]]` of `groups` is an integer vector denoting which columns of `X` belong to group `g`.
+The elements of `outcomes` are character strings representing cardiovascular diseases in category 7.4 (diseases of arteries, arterioles, and capillaries) in the multilevel Clinical Classifications Software (CCS) hierarchical disease classification system (CITE).
+The set of names of leaves of `tr` should be equal to the set of unique values in the `outcomes` vector.
 
-```{r ss_data, eval = FALSE, cache = T}
+First, we use the function `moretrees::ccs_tree()` to create a tree, `tr` of class `igraph` from the `igraph` package.
+We then plot it using the `ggtree` package from bioconductor.
+
+```{r ss_data, eval = TRUE, cache = T, warning = FALSE}
 library(moretrees)
-data("normalSpikeAndSlabData")
-(Xnames <- colnames(normalSpikeAndSlabData$X))
-groups <- as.integer(stringr::str_extract(Xnames, "\\d+"))
-groups <- lapply(1:max(groups), function(i) which(groups == i))
+tr <- ccs_tree("7.4")$tr
+# Plot tree
+library(ggtree)
+library(ggplot2)
+ggtree(tr, ladderize = F, layout = "slanted") + 
+  geom_tiplab(geom = "label") + 
+  geom_nodelab(geom = "label") +
+  theme(plot.margin = unit(c(0, 1.5, 0, 0.2), "cm")) +
+  coord_cartesian(clip = "off") + 
+  scale_y_reverse()
 ```
 
-Next, we run the VI algorithm to get posterior estimates.
-We use a random seed because by default, `spike_and_slab()` generates random initial values for the VI algorithm.
+Next, we load the data and check that the unique values in `outcomes` are the same as the leaves of the tree.
+```{r checks, eval = TRUE, cache = T, warning = FALSE}
+data("moretreesCaseCrossover")
+attach(moretreesCaseCrossover)
+library(igraph)
+leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+setequal(leaves, unique(outcomes))
+```
 
-```{r ss_mod, eval = FALSE, cache = T}
-set.seed(235897)
-mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
-                       X = normalSpikeAndSlabData$X, 
-                       W = normalSpikeAndSlabData$W,
-                       groups = groups, family = "gaussian",
-                       nrestarts = 1, tol = 1E-16, 
-                       print_freq = 100)
+Next, we fit the MOReTreeS model without adjustment for covariates.
+
+```{r ss_mod, eval = TRUE, cache = T}
+mod <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                 outcomes = outcomes, tr = tr)
 ```
 
 We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16` (the option `print_freq` determines how frequently the algorithm's progress will be printed).

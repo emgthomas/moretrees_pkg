@@ -11,12 +11,12 @@ params_list <- list(K = 1:2,
                     m = 0:2,
                     nrestarts = c(1, 2))
 params <- do.call(expand.grid, params_list)
-i <- 1
+i <- 6
 params[i, ]
 
 # Input parameters -------------------------------------------------------------------
 nrestarts <- params$nrestarts[i]
-n <- 3E3
+n <- 1E3
 group <- "7.4"
 tr <- ccs_tree(group)$tr
 leaves <- names(igraph::V(tr)[igraph::V(tr)$leaf])
@@ -105,6 +105,8 @@ if (m > 0) {
 require(gdata)
 keep(Xcase, Xcontrol, Wcase, Wcontrol, outcomes, tr, nrestarts, hyper_fixed,
     s_true, groups_true, beta, theta, log_dir, sure = T)
+# moretreesCaseCrossover <- list(Xcase = Xcase, Xcontrol = Xcontrol, Wcase = Wcase, Wcontrol = Wcontrol, outcomes = outcomes)
+# save(moretreesCaseCrossover, file = "./data/moretreesCaseCrossover.rda")
 # Run model without W
 mod_start <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                        Wcase = NULL, Wcontrol = NULL,
