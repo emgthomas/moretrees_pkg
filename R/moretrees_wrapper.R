@@ -91,6 +91,11 @@
 #' delta will have a normal random variate added to them with standard deviation equal to 
 #' delta_sd_frac multiplied by the absolute value of the initial value for delta either supplied in 
 #' initial_values or guessed using moretrees_init_logistic().
+#' 1. u_sd_frac: a value between 0 and 1. The initial value for the node inclusion probabilities
+#' will first be transformed to the log odds scale to obtain u. A normal random variate will be
+#' added to u with standard deviation eqaul to u_sd_frac multiplied by the absolute value of the
+#' initial value for u either supplied by the user or guessed using moretrees_init_logistic().
+#' u will then be transformed back to the probability scale.
 #' @param print_freq How often to print out iteration number and current value of epsilon
 #' (the difference in objective function value for the two most recent iterations). 
 #' @param nrestarts Number of random re-starts of the VI algorithm. The result that 
@@ -138,7 +143,8 @@ moretrees <- function(Xcase, Xcontrol,
                                               tau_lims = c(0.5, 1.5),
                                               eta_sd_frac = 0.2,
                                               mu_sd_frac = 0.2,
-                                              delta_sd_frac = 0.2)) {
+                                              delta_sd_frac = 0.2,
+                                              u_sd_frac = 0.2)) {
   
   if (!(is.matrix(Xcase) & is.matrix(Xcontrol))) stop("Xcase and Xcontrol must be matrices")
   if (!identical(dim(Wcase), dim(Wcontrol))) stop("Xcase and Xcontrol must have same dimension")

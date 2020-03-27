@@ -69,29 +69,12 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
                           vi_params = vi_params_init,
                           hyperparams = hyperparams_init,
                           hyper_fixed = hyper_fixed,
+                          random_init = random_init,
+                          random_init_vals = random_init_vals,
                           args = dsgn)
   vi_params <- init$vi_params
   hyperparams <- init$hyperparams
-  if (random_init) {
-    vi_params$mu <- lapply(vi_params$mu,
-          function(mu) mu + rnorm(nrow(mu), 
-                        sd = abs(mu) * random_init_vals$mu_sd_frac))
-    vi_params$delta <- lapply(vi_params$delta,
-         function(delta) delta + rnorm(nrow(delta), 
-                         sd = abs(delta) * random_init_vals$delta_sd_frac))
-    hyperparams$tau <- sapply(hyperparams$tau, 
-        function(tau) runif(1, min = tau * random_init_vals$tau_lims[1],
-                        max = tau * random_init_vals$tau_lims[2]))
-    if (dsgn$m > 0) {
-      hyperparams$omega <- sapply(hyperparams$omega, 
-            function(omega) runif(1, min = omega * random_init_vals$omega_lims[1],
-                        max = omega * random_init_vals$omega_lims[2]))
-    }
-    hyperparams$eta <- abs(hyperparams$eta * 
-       (1 + rnorm(length(hyperparams$eta)) * random_init_vals$eta_sd_frac))
-    hyperparams$g_eta <- gfun(hyperparams$eta)
-  }
-
+  
   # Initialise ELBO
   ELBO_track <- numeric(max_iter)
   

@@ -11,10 +11,13 @@ params_list <- list(K = 1:2,
                     m = 0:2,
                     nrestarts = c(1, 2))
 params <- do.call(expand.grid, params_list)
-i <- 6
+i <- 12
 params[i, ]
 
 # Input parameters -------------------------------------------------------------------
+# (seed <- round(runif(1, 0, 1E8)))
+seed <- 64320317
+set.seed(seed)
 nrestarts <- params$nrestarts[i]
 n <- 1E3
 group <- "7.4"
@@ -27,11 +30,11 @@ p <- length(igraph::V(tr))
 pL <- sum(igraph::V(tr)$leaf)
 K <- params$K[i] # number of variables
 m <- params$m[i]
-tau <- 3
+tau <- 1
 hyper_fixed <- list(a = c(0.9, 0.5), b = c(3 , 2))
 rho1 <- rbeta(1, shape1 = hyper_fixed$a[1], shape2 = hyper_fixed$b[1]) # rho for internal nodes
 rho2 <- rbeta(1, shape1 = hyper_fixed$a[2], shape2 = hyper_fixed$b[2]) # rho for leaf nodes
-omega <- 2
+omega <- 0.5
 doParallel::registerDoParallel(cores = nrestarts)
 log_dir <- "./tests/logs/"
 
@@ -112,33 +115,29 @@ mod_start <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                        Wcase = NULL, Wcontrol = NULL,
                        outcomes = outcomes,
                        tr = tr,
-                       update_hyper_freq = 50,
                        hyper_fixed = hyper_fixed,
-                       tol = 1E-8, 
-                       tol_hyper = 1E-4,
                        max_iter = 3E4,
-                       print_freq = 50,
                        nrestarts = nrestarts,
                        get_ml = F,
+                       log_restarts = T,
                        log_dir = log_dir)
 # strip out unnecessary parts of initial values
-initial_values <- mod_start$mod[c("vi_params", "hyperparams")]
-initial_values$vi_params[c("delta", "Omega", "Omega_inv", "Omega_det")] <- NULL
-initial_values$hyperparams[c("omega", "ELBO", "g_eta")] <- NULL
+vi_params_init <- mod_start$mod$vi_params
+vi_params_init[c("delta", "Omega", "Omega_inv", "Omega_det")] <- NULL
+hyperparams_init <- mod_start$mod$hyperparams
+hyperparams_init[c("omega", "ELBO", "g_eta")] <- NULL
 # run next model using initial values from previous model
 mod_end <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                      Wcase = Wcase, Wcontrol = Wcontrol,
                      outcomes = outcomes,
-                     initial_values = initial_values,
+                     vi_params_init = vi_params_init,
+                     hyperparams_init = hyperparams_init,
                      tr = tr,
-                     update_hyper_freq = 50,
                      hyper_fixed = hyper_fixed,
-                     tol = 1E-8, 
-                     tol_hyper = 1E-4,
-                     max_iter = 1E5,
-                     print_freq = 50,
+                     max_iter = 3E4,
                      nrestarts = nrestarts,
                      get_ml = T,
+                     log_restarts = T,
                      log_dir = log_dir)
 beta_est <- mod_end$beta_est
 beta_moretrees <- mod_end$beta_moretrees
