@@ -21,14 +21,14 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-The `moretrees` package fits Multi-Outcome Regression with Tree-structured Shrinkage (MOReTreeS) models to case-crossover or matched case-control data with multiple related outcomes.
-MOReTreeS models require that the outcomes are related according to a known tree.
-For example, the outcomes might be diseases that be classified using a hierarchical classification that can be expressed as a tree; examples will be given below.
+The `moretrees` package fits Multi-Outcome Regression with Tree-structured Shrinkage (MOReTreeS) models to case-crossover and matched case-control data when being a 'case' can mean one of multiple related outcomes.
+MOReTreeS models require that these outcomes are related according to a known tree.
+For example, the outcomes might be diseases that can be classified using a hierarchical classification that can be expressed as a tree, as in the example below.
 The MOReTreeS model simultaneously achieves three core functions:
 
-1. discovers *de novo* groups of outcomes that have a similar association with the exposure conditional on matching factors and covariates;
+1. discovers *de novo* groups of outcomes that have a similar association with the exposure conditional on matching factors and covariates, with both the number and composition of the groups estimated from the data;
 1. estimates a group-specific measure of association with the exposure for each outcome group;
-1. allows `information sharing` across the outcomes by shrinking the coefficient estimates for different outcomes towards each other, with the degree of shrinkage determined by how related those outcomes are on the tree.
+1. performs `information sharing` across the outcomes by shrinking the coefficient estimates for different outcomes towards each other, with the degree of shrinkage determined by how related those outcomes are on the tree.
 
 The model is fit using variational inference (VI), a popular (and typically much faster) alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
 
@@ -105,9 +105,11 @@ Specifically, conditional on the $\rho_l$,
 $P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2} \vert \rho_1, \dots, \rho_L \right) = \prod_{l=1}^L (1 - \rho_l)^{\left\vert d(v_1, v_2) \cap \lbrace u: l_u = l \rbrace \right\vert}$.
 </center>
 
-# Fitting MOReTreeS models using `moretrees()`: a worked example
+# Fitting MOReTreeS models using `moretrees()`
 
-First, we load a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $p = 11$ outcomes, an exposure with dimension $k=2$ and $m = 2$ covariates.
+## Set up
+
+We use a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $p = 11$ outcomes, an exposure with dimension $k=2$ and $m = 2$ covariates.
 The data are stored as a list with the following elements:
 
 1. `Xcase`: an `n` by `k` matrix of exposure values for cases;
@@ -122,9 +124,11 @@ The set of names of leaves of `tr` should be equal to the set of unique values i
 First, we use the function `moretrees::ccs_tree()` to create a tree, `tr` of class `igraph` from the `igraph` package.
 We then plot it using the `ggtree` package from bioconductor.
 
-```{r ss_data, eval = TRUE, cache = T, warning = FALSE}
+```{r tree, eval = TRUE, cache = T, warning = FALSE}
 library(moretrees)
-tr <- ccs_tree("7.4")$tr
+data("moretreesExampleEdgelist")
+library(igraph)
+tr <- graph_from_edgelist(moretreesExampleEdgelist, directed = TRUE)
 # Plot tree
 library(ggtree)
 library(ggplot2)
@@ -137,79 +141,125 @@ ggtree(tr, ladderize = F, layout = "slanted") +
 ```
 
 Next, we load the data and check that the unique values in `outcomes` are the same as the leaves of the tree.
-```{r checks, eval = TRUE, cache = T, warning = FALSE}
-data("moretreesCaseCrossover")
-attach(moretreesCaseCrossover)
-library(igraph)
-leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+`moretrees()` will throw an error if the latter isn't true, but it's good practice to double-check before hand.
+
+```{r data, eval = TRUE, cache = T, warning = FALSE}
+data("moretreesExampleData")
+Xcase <- moretreesExampleData$Xcase
+Xcontrol <- moretreesExampleData$Xcontrol
+Wcase <- moretreesExampleData$Wcase
+Wcontrol <- moretreesExampleData$Wcontrol
+outcomes <- moretreesExampleData$outcomes
+leaves <- names(V(tr)[degree(tr, mode = "out") == 0])
 setequal(leaves, unique(outcomes))
 ```
 
-Next, we fit the MOReTreeS model without adjustment for covariates.
+## Model without covariate adjustment
 
-```{r ss_mod, eval = TRUE, cache = T}
-mod <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
-                 outcomes = outcomes, tr = tr)
+We now fit the MOReTreeS model without adjustment for covariates.
+
+```{r mod1, eval = TRUE}
+mod1 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                 outcomes = outcomes, tr = tr,
+                 nrestarts = 1, print_freq = 500)
 ```
 
-We see that the model ran for at least 800 iterations before converging at a tolerance of `tol = 1E-16` (the option `print_freq` determines how frequently the algorithm's progress will be printed).
+We see that the model ran for at least 2000 iterations before converging at a tolerance of `tol = 1E-8` (the default). 
+The option `print_freq` determines how frequently the algorithm's progress will be printed.
 
-Next, we inspect the marginal posterior probabilities of variable inclusion for each sparse variable group.
+We can print the estimated odds ratios (or rate ratios, for a case-crossover model) for the groups discovered by MOReTreeS.
+The table also shows which outcomes belong to each group.
 
-```{r ss_pip, eval = FALSE}
-cbind(paste0("Group ", 1:length(groups), ":"), 
-      format(mod$mod$vi_params$prob, digits = 1))
+```{r moretrees_est1, eval = TRUE}
+est <- mod1$beta_moretrees
+outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
+knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
 ```
 
-We see that only Groups 2 and 3 have a high posterior probability of inclusion in the model.
-Next, we inspect the results for those groups.
-`spike_and_slab()` returns coefficient estimates and 95\% credible intervals (CIs) for each variable based on the *median probability model*, defined as the model that includes all variables whose marginal posterior inclusion probability is greater than $\frac{1}{2}$ (CITE).
+Finally, for comparison, we inspect the group-specific estimates obtained by running a classical CLR model on the data for each discovered group separately.
 
-```{r ss_sparse_est, eval = FALSE}
-mod$sparse_est[2:3]
+```{r ml_est1, eval = TRUE}
+est_ml <- mod1$beta_ml
+knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
 ```
 
-The estimates for all other variable groups will be zero, as they have not been selected into the model.
+## Model with covariate adjustment
 
-Finally, we inspect the results for the variables that were forced into the model:
+Next, we fit the MOReTreeS model *with* covariate adjustment.
+For parameters that were estimated in the model *without* covariate adjustment, we use the final model values as initial values in the adjusted model.
 
-```{r ss_nonsparse_est, eval = FALSE}
-mod$nonsparse_est
+```{r mod2, eval = TRUE}
+vi_params_init <- mod1$mod$vi_params[c("prob", "mu", "Sigma",
+                                       "Sigma_inv", "Sigma_det",
+                                       "tau_t", "a_t", "b_t")]
+hyperparams_init <- mod1$mod$hyperparams[c("eta", "tau")]
+mod2 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                  Wcase = Wcase, Wcontrol = Wcontrol,
+                  vi_params_init = vi_params_init,
+                  hyperparams_init = hyperparams_init,
+                  outcomes = outcomes, tr = tr,
+                  nrestarts = 1, print_freq = 1000,
+                  max_iter = 5E4)
 ```
 
-#### A note on random restarts
+This time, the model ran for more than 11,000 iterations before converging, so it was necessary to increase `max_iter` to accommodate this (the default is `max_iter = 5000`). 
+
+We now print the estimated odds ratios for the discovered groups *adjusted for the covariates in* `W`.
+
+```{r moretrees_est2, eval = TRUE}
+est <- mod2$beta_moretrees
+outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
+knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+```
+
+Again, we compare to the group-specific estimates obtained using CLR.
+
+```{r ml_est2, eval = TRUE}
+est_ml <- mod2$beta_ml
+knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+```
+
+
+## Using random restarts
 
 Note that in the example above, we have used only `nrestarts = 1` random restarts for illustration purposes.
-This means we have chosen only one random set of initial values for the VI algorithm.
+This means we have chosen only one non-random set of initial values for the VI algorithm.
 However, in practice we recommend using `nrestarts > 1`.
-This will cause `spike_and_slab()` to run multiple versions of the VI algorithm from different random initial values.
+This will cause `moretrees()` to run multiple versions of the VI algorithm from different random initial values.
 These restarts may converge to different local optima; if so, the "best" restart will be returned (highest value of the objective function).
-The unevaluated code chunk below illustrates registering a parallel backend for running three random restarts on multiple cores.
-The progress of restart `i` will be logged to a text file `log_dir/restart_i_log.txt` which is deleted at the end of the run. 
+Here, we use the initial values from `mod2` with some randomness added for each restart.
+
+The unevaluated code chunk below illustrates how to register a parallel backend for running three random restarts on three cores.
+When `nrestarts > 1`, `moretrees()` runs the restarts on multiple cores by default.
+To prevent this behaviour and run the restarts on one core, use the option `parallel = FALSE`.
+The progress of restart `i` will be logged to a text file `restart_logs/restart_i_log.txt` which is deleted at the end of the run. 
+`moretrees` returns the results from the 'best' restart, and by default stores the results from the other restarts in the list item `mod_restarts`.
+For large models, preserving the restarts can lead to memory problems; these can be discarded using the option `keep_restarts = FALSE`.
 
 ```{r ss_parallel, eval = FALSE}
 nrestarts <- 3
 doParallel::registerDoParallel(cores = nrestarts)
-set.seed(463456)
+set.seed(345083)
 log_dir <- "restart_logs"
 dir.create(log_dir)
-mod <- spike_and_slab(y = normalSpikeAndSlabData$y, 
-                      X = normalSpikeAndSlabData$X, 
-                      W = normalSpikeAndSlabData$W,
-                      groups = groups, family = "gaussian", 
-                      tol = 1E-16, print_freq = 10,
-                      nrestarts = nrestarts, log_restarts = T,
-                      log_dir = log_dir)
+mod3 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                  Wcase = Wcase, Wcontrol = Wcontrol,
+                  outcomes = outcomes, tr = tr,
+                  vi_params_init = mod2$mod$vi_params,
+                  hyperparams_init = mod2$mod$hyperparams,
+                  nrestarts = nrestarts, print_freq = 500,
+                  log_restarts = TRUE, log_dir = log_dir)
 unlink(log_dir, recursive = T)
+# Print the final ELBO for all restarts
+print(c(mod3$mod$hyperparams$ELBO,
+  sapply(mod3$mod_restarts, function(mod) mod$hyperparams$ELBO)),
+  digits = 8)
 ```
-
-When `nrestarts > 1`, `spike_and_slab()` runs the restarts on multiple cores by default.
-To prevent this behaviour and run the restarts on one core, use the option `parallel = FALSE`.
 
 # Details of variational inference algorithm
 
 VI is a method for approximating the posterior distribution of a Bayesian model.
-This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where "distance" is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
+This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where distance is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
 Using this technique, VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
 A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see Blei 2017 (CITE).
 This section of the vignette is *not* required reading.

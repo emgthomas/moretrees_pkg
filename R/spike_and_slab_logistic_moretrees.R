@@ -52,13 +52,13 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   if (dsgn$K == 1) {
     dsgn$xxT <- dsgn$X ^ 2
   } else {
-    dsgn$xxT <- rowOuterProds(dsgn$X)
+    dsgn$xxT <- moretrees:::rowOuterProds(dsgn$X)
   }
   if (dsgn$m > 0) {
     if (dsgn$m == 1) {
       dsgn$wwT <- dsgn$W ^ 2
     } else {
-      dsgn$wwT <- rowOuterProds(dsgn$W)
+      dsgn$wwT <- moretrees:::rowOuterProds(dsgn$W)
     }
   } else {
     dsgn$wwT <- NULL

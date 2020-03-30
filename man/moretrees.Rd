@@ -8,15 +8,13 @@
 Tree-structured Shrinkage (MOReTreeS)}
 \usage{
 moretrees(Xcase, Xcontrol, Wcase = NULL, Wcontrol = NULL, outcomes, tr,
-  initial_values = NULL, ci_level = 0.95, get_ml = FALSE,
-  update_hyper_freq = 50, print_freq = update_hyper_freq,
-  hyper_fixed = list(a = c(1, 1), b = c(1, 1)), tol = 1e-08,
-  tol_hyper = 1e-04, max_iter = 5000, nrestarts = 3,
-  keep_restarts = nrestarts > 1, parallel = nrestarts > 1,
-  log_restarts = nrestarts > 1, log_dir = getwd(),
-  random_init = nrestarts > 1, random_init_vals = list(omega_lims =
-  c(0.5, 1.5), tau_lims = c(0.5, 1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2,
-  delta_sd_frac = 0.2))
+  initial_values = NULL, ci_level = 0.95, get_ml = TRUE,
+  update_hyper_freq = 50, print_freq = 50, hyper_fixed = NULL,
+  tol = 1e-08, tol_hyper = 1e-04, max_iter = 5000, nrestarts = 3,
+  keep_restarts = TRUE, parallel = TRUE, log_restarts = FALSE,
+  log_dir = ".", random_init = FALSE,
+  random_init_vals = list(omega_lims = c(0.5, 1.5), tau_lims = c(0.5,
+  1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2, delta_sd_frac = 0.2))
 }
 \arguments{
 \item{Xcase}{An n x K matrix of exposure data for cases, where K is the dimension of the exposure.
@@ -51,7 +49,8 @@ for all internal nodes.}
 For example, ci_level = 0.95 (the default) returns a 95\% credible interval}
 
 \item{get_ml}{If TRUE, moretrees will also return the maximum likelihood estimates of the
-coefficients for each outcome group discovered by the model. The default is FALSE.}
+coefficients for each outcome group discovered by the model. 
+Default is TRUE.}
 
 \item{update_hyper_freq}{How frequently to update hyperparameters. 
 Default = every 50 iterations.}
@@ -60,35 +59,45 @@ Default = every 50 iterations.}
 (the difference in objective function value for the two most recent iterations).}
 
 \item{hyper_fixed}{Fixed values of hyperprior parameters for rho.
-This should be a list including the following elements:
-a, b (parameters of beta prior on rho for each level)}
+This should be a list with two elements: 
+a and b, both numeric vectors of length L, representing the 
+parameters of the beta prior on rho for each level, where L is the
+number of levels.
+Default is list(a = rep(1, L), b = rep(1, L)).}
 
-\item{tol}{Convergence tolerance for ELBO. Default = 1E-8.}
+\item{tol}{Convergence tolerance for ELBO. 
+Default is 1E-8.}
 
 \item{tol_hyper}{If hyper_method = "EB", the convergence tolerance for ELBO
 between subsequent hyperparmeter updates. Typically a more generous
-tolerance than tol. Default = 1E-4.}
+tolerance than tol. 
+Default is 1E-4.}
 
 \item{nrestarts}{Number of random re-starts of the VI algorithm. The result that 
 gives the highest ELBO will be returned. It is recommended to choose nrestarts > 1.
 The default is 3.}
 
 \item{keep_restarts}{If TRUE, the results from all random restarts will be returned.
-If FALSE, only the restart with the highest ELBO is returned.}
+If FALSE, only the restart with the highest ELBO is returned. Default is TRUE.}
 
-\item{parallel}{If TRUE, the random restarts will be run in parallel. It is recommended
-to first set the number of cores using doParallel::registerDoParallel(). Otherwise,
-the default number of cores specified by the doParallel package will be used.}
+\item{parallel}{If TRUE, the random restarts will be run in parallel.
+It is recommended to first set the number of cores using doParallel::registerDoParallel(). 
+Otherwise, the default number of cores specified by the doParallel package will be used.
+Default is TRUE.}
 
-\item{log_restarts}{If TRUE, progress of each random restart will be logged to a text
-file in log_dir.}
+\item{log_restarts}{If TRUE, when nrestarts > 1 progress of each random restart will be 
+logged to a text file in log_dir. If FALSE and nrestarts > 1, progress will not be shown.
+If nrestarts = 1, progress will always be printed to the console.
+Default is FALSE.}
 
 \item{log_dir}{Directory for logging progress of random restarts.
 Default is the working directory.}
 
 \item{random_init}{The initial values for the MOReTreeS model are selected based
 on maximum likelihood estimates of the effect size at every level of the tree.
-If random_init = TRUE, some randomness will be added to these initial values.}
+If random_init = TRUE, some randomness will be added to these initial values.
+The default is FALSE, unless nrestarts > 1, in which case random_init will be set
+to TRUE and a warning message will be printed.}
 
 \item{random_init_vals}{If random_init = TRUE, 
 this is a list containing the following parameters for randomly permuting 
@@ -117,7 +126,8 @@ delta will have a normal random variate added to them with standard deviation eq
 delta_sd_frac multiplied by the absolute value of the initial value for delta either supplied in 
 initial_values or guessed using moretrees_init_logistic().}
 
-\item{maxiter}{Maximum number of iterations of the VI algorithm.}
+\item{maxiter}{Maximum number of iterations of the VI algorithm.
+Default is 5000.}
 }
 \value{
 A list containing the following elements:

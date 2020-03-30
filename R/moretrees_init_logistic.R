@@ -74,7 +74,7 @@ moretrees_init_logistic <- function(X, W, y, A,
                            mu = mu)
   } else {
     check <- is.list(vi_params$mu) &&
-      sapply(vi_params$mu, function(x) all.equal(dim(x), c(K, 1)))
+      sum(sapply(vi_params$mu, function(x) sum(dim(x) == c(K, 1)) == 2)) == p
     if (!check) stop("Incompatible initial value supplied for mu")
 
   }
@@ -88,7 +88,7 @@ moretrees_init_logistic <- function(X, W, y, A,
                               delta = delta)
   } else {
     check <- is.list(vi_params$delta) &&
-      sapply(vi_params$delta, function(x) all.equal(dim(x), c(m, 1)))
+      sum(sapply(vi_params$delta, function(x) sum(dim(x) == c(m, 1)) == 2)) == p
     if (!check) stop("Incompatible initial value supplied for delta")
   }
   if (random_init) {
@@ -143,7 +143,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     prob[prob < 0.01] <- 0.01
     u <- log(prob / (1 - prob))
     u <- u + rnorm(p) * random_init_vals$u_sd_frac * abs(u)
-    vi_params$prob <- moretrees::expit(u)
+    vi_params$prob <- moretrees:::expit(u)
   }
   if (is.null(vi_params[["a_t"]])) {
     vi_params$a_t <- numeric(Fg)
@@ -196,7 +196,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     hyperparams$eta <- abs(hyperparams$eta * 
         (1 + rnorm(length(hyperparams$eta)) * random_init_vals$eta_sd_frac))
   }
-  hyperparams$g_eta <- gfun(hyperparams$eta)
+  hyperparams$g_eta <- moretrees:::gfun(hyperparams$eta)
   
   # Sigma and Omega initial values ---------------------------------------------------
   if (is.null(vi_params[["tau_t"]])) {
@@ -208,7 +208,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     if (!check) stop("Incompatible initial value supplied for tau_t")
   }
   if (is.null(vi_params[["Sigma_inv"]])) {
-    xxT_g_eta <- lapply(X = outcomes_units, FUN = xxT_g_eta_fun,
+    xxT_g_eta <- lapply(X = outcomes_units, FUN = moretrees:::xxT_g_eta_fun,
                         xxT = xxT, g_eta = hyperparams$g_eta, K = K)
     vi_params$Sigma_inv <- lapply(X = 1:length(outcomes_nodes), 
                                   FUN = function(v, outcomes, x, K, tau_t) 2 * 
@@ -221,8 +221,7 @@ moretrees_init_logistic <- function(X, W, y, A,
   } else {
     check <- is.list(vi_params$Sigma_inv) &&
       sum(sapply(vi_params$Sigma_inv, is.matrix)) == p &&
-      sum(sapply(vi_params$Sigma_inv, function(x) all.equal(dim(x), c(K, K)))) == p &&
-      sum(sapply(vi_params$Sigma_inv, function(x) all.equal(t(x), x))) == p
+      sum(sapply(vi_params$Sigma_inv, function(x) sum(dim(x) == c(K, K)) == 2)) == p
     if (!check) stop("Incompatible initial value supplied for Sigma_inv")
   }
   if (is.null(vi_params[["Sigma"]])) {
@@ -230,8 +229,7 @@ moretrees_init_logistic <- function(X, W, y, A,
   } else {
     check <- is.list(vi_params$Sigma) &&
       sum(sapply(vi_params$Sigma, is.matrix)) == p &&
-      sum(sapply(vi_params$Sigma, function(x) all.equal(dim(x), c(K, K)))) == p &&
-      sum(sapply(vi_params$Sigma, function(x) all.equal(t(x), x))) == p
+      sum(sapply(vi_params$Sigma, function(x) sum(dim(x) == c(K, K)) == 2))
     if (!check) stop("Incompatible initial value supplied for Sigma")
   }
   if (is.null(vi_params[["Sigma_det"]])) {
@@ -258,8 +256,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     } else {
       check <- is.list(vi_params$Omega_inv) &&
         sum(sapply(vi_params$Omega_inv, is.matrix)) == p &&
-        sum(sapply(vi_params$Omega_inv, function(x) all.equal(dim(x), c(K, K)))) == p &&
-        sum(sapply(vi_params$Omega_inv, function(x) all.equal(t(x), x))) == p
+        sum(sapply(vi_params$Omega_inv, function(x) sum(dim(x) == c(K, K)) == 2)) == p
       if (!check) stop("Incompatible initial value supplied for Omega_inv")
     }
     if (is.null(vi_params[["Omega"]])) {
@@ -267,8 +264,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     } else {
       check <- is.list(vi_params$Omega) &&
         sum(sapply(vi_params$Omega, is.matrix)) == p &&
-        sum(sapply(vi_params$Omega, function(x) all.equal(dim(x), c(K, K)))) == p &&
-        sum(sapply(vi_params$Omega, function(x) all.equal(t(x), x))) == p
+        sum(sapply(vi_params$Omega, function(x) sum(dim(x) == c(K, K)) == 2)) == p
       if (!check) stop("Incompatible initial value supplied for Omega")
     }
     if (is.null(vi_params[["Omega_det"]])) {
