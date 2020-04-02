@@ -73,7 +73,7 @@ The full data likelihood is obtained by multiplying over all matched pairs.
 
 The MOReTreeS spike and slab prior enables data-driven discovery of groups of outcomes that have a similar relationship with PM$_{2.5}$. ## \citep{thomas2020estimating}
 Let $\mathcal{V}$ be the set of nodes on the tree of outcome relationships, and let $\mathcal{V}_L \subset \mathcal{V}$ be the set of leaves.
-Internal nodes $u \in \mathcal{V}$ represent outcome categories and leaf nodes $v \in \mathcal{V}_L$ individual outcomes.
+Internal nodes $u \in \mathcal{V}$ represent outcome categories and leaf nodes $v \in \mathcal{V}_L$ represent individual outcomes.
 Let $a(v)$ be the set of ancestors nodes of $v \in \mathcal{V}_L$, including $v$ itself.
 Finally, let $l_u \in \lbrace 1, \dots, L \rbrace$ indicate which hyperparameters apply to variables at node $u \in \mathcal{V}$ on the tree.
 We explain below what is meant by this.
@@ -92,7 +92,7 @@ s_u & \sim \mathcal{Bern}(\rho_{l_u}) \\
 </center>
 
 Here the 'node parameters' $s_u \boldsymbol{\gamma}_u$ and $\boldsymbol{\zeta}_u$ can be interpreted as the difference in the exposure effect for outcome category $u$ compared to its parent category.
-$\rho_l$, $\tau_l$, and $\omega_l$ for $l = 1, \dots, L$ are hyperparameters representing, respectively the prior probability of inclusion for node parameters $\boldsymbol{\gamma}_u$, the prior variance of all elements of $\boldsymbol{\gamma}_u$, and the prior variance of all elements of $\boldsymbol{\zeta}_u$ for $u$ such that $l_u = u$.
+$\rho_l$, $\tau_l$, and $\omega_l$ for $l = 1, \dots, L$ are hyperparameters representing, respectively, the prior probability of inclusion for node parameters $\boldsymbol{\gamma}_u$, the prior variance of all elements of $\boldsymbol{\gamma}_u$, and the prior variance of all elements of $\boldsymbol{\zeta}_u$ for $u$ such that $l_u = u$.
 The $l_u$ should be defined by the user in advance: they specify which nodes on the tree 'share' common hyperparameters $\rho_l$, $\tau_l$ and $\omega_l$.
 $\tau_l$ and $\omega_l$ are estimated via approximated empirical Bayes, discussed below; we place a conditionally conjugate beta hyperprior on $\rho_l$.
 
@@ -101,9 +101,13 @@ The coefficients $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ for a
 The result is that the prior probability that $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ are equal, meaning $v_1$ and $v_2$ are grouped together, depends on both on the set of nodes $d(v_1, v_2)$ that 'separate' the two leaf nodes $v_1$ and $v_2$ on the tree, as well as on the hyperparameters $\rho_l$.
 Specifically, conditional on the $\rho_l$,
 
-<center>
-$P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2} \vert \rho_1, \dots, \rho_L \right) = \prod_{l=1}^L (1 - \rho_l)^{\left\vert d(v_1, v_2) \cap \lbrace u: l_u = l \rbrace \right\vert}$.
-</center>
+$$P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2} \vert \rho_1, \dots, \rho_L \right) = \prod_{l=1}^L (1 - \rho_l)^{\left\vert d(v_1, v_2) \cap \lbrace u: l_u = l \rbrace \right\vert}.$$
+Let $n(v_1, v_2, l) = \left\vert d(v_1, v_2) \cap \lbrace u: l_u = l \rbrace \right\vert$.
+Integrating over the parameters $\rho_l$, we find:
+
+$$P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2}\right) = \prod_{l = 1}^L \left(\prod_{r = 0}^{n(v_1,v_2,l)} \dfrac{b_l + r}{a_l + b_l + r}\right)^{\mathbf{1}_{n > 0}\left(n(v_1,v_2,l)\right)}. $$
+This expression can be derived using the higher moments of the Beta distribution.
+
 
 # Fitting MOReTreeS models using `moretrees()`
 
@@ -124,7 +128,7 @@ The set of names of leaves of `tr` should be equal to the set of unique values i
 First, we use the function `moretrees::ccs_tree()` to create a tree, `tr` of class `igraph` from the `igraph` package.
 We then plot it using the `ggtree` package from bioconductor.
 
-```{r tree, eval = TRUE, cache = T, warning = FALSE}
+```{r tree, eval = FALSE, cache = T, warning = FALSE}
 library(moretrees)
 data("moretreesExampleEdgelist")
 library(igraph)
@@ -143,7 +147,7 @@ ggtree(tr, ladderize = F, layout = "slanted") +
 Next, we load the data and check that the unique values in `outcomes` are the same as the leaves of the tree.
 `moretrees()` will throw an error if the latter isn't true, but it's good practice to double-check before hand.
 
-```{r data, eval = TRUE, cache = T, warning = FALSE}
+```{r data, eval = FALSE, cache = T, warning = FALSE}
 data("moretreesExampleData")
 Xcase <- moretreesExampleData$Xcase
 Xcontrol <- moretreesExampleData$Xcontrol
@@ -158,7 +162,7 @@ setequal(leaves, unique(outcomes))
 
 We now fit the MOReTreeS model without adjustment for covariates.
 
-```{r mod1, eval = TRUE}
+```{r mod1, eval = FALSE}
 mod1 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                  outcomes = outcomes, tr = tr,
                  nrestarts = 1, print_freq = 500)
@@ -170,7 +174,7 @@ The option `print_freq` determines how frequently the algorithm's progress will 
 We can print the estimated odds ratios (or rate ratios, for a case-crossover model) for the groups discovered by MOReTreeS.
 The table also shows which outcomes belong to each group.
 
-```{r moretrees_est1, eval = TRUE}
+```{r moretrees_est1, eval = FALSE}
 est <- mod1$beta_moretrees
 outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
 knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
@@ -178,7 +182,7 @@ knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_g
 
 Finally, for comparison, we inspect the group-specific estimates obtained by running a classical CLR model on the data for each discovered group separately.
 
-```{r ml_est1, eval = TRUE}
+```{r ml_est1, eval = FALSE}
 est_ml <- mod1$beta_ml
 knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
 ```
@@ -188,7 +192,7 @@ knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = out
 Next, we fit the MOReTreeS model *with* covariate adjustment.
 For parameters that were estimated in the model *without* covariate adjustment, we use the final model values as initial values in the adjusted model.
 
-```{r mod2, eval = TRUE}
+```{r mod2, eval = FALSE}
 vi_params_init <- mod1$mod$vi_params[c("prob", "mu", "Sigma",
                                        "Sigma_inv", "Sigma_det",
                                        "tau_t", "a_t", "b_t")]
@@ -206,7 +210,7 @@ This time, the model ran for more than 11,000 iterations before converging, so i
 
 We now print the estimated odds ratios for the discovered groups *adjusted for the covariates in* `W`.
 
-```{r moretrees_est2, eval = TRUE}
+```{r moretrees_est2, eval = FALSE}
 est <- mod2$beta_moretrees
 outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
 knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
@@ -214,7 +218,7 @@ knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_g
 
 Again, we compare to the group-specific estimates obtained using CLR.
 
-```{r ml_est2, eval = TRUE}
+```{r ml_est2, eval = FALSE}
 est_ml <- mod2$beta_ml
 knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
 ```
