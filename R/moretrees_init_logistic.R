@@ -256,7 +256,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     } else {
       check <- is.list(vi_params$Omega_inv) &&
         sum(sapply(vi_params$Omega_inv, is.matrix)) == p &&
-        sum(sapply(vi_params$Omega_inv, function(x) sum(dim(x) == c(K, K)) == 2)) == p
+        sum(sapply(vi_params$Omega_inv, function(x) sum(dim(x) == c(m, m)) == 2)) == p
       if (!check) stop("Incompatible initial value supplied for Omega_inv")
     }
     if (is.null(vi_params[["Omega"]])) {
@@ -264,7 +264,7 @@ moretrees_init_logistic <- function(X, W, y, A,
     } else {
       check <- is.list(vi_params$Omega) &&
         sum(sapply(vi_params$Omega, is.matrix)) == p &&
-        sum(sapply(vi_params$Omega, function(x) sum(dim(x) == c(K, K)) == 2)) == p
+        sum(sapply(vi_params$Omega, function(x) sum(dim(x) == c(m, m)) == 2)) == p
       if (!check) stop("Incompatible initial value supplied for Omega")
     }
     if (is.null(vi_params[["Omega_det"]])) {

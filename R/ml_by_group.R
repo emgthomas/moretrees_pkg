@@ -53,13 +53,13 @@ ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups,
     if (return_theta) {
       theta_ml <- matrix(nrow = G, ncol = m * 3 + 1) %>%
         as.data.frame
+      cols <- sapply(1:m, 
+                     function(i) paste0(c("est", "cil", "ciu"), i), simplify = T) %>%
+        as.vector
+      names(theta_ml) <- c("group", cols)
+      theta_ml$group <- 1:G
+      theta_ml$outcomes <- outcome_groups
     }
-    cols <- sapply(1:m, 
-      function(i) paste0(c("est", "cil", "ciu"), i), simplify = T) %>%
-      as.vector
-    names(theta_ml) <- c("group", cols)
-    theta_ml$group <- 1:G
-    theta_ml$outcomes <- outcome_groups
   }
   for (g in 1:G) {
     which_i <- outcomes %in% outcome_groups[[g]]
