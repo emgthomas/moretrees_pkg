@@ -237,12 +237,16 @@ moretrees <- function(Xcase, Xcontrol,
   
   # Get maximum likelihood estimates by group for comparison
   if (get_ml) {
-    beta_ml <- ml_by_group(X = X, W = W, y = y, outcomes = outcomes,
-                           outcome_groups = betas$beta_moretrees$outcomes,
-                           ci_level = ci_level,
-                           family = "binomial")
+    ml <- ml_by_group(X = X, W = W, y = y, outcomes = outcomes,
+                      outcome_groups = betas$beta_moretrees$outcomes,
+                      ci_level = ci_level,
+                      family = "binomial",
+                      return_theta = TRUE)
+    beta_ml <- ml$beta_ml
+    theta_ml <- ml$theta_ml
   } else {
     beta_ml <- NULL
+    theta_ml <- NULL
   }
   
   # Return results
@@ -250,6 +254,7 @@ moretrees <- function(Xcase, Xcontrol,
               beta_moretrees = betas$beta_moretrees,
               beta_ml = beta_ml, 
               theta_est = theta_est,
+              theta_ml = theta_ml,
               mod = mod,
               mod_restarts = mod_restarts))
 }
