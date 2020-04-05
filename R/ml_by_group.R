@@ -38,6 +38,7 @@
 ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups,
                         return_ci = TRUE, ci_level, 
                         family, return_theta = FALSE) {
+  if (is.null(W)) return_theta <- FALSE
   G <- length(outcome_groups)
   K <- ncol(X)
   beta_ml <- matrix(nrow = G, ncol = K * 3 + 1) %>%
