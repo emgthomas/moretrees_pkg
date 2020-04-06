@@ -89,7 +89,7 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
     if (i > max_iter) {
       i <- max_iter
       cat(paste("Iteration", i, "complete.\n"))
-      cat("\nWarning: Maximum number of iterations reached!\n")
+      cat("\nWarning: Maximum number of iterations reached! Consider increasing max_iter.\n")
       break
     }
     

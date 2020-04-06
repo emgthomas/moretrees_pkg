@@ -3,9 +3,14 @@ title: "moretrees: an R package to fit Multi-Outcome Regression with Tree-Struct
 author: "Emma Thomas"
 date: "`r Sys.Date()`"
 output: 
+  # to generate latex file, uncomment below, then run render("./vignettes/moretrees.Rmd")
   rmarkdown::html_vignette:
+  # pdf_document:
     toc: true
     toc_depth: 2
+    number_sections: true
+    keep_tex: true
+bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{moretrees}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,37 +24,31 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Introduction
+# Introduction {#intro}
 
-The `moretrees` package fits Multi-Outcome Regression with Tree-structured Shrinkage (MOReTreeS) models to case-crossover and matched case-control data when being a 'case' can mean one of multiple related outcomes.
+The `moretrees` package fits Multi-Outcome Regression with Tree-structured Shrinkage (MOReTreeS) models to case-crossover and matched case-control data when being a 'case' can mean experiencing one of multiple related outcomes.
 MOReTreeS models require that these outcomes are related according to a known tree.
-For example, the outcomes might be diseases that can be classified using a hierarchical classification that can be expressed as a tree, as in the example below.
+For example, the outcomes might be multiple distinct cardiovascular diseases that can be labelled using a hierarchical, tree-like classification system, as in the worked example in Section 3 below.
+
 The MOReTreeS model simultaneously achieves three core functions:
 
 1. discovers *de novo* groups of outcomes that have a similar association with the exposure conditional on matching factors and covariates, with both the number and composition of the groups estimated from the data;
 1. estimates a group-specific measure of association with the exposure for each outcome group;
-1. performs `information sharing` across the outcomes by shrinking the coefficient estimates for different outcomes towards each other, with the degree of shrinkage determined by how related those outcomes are on the tree.
+1. performs `information sharing` across the outcomes by shrinking the coefficient estimates for different outcomes towards each other, with the degree of shrinkage determined by how closely related those outcomes are on the tree.
 
-The model is fit using variational inference (VI), a popular (and typically much faster) alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
+The model is fit using variational inference (VI), a fast alternative to Markov chain Monte Carlo (MCMC) for approximating posterior distributions of Bayesian models.
 
-This vignette has three main objectives:
+This vignette is divided into three sections.
+Section 2 provides details of the MOReTreeS model implemented by the package.
+Section 3 lays out the functionality of the `moretrees` package in a readable form and guides potential users through an example of fitting the model using the `moretrees()` function.
+Finally, Section 4 explains the VI algorithm used to fit the model.
+Section 4 is not essential reading for most users, but rather aims to provide sufficient detail about the algorithm that someone with knowledge of VI would be able to write their own code to fit the model.
 
-1. to detail the functionality of the `moretrees` package in a readable form;
-1. to guide potential users through typical usage of the `moretrees` package;
-1. to explain the VI algorithm used in sufficient detail that a user with knowledge of VI would be able replicate the code.
+# Model details {#model}
 
-`moretrees()` supports the following functionality:
-
-1. Fitting to matched case-control or case-crossover data: currently supports only one control per case;
-1. Multiple exposure types: `moretrees()` supports univariate, mulitvariate, and categorical exposures, as well as non-linear exposure effects;
-1. Control for confounding in regression models: confounders which would not be matched on can be controlled for in the regression model, with information about effect sizes shared across the outcomes;
-1. Hyperparameter estimation: the user need not specify the values of hyperparameters which are instead estimated via an approximate empirial Bayes scheme, as detailed below.
-
-# Model details
-
-We being by giving details of the model implemented by the `moretrees()` function.
-The model is very similar to the one presented in \cite{thomas2020estimating}, with extensions to allow for: (1) a multivariate exposure; (2) control for covariates in regression analyses, and; (3) more flexible hyperparameter specification.
-MOReTreeS priors can be used with a range of different outcome distributions or likelihoods; the `moretrees()` function currently implements the conditional logistic likelihood used in conditional logistic regression (CLR) analyses, the standard method for both matched case-control studies and case-crossover studies.
+We begin by giving details of the model implemented by the `moretrees` package.
+The model is very similar to the one presented in @thomas2020estimating, with extensions to allow for: (1) a multivariate exposure; (2) control for covariates in regression analyses, and; (3) more flexible hyperparameter specification.
+MOReTreeS priors can be used with a range of different outcome distributions or likelihoods; the `moretrees()` function implements the conditional logistic likelihood used in conditional logistic regression (CLR) analyses, the standard method for both matched case-control studies and case-crossover studies.
 We first define the CLR likelihood used in our study, and then the MOReTreeS prior.
 
 ## Likelihood
@@ -59,7 +58,7 @@ For outcome $v$ in $\mathcal{V}$, let $Y_{i,j}^{(v)}$ be a binary variable indic
 Let $\mathbf{x}_{i,j}^{(v)}$ be the exposure vector of length $k$ and $\mathbf{w}_{i,j}^{(v)}$ be a vector of covariates of length $m$.
 For notational convenience, we let $\mathbf{x}_i^{(v)} = \mathbf{x}_{i,1}^{(v)} - \mathbf{x}_{i,2}^{(v)}$ and $\mathbf{w}_i^{(v)} = \mathbf{w}_{i,1}^{(v)} - \mathbf{w}_{i,2}^{(v)}$.
 
-The conditional logistic likelihood for each matched pair is: ## \citep{maclure1991case}
+The conditional logistic likelihood for each matched pair is shown below [@maclure1991case].
 
 \begin{equation}
 \tag{1}
@@ -71,7 +70,7 @@ The full data likelihood is obtained by multiplying over all matched pairs.
 
 ## Prior
 
-The MOReTreeS spike and slab prior enables data-driven discovery of groups of outcomes that have a similar relationship with PM$_{2.5}$. ## \citep{thomas2020estimating}
+The MOReTreeS spike and slab prior enables data-driven discovery of groups of outcomes that have a similar relationship with PM$_{2.5}$ [@thomas2020estimating].
 Let $\mathcal{V}$ be the set of nodes on the tree of outcome relationships, and let $\mathcal{V}_L \subset \mathcal{V}$ be the set of leaves.
 Internal nodes $u \in \mathcal{V}$ represent outcome categories and leaf nodes $v \in \mathcal{V}_L$ represent individual outcomes.
 Let $a(v)$ be the set of ancestors nodes of $v \in \mathcal{V}_L$, including $v$ itself.
@@ -80,23 +79,22 @@ We explain below what is meant by this.
 
 The prior is:
 
-<center>
-$\begin{aligned}
+\begin{align*}
 \boldsymbol{\beta}_v & = \sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u \\
 \boldsymbol{\theta}_v & = \sum_{u \in a(v)} \boldsymbol{\zeta}_u \\
-s_u & \sim \mathcal{Bern}(\rho_{l_u}) \\
+s_u & \sim Bern(\rho_{l_u}) \\
 \boldsymbol{\gamma}_u & \sim \mathcal{MVN}\left(\boldsymbol{0},\tau_{l_u} I_k\right) \\
 \boldsymbol{\zeta}_u & \sim \mathcal{MVN} \left( \boldsymbol{0}, \omega_{l_u} I_m \right) \\
-\rho_{l} & \sim \mathcal{Beta}(a_l, b_l) \\
-\end{aligned}$
-</center>
+\rho_{l} & \sim Beta(a_l, b_l).
+\end{align*}
 
 Here the 'node parameters' $s_u \boldsymbol{\gamma}_u$ and $\boldsymbol{\zeta}_u$ can be interpreted as the difference in the exposure effect for outcome category $u$ compared to its parent category.
 $\rho_l$, $\tau_l$, and $\omega_l$ for $l = 1, \dots, L$ are hyperparameters representing, respectively, the prior probability of inclusion for node parameters $\boldsymbol{\gamma}_u$, the prior variance of all elements of $\boldsymbol{\gamma}_u$, and the prior variance of all elements of $\boldsymbol{\zeta}_u$ for $u$ such that $l_u = u$.
-The $l_u$ should be defined by the user in advance: they specify which nodes on the tree 'share' common hyperparameters $\rho_l$, $\tau_l$ and $\omega_l$.
-$\tau_l$ and $\omega_l$ are estimated via approximated empirical Bayes, discussed below; we place a conditionally conjugate beta hyperprior on $\rho_l$.
+The $l_u$ are fixed values from 1 through $L$ that specify which nodes on the tree share common hyperparameters $\rho_l$, $\tau_l$, and $\omega_l$.
+The default used by `moretrees()` is to have two sets of hyperparameters: one for all internal nodes ($l_u = 1$ for $u \in \mathcal{V} \backslash \mathcal{V}_L$), and one for all leaf nodes ($l_u = 2$ for $u \in \mathcal{V}_L$).
+$\tau_l$ and $\omega_l$ are estimated via approximate empirical Bayes as discussed below in Section 4.4; we place a conditionally conjugate beta hyperprior on $\rho_l$.
 
-The above hierarchical model leads to the formation of groups of outcomes with the same exposure effects by setting coefficients for different outcomes to be equal as follows.
+The above hierarchical model leads to the formation of groups of outcomes with the same exposure effects by fusing (setting equal) coefficients for different outcomes. This fusion process is achieved as follows.
 The coefficients $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ for any two outcomes $v_1, v_2 \in \mathcal{V}_L$ will be exactly equal if and only if $s_u = 0$ for all $u \in d(v_1, v_2)$, where $d(v_1, v_2) = (a(v_1) \cup a(v_2)) \backslash (a(v_1) \cap a(v_2))$ is the set of nodes that are ancestors of either $v_1$ or $v_2$ but not both.
 The result is that the prior probability that $\boldsymbol{\beta}_{v_1}$ and $\boldsymbol{\beta}_{v_2}$ are equal, meaning $v_1$ and $v_2$ are grouped together, depends on both on the set of nodes $d(v_1, v_2)$ that 'separate' the two leaf nodes $v_1$ and $v_2$ on the tree, as well as on the hyperparameters $\rho_l$.
 Specifically, conditional on the $\rho_l$,
@@ -108,12 +106,27 @@ Integrating over the parameters $\rho_l$, we find:
 $$P\left(\mathbf{\beta}_{v_1} = \mathbf{\beta}_{v_2}\right) = \prod_{l = 1}^L \left(\prod_{r = 0}^{n(v_1,v_2,l)} \dfrac{b_l + r}{a_l + b_l + r}\right)^{\mathbf{1}_{n > 0}\left(n(v_1,v_2,l)\right)}. $$
 This expression can be derived using the higher moments of the Beta distribution.
 
+## Posterior estimates
 
-# Fitting MOReTreeS models using `moretrees()`
+`moretrees` obtains posterior estimates for the exposure effects $\boldsymbol{\beta}_v$ in the same manner as described by @thomas2020estimating.
+Briefly, the `moretrees()` function returns estimates from the \emph{median probability model} that includes only those node variables with marginal posterior inclusion probability greater than 0.5 [@barbieri2004optimal].
+As discussed in the previous section, a node is included in the model if $s_u = 1$.
+Thus, a node will be included in our final model if the posterior probability that $s_u = 1$ is greater than 0.5.
 
-## Set up
+# `moretrees()`: functionality and usage {#code}
 
-We use a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $p = 11$ outcomes, an exposure with dimension $k=2$ and $m = 2$ covariates.
+## Functionality
+
+The `moretrees()` function fits MOReTrees models and supports the following functionality:
+
+1. Fitting MOReTreeS models to pair matched case-control or case-crossover data where each case is associated with exactly one outcome among a set of related outcomes;
+1. Multiple exposure types: `moretrees()` supports any exposure type by supplying appropriate design matrices for the cases and controls;
+1. Control for confounding in regression model: confounders which could not be matched on can be controlled for in the regression model; information about covariate effect sizes will be shared across the outcomes;
+1. Hyperparameter selection: the user need not specify the values of hyperparameters which are instead estimated via an approximate empirial Bayes scheme, as detailed in Section 4.4.
+
+## Worked example
+
+We illustrate use of the `moretrees()` function with a small simulated dataset, `moretreesCaseCrossover`, which has $n = 1000$ case-crossover pairs, $p = 11$ outcomes, an exposure with dimension $k = 2$, and $m = 2$ covariates.
 The data are stored as a list with the following elements:
 
 1. `Xcase`: an `n` by `k` matrix of exposure values for cases;
@@ -122,18 +135,22 @@ The data are stored as a list with the following elements:
 1. `Wcontrol`: the corresponding covariate matrix for matched controls;
 1. `outcomes`: a character vector of length `n` indicating which outcome was experienced by each case.
 
-The elements of `outcomes` are character strings representing cardiovascular diseases in category 7.4 (diseases of arteries, arterioles, and capillaries) in the multilevel Clinical Classifications Software (CCS) hierarchical disease classification system (CITE).
-The set of names of leaves of `tr` should be equal to the set of unique values in the `outcomes` vector.
+The elements of `outcomes` are character strings representing cardiovascular diseases in category 7.4 (diseases of arteries, arterioles, and capillaries) in the multilevel Clinical Classifications Software (CCS) hierarchical disease classification system [@healthcare2018clinical].
 
-First, we use the function `moretrees::ccs_tree()` to create a tree, `tr` of class `igraph` from the `igraph` package.
-We then plot it using the `ggtree` package from bioconductor.
+First, we use the function `moretrees::ccs_tree()` to create a tree, `tr`, of class `igraph` from the `igraph` package.
+The set of names of leaf nodes in `tr` should be equal to the set of unique values in the `outcomes` vector.
+We then plot the tree using the `ggtree` package from bioconductor.
 
-```{r tree, eval = FALSE, cache = T, warning = FALSE}
+```{r tree, eval = TRUE, cache = T, warning = FALSE, fig.height = 3, fig.width = 4, fig.align = 'center'}
 library(moretrees)
 data("moretreesExampleEdgelist")
 library(igraph)
 tr <- graph_from_edgelist(moretreesExampleEdgelist, directed = TRUE)
 # Plot tree
+# If needed, first install ggtree
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+# install.packages("BiocManager")
+# BiocManager::install("ggtree")
 library(ggtree)
 library(ggplot2)
 ggtree(tr, ladderize = F, layout = "slanted") + 
@@ -144,10 +161,9 @@ ggtree(tr, ladderize = F, layout = "slanted") +
   scale_y_reverse()
 ```
 
-Next, we load the data and check that the unique values in `outcomes` are the same as the leaves of the tree.
-`moretrees()` will throw an error if the latter isn't true, but it's good practice to double-check before hand.
+Next, we load the data, check that the unique values in `outcomes` are the same as the leaves of the tree (`moretrees()` will throw an error if the latter isn't true, but it's good practice to double-check before hand), and print the number of matched pairs per outcome.
 
-```{r data, eval = FALSE, cache = T, warning = FALSE}
+```{r data, eval = TRUE, cache = T, warning = FALSE}
 data("moretreesExampleData")
 Xcase <- moretreesExampleData$Xcase
 Xcontrol <- moretreesExampleData$Xcontrol
@@ -156,13 +172,17 @@ Wcontrol <- moretreesExampleData$Wcontrol
 outcomes <- moretreesExampleData$outcomes
 leaves <- names(V(tr)[degree(tr, mode = "out") == 0])
 setequal(leaves, unique(outcomes))
+knitr::kable(table(outcomes))
 ```
+
+We see that there are between 68 and 118 matched pairs per outcome.
+Note that each case is associated with *exactly one* outcome; the model assumes cases do not experience multiple outcomes.
 
 ## Model without covariate adjustment
 
 We now fit the MOReTreeS model without adjustment for covariates.
 
-```{r mod1, eval = FALSE}
+```{r mod1, eval = TRUE}
 mod1 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                  outcomes = outcomes, tr = tr,
                  nrestarts = 1, print_freq = 500)
@@ -171,28 +191,33 @@ mod1 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
 We see that the model ran for at least 2000 iterations before converging at a tolerance of `tol = 1E-8` (the default). 
 The option `print_freq` determines how frequently the algorithm's progress will be printed.
 
-We can print the estimated odds ratios (or rate ratios, for a case-crossover model) for the groups discovered by MOReTreeS.
-The table also shows which outcomes belong to each group.
+We now print the estimated odds ratios (or rate ratios, for a case-crossover model) for the groups discovered by MOReTreeS.
+The table also shows which outcomes belong to each group and the number of observations associated with outcomes in each group.
 
-```{r moretrees_est1, eval = FALSE}
+```{r moretrees_est1, eval = TRUE}
 est <- mod1$beta_moretrees
 outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
-knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), 
+                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
+             digits = 2)
 ```
 
 Finally, for comparison, we inspect the group-specific estimates obtained by running a classical CLR model on the data for each discovered group separately.
 
-```{r ml_est1, eval = FALSE}
+```{r ml_est1, eval = TRUE}
 est_ml <- mod1$beta_ml
-knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), 
+                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
+             digits = 2)
 ```
 
 ## Model with covariate adjustment
 
 Next, we fit the MOReTreeS model *with* covariate adjustment.
 For parameters that were estimated in the model *without* covariate adjustment, we use the final model values as initial values in the adjusted model.
+This approach may be useful for speeding up models with covariates, which can be slower to converge than unadjusted models.
 
-```{r mod2, eval = FALSE}
+```{r mod2, eval = TRUE}
 vi_params_init <- mod1$mod$vi_params[c("prob", "mu", "Sigma",
                                        "Sigma_inv", "Sigma_det",
                                        "tau_t", "a_t", "b_t")]
@@ -202,25 +227,42 @@ mod2 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                   vi_params_init = vi_params_init,
                   hyperparams_init = hyperparams_init,
                   outcomes = outcomes, tr = tr,
-                  nrestarts = 1, print_freq = 1000,
-                  max_iter = 5E4)
+                  nrestarts = 1, print_freq = 1000)
 ```
 
-This time, the model ran for more than 11,000 iterations before converging, so it was necessary to increase `max_iter` to accommodate this (the default is `max_iter = 5000`). 
+The warning indicates that the default maximum number of iterations, `max_iter = 5000`, was reached before the model converged.
+We therefore increase `max_iter` and run the model again, using as new starting values the final values from the run which failed to converge.
 
-We now print the estimated odds ratios for the discovered groups *adjusted for the covariates in* `W`.
+```{r mod2_2, eval = TRUE}
+vi_params_init <- mod2$mod$vi_params
+hyperparams_init <- mod2$mod$hyperparams
+mod2 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+                  Wcase = Wcase, Wcontrol = Wcontrol,
+                  vi_params_init = vi_params_init,
+                  hyperparams_init = hyperparams_init,
+                  outcomes = outcomes, tr = tr,
+                  nrestarts = 1, print_freq = 1000,
+                  max_iter = 10000)
+```
 
-```{r moretrees_est2, eval = FALSE}
+The model has now converged.
+Next, we print the estimated odds ratios for the discovered groups *adjusted for the covariates in* `W`.
+
+```{r moretrees_est2, eval = TRUE}
 est <- mod2$beta_moretrees
 outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
-knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), 
+                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
+             digits = 2)
 ```
 
 Again, we compare to the group-specific estimates obtained using CLR.
 
-```{r ml_est2, eval = FALSE}
+```{r ml_est2, eval = TRUE}
 est_ml <- mod2$beta_ml
-knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), "outcomes" = outcome_groups, "n_obs" = est$n_obs), digits = 2)
+knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), 
+                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
+             digits = 2)
 ```
 
 
@@ -234,7 +276,7 @@ These restarts may converge to different local optima; if so, the "best" restart
 Here, we use the initial values from `mod2` with some randomness added for each restart.
 
 The unevaluated code chunk below illustrates how to register a parallel backend for running three random restarts on three cores.
-When `nrestarts > 1`, `moretrees()` runs the restarts on multiple cores by default.
+When `nrestarts > 1`, `moretrees()` attempts to run the restarts on multiple cores by default.
 To prevent this behaviour and run the restarts on one core, use the option `parallel = FALSE`.
 The progress of restart `i` will be logged to a text file `restart_logs/restart_i_log.txt` which is deleted at the end of the run. 
 `moretrees` returns the results from the 'best' restart, and by default stores the results from the other restarts in the list item `mod_restarts`.
@@ -260,19 +302,20 @@ print(c(mod3$mod$hyperparams$ELBO,
   digits = 8)
 ```
 
-# Details of variational inference algorithm
+# Details of variational inference algorithm {#algo}
 
 VI is a method for approximating the posterior distribution of a Bayesian model.
 This is achieved by minimizing the "distance" between a pre-specified family of probability distributions $q$ and the true posterior $\pi$, where distance is typically defined as the Kullback-Leibler divergence $K(q || \pi)$.
 Using this technique, VI finds a *deterministic* approximation for $\pi$, in contrast to MCMC which attempts to sample from $\pi$.
-A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see Blei 2017 (CITE).
+A detailed introduction to VI is beyond the scope of this vignette; for an accessible introduction for statisticians, see @blei2017variational.
+
 This section of the vignette is *not* required reading.
 Rather, it is intended for readers with some knowledge of variational Bayes who may wish to verify the details of the VI algorithm used by `moretrees`.
 
 ## Preliminaries
 
-We assume only that the variational approximation $q$ factorizes as $q\left(\boldsymbol{\gamma},\mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) =  \prod_{u \in \mathcal{V}} q \left( \boldsymbol{\theta}_u \right) q\left(\boldsymbol{\gamma}_u, s_u \right) \prod_{l=1}^L q(\rho_l)$, where $\boldsymbol{\gamma}$, $\mathbf{s}$, $\boldsymbol{\theta}$, and $\boldsymbol{\rho}$ are vectors containing all $\boldsymbol{\gamma}_u$, $\mathbf{s}_u$, $\boldsymbol{\theta}_u$ and $\boldsymbol{\rho}_l$ respectively.
-Rather than minimizing $K(q || \pi)$, which depends on the intractable posterior $\pi$, we maximize a quantity known as the evidence lower bound (ELBO) $\mathcal{E}(q)$, which is equal to $- K(q || \pi)$ up to an additive constant that does not depend on $q$:
+We take a mean field VI apprach and assume that the variational approximation $q$ factorizes as $q\left(\boldsymbol{\gamma},\mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) =  \prod_{u \in \mathcal{V}} q \left( \boldsymbol{\theta}_u \right) q\left(\boldsymbol{\gamma}_u, s_u \right) \prod_{l=1}^L q(\rho_l)$, where $\boldsymbol{\gamma}$, $\mathbf{s}$, $\boldsymbol{\theta}$, and $\boldsymbol{\rho}$ are vectors containing all $\boldsymbol{\gamma}_u$, $\mathbf{s}_u$, $\boldsymbol{\theta}_u$ and $\boldsymbol{\rho}_l$ respectively.
+Rather than minimizing $K(q || \pi)$, which depends on the intractable posterior $\pi$, we maximize a quantity known as the evidence lower bound (ELBO), $\mathcal{E}(q)$, which is equal to $- K(q || \pi)$ up to an additive constant that does not depend on $q$:
 
 \begin{equation}
 \tag{2}
@@ -283,49 +326,48 @@ where $f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol
 The `moretrees` packages uses a co-ordinate ascent variational inference (CAVI) algorithm to maximize $\mathcal{E}(q)$ in $q$.
 However, attempting to maximize $\mathcal{E}(q)$ directly would lead to intractable updates due to the logistic form of the likelihood in Equation 1.
 We therefore replace this likelihood in the expression for $\mathcal{E}(q)$ with a quadratic approximation that leads to tractable updates in the CAVI algorithm.
-Here, we state the result; for a derivation, see CITATIONS.
+This approach to VI with a logistic likelihood was first proposed by @jaakkola2000bayesian.
+Here, we state the result; see @bishop2016pattern [Section 10.6] for a detailed derivation.
 
 First, the joint density of data and parameters is:
 
-<center>
-$\begin{aligned}
+\begin{align*}
 f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) 
 & = \prod_{v \in \mathcal{V}_l} \prod_{i = 1}^{n_v} \left(1 + \exp \left[-\left(\sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u^T \mathbf{x}_{i}^{(u)} + \boldsymbol{\theta}_u^T \mathbf{w}_i^{(u)} \right) \right] \right)^{-1} \\
 & \times \prod_{u \in \mathcal{V}} \rho_{l_u}^{s_u} (1-\rho_{l_u})^{1-s_u} \dfrac{1}{\left(2\pi\tau_{l_u}\right)^{k/2}} \exp\left[-\dfrac{\boldsymbol{\gamma}_u^T\boldsymbol{\gamma}_u}{2\tau_{l_u}}\right] \\
 & \times \prod_{u \in \mathcal{V}} \dfrac{1}{\left(2\pi\omega_{l_u}\right)^{m/2}} \exp\left[-\dfrac{\boldsymbol{\theta}_u^T\boldsymbol{\theta}_u}{2\omega_{l_u}}\right] \\
 & \times \prod_{l=1}^L \dfrac{\rho_l^{a_l -1} (1 - \rho_l)^{b_l - 1}}{\mathcal{B}(a_l, b_l)}.
-\end{aligned}$
-</center>
+\end{align*}
 
 Next, let
 
 $$r_i^{(v)} = \sum_{u \in a(v)} s_u \boldsymbol{\gamma}_u^T \mathbf{x}_{i}^{(u)} + \boldsymbol{\theta}_u^T \mathbf{w}_i^{(u)}.$$
 
-Then the likelihood contribution from a single matched pair can lower-bounded as follows:
-<center>
-$\begin{aligned}
+Then a lower bound for the likelihood contribution from a single matched pair is [@jaakkola2000bayesian]:
+\begin{align*}
      \left(1 + \exp(-r_i^{(v)}) \right)^{-1}
     & \geq \sigma(\eta_i^{(v)}) \exp \left[ r_i^{(v)} - \left(r_i^{(v)} + \eta_i^{(v)} \right) /2 -g(\eta_i^{(v)}) \left[r_i^{(v)2} - \eta_i^{(v)2} \right] \right] \\
     & := h\left(\eta_i^{(v)}, r_i^{(v)} \right).
-\end{aligned}$
-</center>
+\end{align*}
 
 where $\sigma(x) = (1 + e^{-x})^{-1}$ and $g(x) = \dfrac{1}{2x}(\sigma(x) - 1/2)$.
-$\eta_i^{(v)}$ is an introduced variational parameter.
+This inequality hold for all values of $\eta_i^{(v)}$, an introduced variational parameter.
 
 Let $h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) = \prod_{v \in \mathcal{V}_L} \prod_{i=1}^{n_v} h\left(\eta_i^{(v)}, r_i^{(v)} \right)$.
 We get the following approximation to the joint density of data and parameters:
 
-\begin{equation}
+\begin{equation*}
 f \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \geq h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right)
-\end{equation}
+\end{equation*}
+
 where $\pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right)$ is the prior.
 We ensure this lower bound is as tight as possible by maximizing it in $\boldsymbol{\eta}$ at every step.
 
-Replace the joint density of data and parameters in Equation 2 with the above lower bound gives the following approximation to the ELBO:
-\begin{align}
+Replacing the joint density of data and parameters in Equation 2 with the above lower bound gives the following approximation to the ELBO:
+
+\begin{align*}
 \mathcal{E}^*(q) & :=  E_{q} \left[\log h\left(\boldsymbol{\eta}, \boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \pi \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] - E_{q} \left[\log q \left(\boldsymbol{\gamma}, \mathbf{s}, \boldsymbol{\theta}, \boldsymbol{\rho} \right) \right] \leq \mathcal{E}(q).
-\end{align}
+\end{align*}
 
 ## Co-ordinate ascent variational inference algorithm
 
@@ -415,14 +457,17 @@ This gives the following hyperparameter updates:
 \omega_l^{(t)} & = \dfrac{\sum_{u: l_u = u} E_{q} \left[ \boldsymbol{\theta}_u^T \boldsymbol{\theta}_u \right]}{\sum_{u: l_u = u} m}.
 \end{align*}
 
-This convenient technique has been used elsewhere (CITATIONS).
-It is particularly useful in the case of estimating the variance parameters $\tau_l$ and $\omega_l$, since in the absence of prior information, specifying good non-informative priors for variance parameters, such as those recommended by Gelman (CITE), would require breaking the conditional conjugacy that leads to closed-form updates in the VI algorithm.
+This convenient technique has been used elsewhere [@blei2003latent; @khan2010variational].
+It is particularly useful in the case of estimating the variance parameters $\tau_l$ and $\omega_l$, since in the absence of prior information, specifying good non-informative priors for variance parameters, such as those recommended by @gelman2006prior, would require breaking the conditional conjugacy that leads to closed-form updates in the VI algorithm.
 
 Ideally, one would find the optimal VI parameters after every hyperparameter update by allowing the algorithm to converge while keeping the hyperparameters fixed.
 The hyperparameters would then be updated again, and this process would be repeated until convergence of both the VI parameters and hyperparameters.
 However, in practice this can be too time consuming; as an alternative, we set a maximum of `update_hyper_freq` VI updates between hyperparameter updates.
-The default vaue is `update_hyper_freq = 50`; if the algorithm is converging slowly, either increasing or decreasing this value may help.
+The default value is `update_hyper_freq = 50`; if the algorithm is converging slowly, either increasing or decreasing this value may help.
 
 We also allow a different convergence tolerance, `tol_hyper`, when comparing $\mathcal{E}^*(q)$ between consecutive hyperparameter updates.
-If our aim in selecting hyperparameters is merely to identify 'good enough' values, it may be acceptable to set `tol_hyper` $<$ `tol`, the tolerance for the VI parameters.
+The algorithm is considered to have converged when the difference in $\mathcal{E}^*(q)$ between consecutive hyperparameter updates is less than `tol_hyper` \emph{and} the difference between the last two variational parameter updates is less than `tol`.
+If our aim in selecting hyperparameters is merely to identify 'good enough' values, it may be acceptable to set `tol_hyper` $<$ `tol`.
 Because convergence of the hyperparameters can be slow, this also allows us to speed up convergence of the algorithm overall.
+
+# References
