@@ -4,9 +4,9 @@
 \alias{spike_and_slab_logistic_moretrees}
 \title{Group spike and slab variable selection with Gaussian outcome}
 \usage{
-spike_and_slab_logistic_moretrees(dsgn, initial_values, random_init,
-  random_init_vals, tol, tol_hyper, max_iter, print_freq,
-  update_hyper_freq, hyper_fixed)
+spike_and_slab_logistic_moretrees(dsgn, initial_values, vi_params_init,
+  hyperparams_init, random_init, random_init_vals, tol, tol_hyper,
+  max_iter, print_freq, update_hyper_freq, hyper_fixed)
 }
 \arguments{
 \item{dsgn}{A list containing all data elements needed for the algorithm.}

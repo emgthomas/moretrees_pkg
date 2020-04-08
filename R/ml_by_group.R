@@ -87,11 +87,9 @@ ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups,
         theta_ml[g, paste0("cil", 1:m)] <- beta_ml_ci[(K + 1):(K + m) , 1]
         theta_ml[g, paste0("ciu", 1:m)] <- beta_ml_ci[(K + 1):(K + m) , 2]
       }
+    } else {
+      theta_ml <- NULL
     }
   }
-  if (return_theta) {
-    return(list(beta_ml = beta_ml, theta_ml = theta_ml))
-  } else {
-    return(beta_ml)
-  }
+  return(list(beta_ml = beta_ml, theta_ml = theta_ml))
 }

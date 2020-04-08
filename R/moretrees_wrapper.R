@@ -11,6 +11,7 @@
 #' 
 #' All the details go here!
 #' 
+#' @import Rcpp
 #' @export
 #' @useDynLib moretrees
 #' 

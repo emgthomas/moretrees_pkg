@@ -8,13 +8,15 @@
 Tree-structured Shrinkage (MOReTreeS)}
 \usage{
 moretrees(Xcase, Xcontrol, Wcase = NULL, Wcontrol = NULL, outcomes, tr,
-  initial_values = NULL, ci_level = 0.95, get_ml = TRUE,
-  update_hyper_freq = 50, print_freq = 50, hyper_fixed = NULL,
-  tol = 1e-08, tol_hyper = 1e-04, max_iter = 5000, nrestarts = 3,
+  vi_params_init = list(), hyperparams_init = list(),
+  ci_level = 0.95, get_ml = TRUE, update_hyper_freq = 50,
+  print_freq = 50, hyper_fixed = NULL, tol = 1e-08,
+  tol_hyper = 1e-04, max_iter = 5000, nrestarts = 3,
   keep_restarts = TRUE, parallel = TRUE, log_restarts = FALSE,
   log_dir = ".", random_init = FALSE,
   random_init_vals = list(omega_lims = c(0.5, 1.5), tau_lims = c(0.5,
-  1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2, delta_sd_frac = 0.2))
+  1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2, delta_sd_frac = 0.2, u_sd_frac
+  = 0.2))
 }
 \arguments{
 \item{Xcase}{An n x K matrix of exposure data for cases, where K is the dimension of the exposure.
@@ -124,7 +126,12 @@ initial_values or guessed using moretrees_init_logistic().
 1. delta_sd_frac: a value between 0 and 1. The initial values for the exposure effects
 delta will have a normal random variate added to them with standard deviation equal to 
 delta_sd_frac multiplied by the absolute value of the initial value for delta either supplied in 
-initial_values or guessed using moretrees_init_logistic().}
+initial_values or guessed using moretrees_init_logistic().
+1. u_sd_frac: a value between 0 and 1. The initial value for the node inclusion probabilities
+will first be transformed to the log odds scale to obtain u. A normal random variate will be
+added to u with standard deviation eqaul to u_sd_frac multiplied by the absolute value of the
+initial value for u either supplied by the user or guessed using moretrees_init_logistic().
+u will then be transformed back to the probability scale.}
 
 \item{maxiter}{Maximum number of iterations of the VI algorithm.
 Default is 5000.}
