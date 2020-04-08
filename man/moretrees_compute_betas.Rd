@@ -6,7 +6,7 @@
 \code{moretrees_compute_betas} Computes MOReTreeS estimates and credible
   intervals for exposure effects from model output}
 \usage{
-moretrees_compute_betas(mod, ci_level, A_leaves)
+moretrees_compute_betas(mod, ci_level, A_leaves, outcomes)
 }
 \arguments{
 \item{mod}{List containing outputs from spike and slab VI algorithm}
@@ -32,7 +32,8 @@ NA
 
 \seealso{
 Other MOReTreeS functions: \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_matrix}},
+  \code{\link{moretrees_design_tree}},
+  \code{\link{moretrees_init_logistic}},
   \code{\link{moretrees}}
 }
 \concept{MOReTreeS functions}

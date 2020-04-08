@@ -20,7 +20,12 @@ Imports:
     data.table (>= 1.12.6),
     stringr (>= 1.4.0),
     magrittr (>= 1.5),
-    doParallel (>= 1.0.15)
+    doParallel (>= 1.0.15),
+    Rcpp (>= 1.0.3),
+    R.utils (>= 2.9.2)
 RoxygenNote: 6.1.1
 Suggests: 
-    testthat
+    testthat,
+    ggtree (>= 2.0.1)
+LinkingTo: 
+    Rcpp

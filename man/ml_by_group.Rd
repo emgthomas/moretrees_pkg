@@ -7,7 +7,8 @@
   and slab prior. The posterior is approximated via variational inference.
   This function returns coefficient estimates and 95% credible intervals.}
 \usage{
-ml_by_group(X, W = NULL, y, outcomes, outcome_groups, ci_level, family)
+ml_by_group(X, W = NULL, y, outcomes, outcome_groups, return_ci = TRUE,
+  ci_level, family, return_theta = FALSE)
 }
 \arguments{
 \item{X}{An n x K matrix of exposure data, where K is the dimension of the exposure.
@@ -26,11 +27,15 @@ If family = "gaussian", y must be a numeric vector containing continuous data.}
 \item{outcome_groups}{A list of length G, where each element is a character vector
 indiciating which outcomes belong to that group.}
 
+\item{return_ci}{Get confidence intervals? Default = TRUE}
+
 \item{ci_level}{A number between 0 and 1 giving the desired credible interval.
 For example, ci_level = 0.95 (the default) returns a 95% credible interval.}
 
 \item{family}{A string specifying the distribution of the outcomes: 
 either "bernoulli" (for classification) or "gaussian" (for regression)}
+
+\item{return_theta}{Return ML estimates for theta? Default = FALSE}
 }
 \value{
 A list containing the following elements:
@@ -46,10 +51,6 @@ All the details go here!
 }
 
 \seealso{
-Other spike and slab functions: \code{\link{compute_betas}},
-  \code{\link{compute_thetas}},
-  \code{\link{spike_and_slab_logistic}},
-  \code{\link{spike_and_slab_normal}},
-  \code{\link{spike_and_slab}}
+Other spike and slab functions: \code{\link{spike_and_slab_logistic_moretrees}}
 }
 \concept{spike and slab functions}

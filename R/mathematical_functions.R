@@ -39,3 +39,31 @@ gfun <- function(x) {
   # needed for normal approx to logistic likelihood
   (expit(x) - 1 / 2) / (2 * x)
 }
+
+xxT_g_eta_fun <- function(units, xxT, g_eta, K) {
+  vec <- g_eta[units] %*% xxT[units, ]
+  mat <- matrix(0, nrow = K, ncol = K)
+  mat[lower.tri(mat, diag = T)] <- vec
+  mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)] 
+  return(mat)
+}
+
+xxT_ss_fun <- function(groups, dat) {
+  X_g <- dat[ , groups, drop = F]
+  if (ncol(X_g) == 1) {
+    xxT <- X_g ^ 2
+  } else {
+    xxT <- rowOuterProds(X_g)
+  }
+  return(xxT)
+}
+
+xxT_g_eta_fun_ss <- function(xxT, K, g_eta) {
+  vec <- g_eta %*% xxT
+  mat <- matrix(0, nrow = K, ncol = K)
+  mat[lower.tri(mat, diag = T)] <- vec
+  mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)] 
+  return(mat)
+}
+
+quadFormByRow <- function(Sigma, X) rowSums(tcrossprod(X, Sigma) * X)

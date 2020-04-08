@@ -10,6 +10,7 @@
 #' @section Details
 #' 
 #' @export
+#' @importFrom magrittr %>%
 #' @param group character string specifying that only codes beginning with group 
 #' will be included in tree The default is NULL (returns full tree of CCS codes)
 #' @return A list containing the following elements:
@@ -63,13 +64,26 @@ ccs_tree <- function(group = NULL) {
     group_length <- length(stringr::str_split(group, "\\.")[[1]])
     group_lvl <- paste0("l", group_length)
     ccs <- ccs[ccs[ , group_lvl] == group, ]
+  } else {
+    ccs <- cbind(l0 = "0", ccs)
+    group_length <- 0
   }
-  if (group_length > 1) {
-    ccs <- ccs[ , sapply(group_length:4, function(x) paste0("l", x))]
+  
+  # Add zeros
+  ccs_zeros <- ccs
+  for (i in 1:nrow(ccs_zeros)) {
+    which_zero <- which(ccs_zeros[i, ] == " ")
+    for (j in sort(which_zero)) {
+      ccs_zeros[i, j] <- paste0(ccs_zeros[i, j - 1], ".0")
+    }
   }
   
   # Make tree
-  ccs_mat <- as.matrix(ccs)
+  ccs_mat <- ccs_zeros
+  if (group_length > 1) {
+    ccs_mat <- ccs_mat[ , sapply(group_length:4, function(x) paste0("l", x))]
+  }
+  ccs_mat <- as.matrix(ccs_mat)
   edges <- ccs_mat[ , c(1, 2)]
   if (ncol(ccs_mat) > 2) {
     for (i in 3:ncol(ccs_mat)) {
@@ -84,18 +98,25 @@ ccs_tree <- function(group = NULL) {
   igraph::V(tr)$leaf[igraph::V(tr) %in% leaves] <- TRUE
   
   # ICD mapping
+  ccs$id <- 1:nrow(ccs)
+  names(ccs_zeros) <- sapply(names(ccs_zeros), function(nm) paste0(nm, "_0"))
+  ccs_zeros$id <- 1:nrow(ccs)
   ccs$keep <- T
-  ccs_icd <- merge(ccs_icd, ccs, by = names(ccs)[-ncol(ccs)],
+  ccs_icd <- merge(ccs_icd, ccs, by = c("l1", "l2", "l3", "l4"),
                    all.x = T, sort = FALSE)
   ccs_icd <- subset(ccs_icd, keep)
+  ccs_icd <- merge(ccs_icd, ccs_zeros, by = "id",
+                   all.x = T, sort = FALSE)
   ccs_icd$keep <- NULL
+  ccs_icd$id <- NULL
   for (i in 2:4) {
     nm <- paste0("l", i)
     nm_p <- paste0("l", i - 1)
     ccs_icd[ccs_icd[ , nm] == " ", nm] <- ccs_icd[ccs_icd[ , nm] == " ", nm_p]
   }
-  ccs_icd <- ccs_icd[ , c("icd", "l4")]
-  names(ccs_icd)[names(ccs_icd) == "l4"] <- "ccs"
-
+  ccs_icd <- ccs_icd[ , c("icd", "l4", "l4_0")]
+  names(ccs_icd)[names(ccs_icd) == "l4"] <- "ccs_original"
+  names(ccs_icd)[names(ccs_icd) == "l4_0"] <- "ccs_added_zeros"
+  
   return(list(tr = tr, ccs_icd_mapping = ccs_icd))
 }
