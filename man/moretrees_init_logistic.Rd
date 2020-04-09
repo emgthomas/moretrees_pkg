@@ -11,11 +11,16 @@ moretrees_init_logistic(X, W, y, A, outcomes_units, outcomes_nodes,
   random_init, random_init_vals)
 }
 \arguments{
-\item{vi_params_init}{A list with any starting values supplied by the user for
-VI parameters. NULL values will be filled in.}
+\item{X, W, y, A, outcomes_units, outcomes_nodes, ancestors, levels}{outputs from 
+\code{moretrees_design_tree}}
 
-\item{hyperparams_init}{A list with any starting values supplied by the user for
-hyperparameters. NULL values will be filled in.}
+\item{xxT, wwT}{computed from \code{X} and \code{W} in \code{spike_and_slab_logisitic_moretrees()}}
+
+\item{vi_params, hyperparams}{lists of parameters}
+
+\item{hyper_fixed}{list of fixed hyperparameters}
+
+\item{random_init, random_init_vals}{see \code{moretrees()} documentation}
 }
 \value{
 A list containing starting values for both VI and hyper parameters

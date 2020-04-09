@@ -40,7 +40,6 @@
 #' integer values from 1 to max(levels), where the values indicate groups of nodes
 #' that share common hyperparameters rho[f], tau[f], and omega[f], where f is the value
 #' in levels.
-#' @examples
 #' @family Data processing functions
 
 moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {

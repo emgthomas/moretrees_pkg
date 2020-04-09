@@ -8,51 +8,50 @@
 Tree-structured Shrinkage (MOReTreeS) models}
 \usage{
 moretrees(Xcase, Xcontrol, Wcase = NULL, Wcontrol = NULL, outcomes, tr,
-  vi_params_init = list(), hyperparams_init = list(),
   ci_level = 0.95, get_ml = TRUE, update_hyper_freq = 50,
   print_freq = 50, hyper_fixed = NULL, tol = 1e-08,
   tol_hyper = 1e-04, max_iter = 5000, nrestarts = 3,
   keep_restarts = TRUE, parallel = TRUE, log_restarts = FALSE,
-  log_dir = ".", random_init = FALSE,
-  random_init_vals = list(omega_lims = c(0.5, 1.5), tau_lims = c(0.5,
-  1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2, delta_sd_frac = 0.2, u_sd_frac
-  = 0.2))
+  log_dir = ".", vi_params_init = list(), hyperparams_init = list(),
+  random_init = FALSE, random_init_vals = list(omega_lims = c(0.5,
+  1.5), tau_lims = c(0.5, 1.5), eta_sd_frac = 0.2, mu_sd_frac = 0.2,
+  delta_sd_frac = 0.2, u_sd_frac = 0.2))
 }
 \arguments{
-\item{Xcase}{An n x K matrix of exposure data for cases, where K is the dimension of the exposure.
-Grouping of the outcomes is based on their associations with variables in Xcase.
-Rows of Xcase correspond to inividual cases, columns correspond to variables.}
+\item{Xcase}{An \code{n} x \code{K} matrix of exposure data for cases, where \code{K} is the dimension of the exposure.
+Grouping of the outcomes is based on their associations with variables in \code{Xcase}.
+Rows of \code{Xcase} correspond to inividual cases, columns correspond to variables.}
 
-\item{Xcontrol}{An n x K matrix of exposure data for controls; row i in Xcontrol is the matched
-control for case i.}
+\item{Xcontrol}{An \code{n} x \code{K} matrix of exposure data for controls; row \code{i} in \code{Xcontrol} is the matched
+control for case \code{i}.}
 
-\item{Wcase}{An n x m matrix of covariate data for cases, where m is the dimension of the exposure.
+\item{Wcase}{An \code{n} x \code{m} matrix of covariate data for cases, where m is the dimension of the exposure.
 Coefficients for these variables do not affect grouping of the outcomes.
-Rows of Wcase correspond to inividual cases, columns correspond to variables.}
+Rows of \code{Wcase} correspond to inividual cases, columns correspond to variables.}
 
-\item{Wcontrol}{An n x m matrix of covariate data for controls; row i in Wcontrol is the matched
-control for case i.}
+\item{Wcontrol}{An \code{n} x \code{m} matrix of covariate data for controls; row \code{i} in \code{Wcontrol} is the matched
+control for case \code{i}.}
 
-\item{outcomes}{Character vector of length n. outcomes[i] is a string indicating the 
-outcome experienced by unit i.}
+\item{outcomes}{Character vector of length \code{n}. \code{outcomes[i]} is a string indicating the 
+outcome experienced by unit \code{i}.}
 
-\item{tr}{A directed igraph object. This is a tree representing the relationships
+\item{tr}{A directed \code{igraph} object. This is a tree representing the relationships
 among the outcomes. The leaves represent individual outcomes, and internal nodes
 represent outcome categories consisting of their leaf descendants. All nodes
-of tr must have unique names as given by names(V(tr)). The names of the leaves must 
-be equal to the unique elements of outcomes. The vertices of tr, V(tr), may have 
-an attribute 'levels' containing integer values from 1 to max(V(tr)$levels). 
+of tr must have unique names as given by \code{names(V(tr))}. The names of the leaves must 
+be equal to the unique elements of outcomes. The vertices of \code{tr}, \code{V(tr)}, may have 
+an attribute \code{levels} containing integer values from 1 to \code{max(V(tr)$levels)}. 
 In this case, the levels attribute specifies groups of nodes that share common 
-hyperparameters rho[f], tau[f], and omega[f]. If V(tr)$levels is NULL, 
+hyperparameters \code{rho[f]}, \code{tau[f]}, and \code{omega[f]}. If \code{V(tr)$levels} is \code{NULL}, 
 the default is two levels of hyperparameters: one for all leaf nodes, and one
 for all internal nodes.}
 
 \item{ci_level}{A number between 0 and 1 giving the desired credible interval. 
-For example, ci_level = 0.95 (the default) returns a 95\% credible interval}
+For example, \code{ci_level = 0.95} (the default) returns a 95\% credible interval}
 
-\item{get_ml}{If TRUE, moretrees will also return the maximum likelihood estimates of the
+\item{get_ml}{If \code{TRUE}, moretrees will also return the maximum likelihood estimates of the
 coefficients for each outcome group discovered by the model. 
-Default is TRUE.}
+Default is \code{TRUE}.}
 
 \item{update_hyper_freq}{How frequently to update hyperparameters. 
 Default = every 50 iterations.}
@@ -62,90 +61,127 @@ Default = every 50 iterations.}
 
 \item{hyper_fixed}{Fixed values of hyperprior parameters for rho.
 This should be a list with two elements: 
-a and b, both numeric vectors of length L, representing the 
-parameters of the beta prior on rho for each level, where L is the
+a and b, both numeric vectors of length \code{L}, representing the 
+parameters of the beta prior on rho for each level, where \code{L} is the
 number of levels.
-Default is list(a = rep(1, L), b = rep(1, L)).}
+Default is \code{list(a = rep(1, L), b = rep(1, L))} (uniform hyperprior)}
 
-\item{tol}{Convergence tolerance for ELBO. 
-Default is 1E-8.}
+\item{tol}{Convergence tolerance for the objective function.
+Default is \code{1E-8}.}
 
-\item{tol_hyper}{If hyper_method = "EB", the convergence tolerance for ELBO
+\item{tol_hyper}{The convergence tolerance for the objective function between
 between subsequent hyperparmeter updates. Typically a more generous
-tolerance than tol. 
-Default is 1E-4.}
+tolerance than \code{tol}. 
+Default is \code{1E-4}.}
+
+\item{max_iter}{Maximum number of iterations of the VI algorithm.
+Default is 5000.}
 
 \item{nrestarts}{Number of random re-starts of the VI algorithm. The result that 
-gives the highest ELBO will be returned. It is recommended to choose nrestarts > 1.
+gives the highest value of the objective function will be returned.
+It is recommended to choose \code{nrestarts > 1}.
 The default is 3.}
 
-\item{keep_restarts}{If TRUE, the results from all random restarts will be returned.
-If FALSE, only the restart with the highest ELBO is returned. Default is TRUE.}
+\item{keep_restarts}{If \code{TRUE}, the results from all random restarts will be returned.
+If \code{FALSE}, only the restart with the highest objective function is returned. '
+Default is \code{TRUE}.}
 
-\item{parallel}{If TRUE, the random restarts will be run in parallel.
-It is recommended to first set the number of cores using doParallel::registerDoParallel(). 
-Otherwise, the default number of cores specified by the doParallel package will be used.
-Default is TRUE.}
+\item{parallel}{If \code{TRUE}, the random restarts will be run in parallel.
+It is recommended to first set the number of cores using \code{doParallel::registerDoParallel()}. 
+Otherwise, the default number of cores specified by the \code{doParallel} package will be used.
+Default is \code{TRUE}.}
 
-\item{log_restarts}{If TRUE, when nrestarts > 1 progress of each random restart will be 
-logged to a text file in log_dir. If FALSE and nrestarts > 1, progress will not be shown.
-If nrestarts = 1, progress will always be printed to the console.
-Default is FALSE.}
+\item{log_restarts}{If \code{TRUE}, when \code{nrestarts > 1} progress of each random restart will be 
+logged to a text file in \code{log_dir}. If \code{FALSE} and \code{nrestarts > 1}, 
+progress will not be shown.
+If \code{nrestarts = 1}, progress will always be printed to the console.
+Default is \code{FALSE}.}
 
 \item{log_dir}{Directory for logging progress of random restarts.
 Default is the working directory.}
 
-\item{random_init}{The initial values for the MOReTreeS model are selected based
-on maximum likelihood estimates of the effect size at every level of the tree.
-If random_init = TRUE, some randomness will be added to these initial values.
-The default is FALSE, unless nrestarts > 1, in which case random_init will be set
-to TRUE and a warning message will be printed.}
+\item{vi_params_init, hyperparams_init}{Named lists containing initial values for the 
+variational parameters and hyperparameters. Supplying good initial values can be challenging,
+and \code{moretrees()} provides a way to guess initial values based on transformations
+of conditional logistic regression estimates of the effect sizes
+for each individual outcome (see \code{moretrees_init_logistic()}).
+The most common use for \code{vi_params_init} and \code{hyperparams_init} is to supply starting
+values based on previous output from \code{moretrees()}; 
+see the \code{vignette('moretrees')} for examples.
+The user can provide initial values for all parameters or a subset. 
+When initial values for one or more parameters are not
+supplied, the missing values will be filled in by \code{moretrees_init_logistic()}.}
 
-\item{random_init_vals}{If random_init = TRUE, 
+\item{random_init}{If \code{TRUE}, some random variability will be added to the initial values.
+The default is \code{FALSE}, unless \code{nrestarts > 1}, in which case 
+\code{random_init} will be set to \code{TRUE} and a warning message will be printed.
+The amount of variability is determined by \code{random_init_vals}.}
+
+\item{random_init_vals}{If \code{random_init = TRUE}, 
 this is a list containing the following parameters for randomly permuting 
 the inital values:
-1. tau_lims: a vector of length 2, where tau_lims[1] is between 0 and 1,
-and tau_lims[2] > 1. The initial values for the hyperparameter tau will
-be chosen uniformly at random in the range (tau_init \* tau_lims[1], tau_init \* tau_lims[2]),
-where tau_init is the initial value for tau either supplied in initial_values or guessed
-using moretrees_init_logistic().
-1. omega_lims: a vector of length 2, where omega_lims[1] is between 0 and 1,
-and omega_lims[2] > 1. The initial values for the hyperparameter omega will
-be chosen uniformly at random in the range (omega_init \* omega_lims[1], omega_init \* omega_lims[2]),
-where omega_init is the initial value for omega either supplied in initial_values or guessed
-using moretrees_init_logistic().
-1. eta_sd_frac: a value between 0 and 1. The initial values for the auxilliary parameters
-eta will have a normal random variate added to them with standard deviation equal to 
-eta_sd_frac multiplied by the initial value for eta either supplied in initial_values or guessed
-using moretrees_init_logistic(). Absolute values are then taken for any 
-values of eta that are < 0.
-1. mu_sd_frac: a value between 0 and 1. The initial values for the exposure effects
-mu will have a normal random variate added to them with standard deviation equal to 
-mu_sd_frac multiplied by the absolute value of the initial value for mu either supplied in 
-initial_values or guessed using moretrees_init_logistic().
-1. delta_sd_frac: a value between 0 and 1. The initial values for the exposure effects
-delta will have a normal random variate added to them with standard deviation equal to 
-delta_sd_frac multiplied by the absolute value of the initial value for delta either supplied in 
-initial_values or guessed using moretrees_init_logistic().
-1. u_sd_frac: a value between 0 and 1. The initial value for the node inclusion probabilities
-will first be transformed to the log odds scale to obtain u. A normal random variate will be
-added to u with standard deviation eqaul to u_sd_frac multiplied by the absolute value of the
-initial value for u either supplied by the user or guessed using moretrees_init_logistic().
-u will then be transformed back to the probability scale.}
-
-\item{maxiter}{Maximum number of iterations of the VI algorithm.
-Default is 5000.}
+\describe{
+\item{\code{tau_lims}}{a vector of length 2, where \code{tau_lims[1]} is between 0 and 1,
+and \code{tau_lims[2] > 1}. The initial values for the hyperparameter \code{tau} will
+be chosen uniformly at random in the range \code{(tau_init * tau_lims[1], tau_init * tau_lims[2])},
+where \code{tau_init} is the initial value for \code{tau} either supplied in \code{hyperparams_init} 
+or guessed using \code{moretrees_init_logistic()}.}
+\item{\code{omega_lims}}{a vector of length 2, where \code{omega_lims[1]} is between 0 and 1,
+and \code{omega_lims[2] > 1}. The initial values for the hyperparameter omega will
+be chosen uniformly at random in the range \code{(omega_init * omega_lims[1], omega_init * omega_lims[2])},
+where omega_init is the initial value for omega either supplied in \code{hyperparams_init} or guessed
+using \code{moretrees_init_logistic()}.}
+\item{\code{eta_sd_frac}}{a value between 0 and 1. The initial values for the auxilliary parameters
+\code{eta} will have a normal random variate added to them with standard deviation equal to 
+\code{eta_sd_frac} multiplied by the initial value for eta either supplied in \code{hyperparams_init} or guessed
+using \code{moretrees_init_logistic()}. Absolute values are then taken for any 
+values of \code{eta} that are \code{< 0}.}
+\item{\code{mu_sd_frac}}{a value between 0 and 1. The initial values for
+\code{mu} will have a normal random variate added to them with standard deviation equal to 
+\code{mu_sd_frac} multiplied by the absolute value of the initial value for \code{mu} either supplied in 
+\code{vi_params_init} or guessed using \code{moretrees_init_logistic()}.}
+\item{\code{delta_sd_frac}}{a value between 0 and 1. The initial values for
+\code{delta} will have a normal random variate added to them with standard deviation equal to 
+\code{delta_sd_frac} multiplied by the absolute value of the initial value for delta either supplied in 
+\code{vi_params_init} or guessed using \code{moretrees_init_logistic()}.}
+\item{\code{u_sd_frac}}{a value between 0 and 1. The initial value for the node inclusion probabilities
+will first be transformed to the log odds scale to obtain \code{u}. A normal random variate will be
+added to \code{u} with standard deviation eqaul to u_sd_frac multiplied by the absolute value of the
+initial value for \code{u} either supplied in \code{vi_params_init} or guessed using \code{moretrees_init_logistic()}.
+\code{u} will then be transformed back to the probability scale.}
+}}
 }
 \value{
 A list containing the following elements:
-1. estimated coefficients and credible intervals; 
-2. outputs from variational inference algorithm
+\describe{
+\item{\code{beta_est}}{estimated exposure coefficients and credible intervals for each outcome.
+This is a data frame where the variables \code{est1, cil1, ciu1} correspond to the estimated
+coefficient and lower and upper credible interval bounds for the variable in first column
+of \code{Xcase}/\code{Xcontrol}. \code{est2, cil2, ciu2}, correspond to the second column in 
+\code{Xcase}/\code{Xcontrol},
+and so on. The variable group indicates to which estimated group each outcome belongs. } 
+\item{\code{beta_moretrees}}{estimated exposure coefficients and credible intervals for each outcome group.
+This is the same information in beta_est but presented by group.  \code{Outcomes} is a list of the
+outcomes in each group and \code{n_obs} is the number of 
+matched pairs corresponding to those outcomes.} 
+\item{\code{theta_est}}{estimated covariate coefficients and credible intervals for each outcome.
+This is a matrix where the columns \code{est1, cil1, ciu1} correspond to the estimated
+coefficient and lower and upper credible interval bounds for the variable in first column
+of \code{Wcase}/\code{Wcontrol}. \code{est2, cil2, ciu2}, correspond to the second column in 
+\code{Wcase}/\code{Wcontrol}, and so on.}
+\item{\code{beta_ml, theta_ml}}{Results from running separate, classic conditional logisitic 
+regression models on the data from observations corresponding to each outcome group
+shown in \code{beta_moretrees}.}
+\item{\code{mod}}{outputs from variational inference algorithm}
+\item{\code{mod_restarts}}{outputs from other random restarts of the algorithm, if
+\code{nrestarts > 1}}
+}
 }
 \description{
 Fits MOReTreeS model to matched case-control or case-crossover data.
   The posterior is approximated via variational inference.
   Returns estimated outcome groups and group-specific coefficient 
-  estimates with credible intervals. See vignette('moretrees') for
+  estimates with credible intervals. See \code{vignette('moretrees')} for
   model details and example usage.
 }
 \examples{

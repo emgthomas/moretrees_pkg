@@ -1,27 +1,24 @@
-#' Group spike and slab variable selection with Gaussian outcome
-#' 
-#'   \code{spike_and_slab_logistic_moretrees} fits MOReTreeS models for
+#' Description
+#'
+#'   \code{spike_and_slab_logistic_moretrees()} fits MOReTreeS models for
 #'   binary data.
 #'   The posterior is approximated via variational inference.
 #'   This function returns the parameters of the variational approximation.
-#' 
-#' @param dsgn A list containing all data elements needed for the algorithm.
-#' @param initial_values
-#' @param random_init If TRUE, initial values will be randomly permuted.
-#' @param random_init_vals If random_init = TRUE, 
-#' this is a list containing parameters for randomly permuting the inital values.
-#' The list contains the following elements:
-#' @param tol Convergence tolerance for ELBO.
-#' @param maxiter Maximum number of iterations of the VI algorithm.
-#' @param print_freq How often to print out iteration number.
-#' @param hyper_fixed Fixed values of hyperprior parameters.
-#' @param update_hyper_freq How frequently to update hyperparameters.
-#' @return A list of variational parameters.
-#' @examples
+#'   
+#' @param dsgn list of outputs from \code{moretrees_design_tree()} 
+#' @param vi_params_init,hyperparams_init,random_init,random_init_vals,tol,tol_hyper,max_iter,print_freq,update_hyper_freq,hyper_fixed
+#' see documentation for \code{moretrees()}
+#' @return A named list containing the following entried:
+#' \describe{
+#' \item{\code{vi_params}}{named list of final variational parameter estimates}
+#' \item{\code{hyperparams}}{named list of final hyperparameter estimates}
+#' \item{\code{hyper_fixed}}{named list of fixed hyperparameters}
+#' \item{\code{ELBO_track}}{numeric vector containing the values of the objective function
+#' (ELBO) at the end of every iteration}
+#' }
 #' @family Internal VI functions
 
 spike_and_slab_logistic_moretrees <- function(dsgn, 
-                                              initial_values,
                                               vi_params_init,
                                               hyperparams_init,
                                               random_init,
@@ -46,13 +43,13 @@ spike_and_slab_logistic_moretrees <- function(dsgn,
   if (dsgn$K == 1) {
     dsgn$xxT <- dsgn$X ^ 2
   } else {
-    dsgn$xxT <- moretrees:::rowOuterProds(dsgn$X)
+    dsgn$xxT <- rowOuterProds(dsgn$X)
   }
   if (dsgn$m > 0) {
     if (dsgn$m == 1) {
       dsgn$wwT <- dsgn$W ^ 2
     } else {
-      dsgn$wwT <- moretrees:::rowOuterProds(dsgn$W)
+      dsgn$wwT <- rowOuterProds(dsgn$W)
     }
   } else {
     dsgn$wwT <- NULL

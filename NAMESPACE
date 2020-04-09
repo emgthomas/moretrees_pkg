@@ -3,5 +3,6 @@
 export(ccs_tree)
 export(moretrees)
 import(Rcpp)
+import(stats)
 importFrom(magrittr,"%>%")
 useDynLib(moretrees)

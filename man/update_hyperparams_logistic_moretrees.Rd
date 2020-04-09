@@ -9,6 +9,20 @@ update_hyperparams_logistic_moretrees(X, W, y, outcomes_units, ancestors,
   levels, n, K, p, m, Fg, prob, mu, Sigma, Sigma_det, tau_t, delta, Omega,
   Omega_det, a_t, b_t, eta, g_eta, tau, omega, a, b, update_hyper)
 }
+\arguments{
+\item{X, W, y, outcomes_units, ancestors, levels}{outputs from \code{moretrees_design_tree}}
+
+\item{n, K, p, m, Fg}{computed from the data by \code{spike_and_slab_logistic_moretrees()}}
+
+\item{prob, mu, Sigma, Sigma_det, tau_t, delta, Omega, Omega_det, a_t, b_t}{variational parameters
+updated by \code{update_vi_params_logistic_moretrees()}}
+
+\item{eta, g_eta, tau, omega}{parameters updated by \code{update_hyperparams_logistic_moretrees()}}
+
+\item{a, b}{fixed hyperparameters}
+
+\item{update_hyper}{If \code{TRUE}, hyperparameters will be updated}
+}
 \description{
 \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
   current value of ELBO in VI algorithm.

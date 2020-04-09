@@ -4,6 +4,14 @@
 
 #'   \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
 #'   current value of ELBO in VI algorithm.
+#' 
+#' @param X,W,y,outcomes_units,ancestors,levels outputs from \code{moretrees_design_tree}
+#' @param n,K,p,m,Fg computed from the data by \code{spike_and_slab_logistic_moretrees()}
+#' @param prob,mu,Sigma,Sigma_det,tau_t,delta,Omega,Omega_det,a_t,b_t variational parameters
+#' updated by \code{update_vi_params_logistic_moretrees()}
+#' @param eta,g_eta,tau,omega parameters updated by \code{update_hyperparams_logistic_moretrees()}
+#' @param a,b fixed hyperparameters
+#' @param update_hyper If \code{TRUE}, hyperparameters will be updated
 #' @family Internal VI functions
 
 update_hyperparams_logistic_moretrees <- function(X, W, y, 

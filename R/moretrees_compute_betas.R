@@ -11,10 +11,11 @@
 #' @param A_leaves pL x p sparse ancestor Matrix where rows correspond to leaves
 #' of tree (outcomes) and columns correspond to nodes on tree. Results in mod
 #' must have same ordering as columns of A_leaves.
+#' @param outcomes Character vector of length n. outcomes[i] is a string indicating the 
+#' outcome experienced by unit i.
 #' @return A list containing the following elements:
 #' 1. beta_moretrees: estimated coefficients and credible intervals by group;
 #' 2. beta_est: estimated coefficients and credible intervals by outcome;
-#' @examples
 #' @family Processing model output
 
 moretrees_compute_betas <- function(mod, ci_level, A_leaves, outcomes) {

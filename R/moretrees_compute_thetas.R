@@ -8,11 +8,12 @@
 #' @param mod List containing outputs from spike and slab VI algorithm
 #' @param ci_level A number between 0 and 1 giving the desired credible interval.
 #' For example, ci_level = 0.95 (the default) returns a 95\% credible interval.
-#' @param W_method A string, either "shared" or "individual"
 #' @param m Integer number of variables in covariate matrix W
 #' @param A_leaves pL x p sparse ancestor Matrix where rows correspond to leaves
 #' of tree (outcomes) and columns correspond to nodes on tree. Results in mod
 #' must have same ordering as columns of A_leaves.
+#' @param outcomes Character vector of length n. outcomes[i] is a string indicating the 
+#' outcome experienced by unit i.
 #' @return A matrix containing the estimates and confidence intervals.
 #' @family Processing model output
 

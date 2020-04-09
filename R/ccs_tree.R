@@ -2,22 +2,32 @@
 # --------------- Code for creating tree of outcomes for CCS codes ---------------- #
 # --------------------------------------------------------------------------------- #
 
-#' \code{ccs_tree} Produces tree of Clinical Classification Software (CCS) codes
+#' \code{ccs_tree} produces tree of Clinical Classification Software (CCS) codes
 #' based on root node.
 #' 
-#' All the details go here!
-#' 
-#' @section Details
+#' @details Adapted from \code{icd9_map_multi_ccs} in the \code{icd} package.
 #' 
 #' @export
 #' @importFrom magrittr %>%
 #' @param group character string specifying that only codes beginning with group 
 #' will be included in tree The default is NULL (returns full tree of CCS codes)
 #' @return A list containing the following elements:
-#' tr = directed igraph object; the tree of outcomes.
-#' ccs_icd_mapping = data frame specifying the ICD9 codes corresponding to each 
-#' CCS code. Useful for converting from ICD9 to CCS.
+#' \describe{
+#' \item{tr}{directed igraph object; the tree of CCS codes.}
+#' \item{ccs_icd_mapping}{data frame specifying the ICD9 codes corresponding to each 
+#' CCS code. Useful for converting from ICD9 to CCS.}
+#' }
 #' @examples 
+#' tr <- ccs_tree("7.4")$tr
+#' # Plot tree
+#' library(ggtree)
+#' library(ggplot2)
+#' ggtree(tr, ladderize = F, layout = "slanted") + 
+#' geom_tiplab(geom = "label") + 
+#' geom_nodelab(geom = "label") +
+#' theme(plot.margin = unit(c(0, 1.5, 0, 0.2), "cm")) +
+#' coord_cartesian(clip = "off") + 
+#' scale_y_reverse()
 #' @family Tree functions
 
 ccs_tree <- function(group = NULL) {

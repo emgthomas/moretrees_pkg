@@ -8,6 +8,7 @@ Description: Package for fitting multi-outcome regression
     matched case-control and case-crossover data.
 Depends: R (>= 3.5.0)
 License: MIT + file LICENSE
+Encoding: UTF-8
 LazyData: true
 biocViews:
 Imports:
