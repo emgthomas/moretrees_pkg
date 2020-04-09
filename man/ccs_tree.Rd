@@ -24,4 +24,4 @@ All the details go here!
 NA
 }
 
-\concept{tree functions}
+\concept{Tree functions}

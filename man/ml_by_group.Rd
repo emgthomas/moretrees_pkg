@@ -2,27 +2,21 @@
 % Please edit documentation in R/ml_by_group.R
 \name{ml_by_group}
 \alias{ml_by_group}
-\title{Here's a brief description.
-  \code{spike_and_slab_normal} performs group variable selection via a spike
-  and slab prior. The posterior is approximated via variational inference.
-  This function returns coefficient estimates and 95% credible intervals.}
+\title{\code{ml_by_group} gets maximum likelihood estimates for groups of outcomes.}
 \usage{
 ml_by_group(X, W = NULL, y, outcomes, outcome_groups, return_ci = TRUE,
   ci_level, family, return_theta = FALSE)
 }
 \arguments{
-\item{X}{An n x K matrix of exposure data, where K is the dimension of the exposure.
-Grouping of the outcomes will be based on their relationships with the variables in X.}
+\item{X}{An n x K matrix of exposure data, where K is the dimension of the exposure.}
 
-\item{W}{Matrix of covariates of dimension n x m.
-Coefficients for these variables do not affect grouping of the outcomes.}
+\item{W}{Matrix of covariates of dimension n x m.}
 
 \item{y}{Vector of length n containing outcomes data.
 If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 If family = "gaussian", y must be a numeric vector containing continuous data.}
 
-\item{outcomes}{Character vector specifying which outcomes the elements of y 
-(rows of X and W) correspond to.}
+\item{outcomes}{Character vector specifying which outcomes the rows of X and W correspond to.}
 
 \item{outcome_groups}{A list of length G, where each element is a character vector
 indiciating which outcomes belong to that group.}
@@ -30,7 +24,7 @@ indiciating which outcomes belong to that group.}
 \item{return_ci}{Get confidence intervals? Default = TRUE}
 
 \item{ci_level}{A number between 0 and 1 giving the desired credible interval.
-For example, ci_level = 0.95 (the default) returns a 95% credible interval.}
+For example, ci_level = 0.95 (the default) returns a 95\% credible interval.}
 
 \item{family}{A string specifying the distribution of the outcomes: 
 either "bernoulli" (for classification) or "gaussian" (for regression)}
@@ -39,18 +33,14 @@ either "bernoulli" (for classification) or "gaussian" (for regression)}
 }
 \value{
 A list containing the following elements:
-1. estimated coefficients and credible intervals; 
-2. outputs from variational inference algorithm
+1. estimated coefficients and credible intervals for beta; 
+2. estimated coefficients and credible intervals for theta.
 }
 \description{
-All the details go here!
+\code{ml_by_group} gets maximum likelihood estimates for groups of outcomes.
 }
-\section{Model Description}{
-
-  Describe group spike and slab prior and all parameters here.
-}
-
 \seealso{
-Other spike and slab functions: \code{\link{spike_and_slab_logistic_moretrees}}
+Other Processing model output: \code{\link{moretrees_compute_betas}},
+  \code{\link{moretrees_compute_thetas}}
 }
-\concept{spike and slab functions}
+\concept{Processing model output}

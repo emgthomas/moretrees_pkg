@@ -2,8 +2,7 @@
 % Please edit documentation in R/moretrees_design_tree.R
 \name{moretrees_design_tree}
 \alias{moretrees_design_tree}
-\title{Here's a brief description.
-  \code{moretrees_design_tree} converts outcome, exposure, and covariate data
+\title{\code{moretrees_design_tree} converts outcome, exposure, and covariate data
   into format suitable for analysis using MOReTreeS.}
 \usage{
 moretrees_design_tree(y, X, W = NULL, outcomes, tr)
@@ -49,17 +48,7 @@ that share common hyperparameters rho[f], tau[f], and omega[f], where f is the v
 in levels.
 }
 \description{
-All the details go here!
+\code{moretrees_design_tree} converts outcome, exposure, and covariate data
+  into format suitable for analysis using MOReTreeS.
 }
-\section{Model Description}{
-
-  Describe group spike and slab prior and all parameters here.
-}
-
-\seealso{
-Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees}}
-}
-\concept{MOReTreeS functions}
+\concept{Data processing functions}

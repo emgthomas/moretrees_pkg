@@ -3,22 +3,17 @@
 # --------------------------------------------------------------------------------- #
 
 #' Here's a brief description.
-#'   \code{moretrees_init_rand} Randomly generates starting values for moretrees
-#'   models. Not recommended if the model is converging slowly!
+#'   \code{moretrees_init_logistic} Generates starting values for moretrees
+#'   models.
 #' 
-#' @export
 #' @useDynLib moretrees
-#' 
-#' @section Model Description:
-#' Describe MOReTreeS model and all parameters here.
 #' 
 #' @param vi_params_init A list with any starting values supplied by the user for
 #' VI parameters. NULL values will be filled in.
 #' @param hyperparams_init A list with any starting values supplied by the user for
 #' hyperparameters. NULL values will be filled in.
 #' @return A list containing starting values for both VI and hyper parameters
-#' @examples 
-#' @family MOReTreeS functions
+#' @family Internal VI functions
 
 moretrees_init_logistic <- function(X, W, y, A,
                                     outcomes_units,

@@ -31,21 +31,14 @@ The list contains the following elements:}
 A list of variational parameters.
 }
 \description{
-Here's a brief description.
-  \code{spike_and_slab_logistic_moretrees} performs group variable selection via a spike
-  and slab prior for binary data.
+\code{spike_and_slab_logistic_moretrees} fits MOReTreeS models for
+  binary data.
   The posterior is approximated via variational inference.
   This function returns the parameters of the variational approximation.
 }
-\details{
-All the details go here!
-}
-\section{Model Description}{
-
-  Describe group spike and slab prior and all parameters here.
-}
-
 \seealso{
-Other spike and slab functions: \code{\link{ml_by_group}}
+Other Internal VI functions: \code{\link{moretrees_init_logistic}},
+  \code{\link{update_hyperparams_logistic_moretrees}},
+  \code{\link{update_vi_params_logistic_moretrees}}
 }
-\concept{spike and slab functions}
+\concept{Internal VI functions}

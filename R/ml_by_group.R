@@ -2,38 +2,26 @@
 # ------ computing maximum likelihood coefficient estimates by outcome group ------ #
 # --------------------------------------------------------------------------------- #
 
-#' Here's a brief description.
-#'   \code{spike_and_slab_normal} performs group variable selection via a spike
-#'   and slab prior. The posterior is approximated via variational inference.
-#'   This function returns coefficient estimates and 95% credible intervals.
-#' 
-#' All the details go here!
-#' 
-#' @section Model Description:
-#'   Describe group spike and slab prior and all parameters here.
+#'  \code{ml_by_group} gets maximum likelihood estimates for groups of outcomes.
 #' 
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 #' If family = "gaussian", y must be a numeric vector containing continuous data.
 #' @param X An n x K matrix of exposure data, where K is the dimension of the exposure.
-#' Grouping of the outcomes will be based on their relationships with the variables in X.
 #' @param W Matrix of covariates of dimension n x m.
-#' Coefficients for these variables do not affect grouping of the outcomes.
-#' @param outcomes Character vector specifying which outcomes the elements of y 
-#' (rows of X and W) correspond to. 
+#' @param outcomes Character vector specifying which outcomes the rows of X and W correspond to. 
 #' @param outcome_groups A list of length G, where each element is a character vector
 #' indiciating which outcomes belong to that group.
 #' @param family A string specifying the distribution of the outcomes: 
 #' either "bernoulli" (for classification) or "gaussian" (for regression)
 #' @param ci_level A number between 0 and 1 giving the desired credible interval.
-#' For example, ci_level = 0.95 (the default) returns a 95% credible interval.
+#' For example, ci_level = 0.95 (the default) returns a 95\% credible interval.
 #' @param return_ci Get confidence intervals? Default = TRUE
 #' @param return_theta Return ML estimates for theta? Default = FALSE
 #' @return A list containing the following elements:
-#' 1. estimated coefficients and credible intervals; 
-#' 2. outputs from variational inference algorithm
-#' @examples
-#' @family spike and slab functions
+#' 1. estimated coefficients and credible intervals for beta; 
+#' 2. estimated coefficients and credible intervals for theta. 
+#' @family Processing model output
 
 ml_by_group <- function(X, W = NULL, y, outcomes, outcome_groups,
                         return_ci = TRUE, ci_level, 

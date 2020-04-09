@@ -18,7 +18,7 @@
 #' ccs_icd_mapping = data frame specifying the ICD9 codes corresponding to each 
 #' CCS code. Useful for converting from ICD9 to CCS.
 #' @examples 
-#' @family tree functions
+#' @family Tree functions
 
 ccs_tree <- function(group = NULL) {
   # Get data.frame showing mapping from ICD9 to multilevel CCS

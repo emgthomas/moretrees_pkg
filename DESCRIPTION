@@ -3,14 +3,10 @@ Title: Multi-Outcome Regression with Tree-Structured Shrinkage
 Version: 0.0.0.9000
 Authors@R: person("Emma", "Thomas", email = "emmathomas@g.harvard.edu",
                   role = c("aut", "cre"))
-Description: Provides functions for implementingmulti-outcome regression
-    tree-structured shrinkage with a spike-and-slab prior (ssMOReTreeS).
-    Three different likelihoods corresponding to different generalized
-    linear models are available: binary with logistic link, Poisson with
-    log link, and Gaussian with identity link. Models are fit using
-    variational inference (VI). Also performs spike-and-slab variable
-    selection with the same three likelihoods.
-Depends: R (>= 3.1.0)
+Description: Package for fitting multi-outcome regression
+    with tree-structured shrinkage (MOReTreeS) models to 
+    matched case-control and case-crossover data.
+Depends: R (>= 3.5.0)
 License: MIT + file LICENSE
 LazyData: true
 biocViews:
@@ -27,6 +23,9 @@ Imports:
 RoxygenNote: 6.1.1
 Suggests: 
     testthat,
-    ggtree (>= 2.0.1)
+    ggtree (>= 2.0.1),
+    knitr,
+    rmarkdown
 LinkingTo: 
     Rcpp
+VignetteBuilder: knitr

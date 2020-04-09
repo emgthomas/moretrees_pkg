@@ -1,8 +1,9 @@
-# --------------------------------------------------------------------------------- #
-# --------- Performs one step in VI optimization for Gaussian outcome  ------------ #
-# --------------------------------------------------------------------------------- #
+# ------------------------------------------------------------ #
+# --------- Performs one step in VI optimization  ------------ #
+# ------------------------------------------------------------ #
 
-#' \code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.
+#' \code{update_vi_logistic_moretrees} Performs variational updates in VI algorithm.
+#' @family Internal VI functions
 
 update_vi_params_logistic_moretrees <- function(X, W, y, xxT, wwT,
                                                 outcomes_nodes, outcomes_units,

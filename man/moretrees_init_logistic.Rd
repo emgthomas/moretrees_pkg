@@ -3,8 +3,8 @@
 \name{moretrees_init_logistic}
 \alias{moretrees_init_logistic}
 \title{Here's a brief description.
-  \code{moretrees_init_rand} Randomly generates starting values for moretrees
-  models. Not recommended if the model is converging slowly!}
+  \code{moretrees_init_logistic} Generates starting values for moretrees
+  models.}
 \usage{
 moretrees_init_logistic(X, W, y, A, outcomes_units, outcomes_nodes,
   ancestors, levels, xxT, wwT, vi_params, hyperparams, hyper_fixed,
@@ -22,18 +22,12 @@ A list containing starting values for both VI and hyper parameters
 }
 \description{
 Here's a brief description.
-  \code{moretrees_init_rand} Randomly generates starting values for moretrees
-  models. Not recommended if the model is converging slowly!
+  \code{moretrees_init_logistic} Generates starting values for moretrees
+  models.
 }
-\section{Model Description}{
-
-Describe MOReTreeS model and all parameters here.
-}
-
 \seealso{
-Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees}}
+Other Internal VI functions: \code{\link{spike_and_slab_logistic_moretrees}},
+  \code{\link{update_hyperparams_logistic_moretrees}},
+  \code{\link{update_vi_params_logistic_moretrees}}
 }
-\concept{MOReTreeS functions}
+\concept{Internal VI functions}

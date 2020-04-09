@@ -4,8 +4,8 @@
 \name{moretrees}
 \alias{moretrees}
 \alias{moretrees-package}
-\title{moretrees: A package for fitting Multi-Outcome Regression with 
-Tree-structured Shrinkage (MOReTreeS)}
+\title{moretrees: fitting Multi-Outcome Regression with 
+Tree-structured Shrinkage (MOReTreeS) models}
 \usage{
 moretrees(Xcase, Xcontrol, Wcase = NULL, Wcontrol = NULL, outcomes, tr,
   vi_params_init = list(), hyperparams_init = list(),
@@ -142,25 +142,13 @@ A list containing the following elements:
 2. outputs from variational inference algorithm
 }
 \description{
-Fit MOReTreeS to: normally distributed outcome data (moretrees_normal) or
-binary data (moretrees_logistic).
-
-All the details go here!
+Fits MOReTreeS model to matched case-control or case-crossover data.
+  The posterior is approximated via variational inference.
+  Returns estimated outcome groups and group-specific coefficient 
+  estimates with credible intervals. See vignette('moretrees') for
+  model details and example usage.
 }
-\section{Here are some functions}{
-
-All about functions!
-}
-
-\section{Model Description}{
-
-Describe MOReTreeS model and all parameters here.
-}
-
-\seealso{
-Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_logistic}}
+\examples{
+vignette('moretrees')
 }
 \concept{MOReTreeS functions}

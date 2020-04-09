@@ -2,8 +2,7 @@
 % Please edit documentation in R/moretrees_compute_thetas.R
 \name{moretrees_compute_thetas}
 \alias{moretrees_compute_thetas}
-\title{Here's a brief description.
-\code{moretrees_compute_thetas} Computes MOReTreeS estimates and credible
+\title{\code{moretrees_compute_thetas} Computes MOReTreeS estimates and credible
   intervals for covariate effects from model output}
 \usage{
 moretrees_compute_thetas(mod, ci_level, m, A_leaves = NULL)
@@ -26,16 +25,11 @@ must have same ordering as columns of A_leaves.}
 A matrix containing the estimates and confidence intervals.
 }
 \description{
-All the details go here!
+\code{moretrees_compute_thetas} Computes MOReTreeS estimates and credible
+  intervals for covariate effects from model output
 }
-\section{Details}{
-NA
-}
-
 \seealso{
-Other MOReTreeS functions: \code{\link{moretrees_compute_betas}},
-  \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees}}
+Other Processing model output: \code{\link{ml_by_group}},
+  \code{\link{moretrees_compute_betas}}
 }
-\concept{MOReTreeS functions}
+\concept{Processing model output}

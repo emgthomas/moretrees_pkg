@@ -2,21 +2,11 @@
 # ------------------------- moretrees wrapper function ---------------------------- #
 # --------------------------------------------------------------------------------- #
 
-#' Here's a brief description.
-#'   \code{moretrees} Fits Multi-Outcome Regression with Tree-structured Shrinkage
-#'   (MOReTreeS) model to matched case-control or case-crossover data.
-#'   The posterior is approximated via variational inference.
-#'   Returns estimated outcome groups and group-specific coefficient 
-#'   estimates with credible intervals.
-#' 
-#' All the details go here!
+#' Description
 #' 
 #' @import Rcpp
 #' @export
 #' @useDynLib moretrees
-#' 
-#' @section Model Description:
-#' Describe MOReTreeS model and all parameters here.
 #' 
 #' @param Xcase An n x K matrix of exposure data for cases, where K is the dimension of the exposure.
 #' Grouping of the outcomes is based on their associations with variables in Xcase.
@@ -51,7 +41,7 @@
 #' between subsequent hyperparmeter updates. Typically a more generous
 #' tolerance than tol. 
 #' Default is 1E-4.
-#' @param maxiter Maximum number of iterations of the VI algorithm.
+#' @param max_iter Maximum number of iterations of the VI algorithm.
 #' Default is 5000.
 #' @param hyper_fixed Fixed values of hyperprior parameters for rho.
 #' This should be a list with two elements: 
@@ -61,6 +51,10 @@
 #' Default is list(a = rep(1, L), b = rep(1, L)).
 #' @param update_hyper_freq How frequently to update hyperparameters. 
 #' Default = every 50 iterations.
+#' @param vi_params_init A named list containing initial values for the 
+#' variational parameters.
+#' @param hyperparams_init A named list containing initial values for the 
+#' hyperparameters.
 #' @param random_init The initial values for the MOReTreeS model are selected based
 #' on maximum likelihood estimates of the effect size at every level of the tree.
 #' If random_init = TRUE, some randomness will be added to these initial values.
@@ -117,15 +111,13 @@
 #' @return A list containing the following elements:
 #' 1. estimated coefficients and credible intervals; 
 #' 2. outputs from variational inference algorithm
-#' @examples 
+#' @examples vignette('moretrees')
 #' @family MOReTreeS functions
 
 moretrees <- function(Xcase, Xcontrol, 
                       Wcase = NULL, Wcontrol = NULL,
                       outcomes, 
                       tr,
-                      vi_params_init = list(),
-                      hyperparams_init = list(),
                       ci_level = 0.95,
                       get_ml = TRUE,
                       update_hyper_freq = 50,
@@ -139,6 +131,8 @@ moretrees <- function(Xcase, Xcontrol,
                       parallel = TRUE,
                       log_restarts = FALSE,
                       log_dir = ".",
+                      vi_params_init = list(),
+                      hyperparams_init = list(),
                       random_init = FALSE,
                       random_init_vals = list(omega_lims = c(0.5, 1.5),
                                               tau_lims = c(0.5, 1.5),

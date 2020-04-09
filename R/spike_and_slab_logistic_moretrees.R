@@ -1,15 +1,9 @@
 #' Group spike and slab variable selection with Gaussian outcome
 #' 
-#' Here's a brief description.
-#'   \code{spike_and_slab_logistic_moretrees} performs group variable selection via a spike
-#'   and slab prior for binary data.
+#'   \code{spike_and_slab_logistic_moretrees} fits MOReTreeS models for
+#'   binary data.
 #'   The posterior is approximated via variational inference.
 #'   This function returns the parameters of the variational approximation.
-#' 
-#' All the details go here!
-#' 
-#' @section Model Description:
-#'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param dsgn A list containing all data elements needed for the algorithm.
 #' @param initial_values
@@ -24,7 +18,7 @@
 #' @param update_hyper_freq How frequently to update hyperparameters.
 #' @return A list of variational parameters.
 #' @examples
-#' @family spike and slab functions
+#' @family Internal VI functions
 
 spike_and_slab_logistic_moretrees <- function(dsgn, 
                                               initial_values,

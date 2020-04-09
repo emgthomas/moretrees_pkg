@@ -9,7 +9,7 @@ output:
     toc: true
     toc_depth: 2
     number_sections: true
-    keep_tex: true
+    # keep_tex: true
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{moretrees}
@@ -137,9 +137,13 @@ The data are stored as a list with the following elements:
 
 The elements of `outcomes` are character strings representing cardiovascular diseases in category 7.4 (diseases of arteries, arterioles, and capillaries) in the multilevel Clinical Classifications Software (CCS) hierarchical disease classification system [@healthcare2018clinical].
 
-First, we use the function `moretrees::ccs_tree()` to create a tree, `tr`, of class `igraph` from the `igraph` package.
+First, we load the edge list for our outcome tree and create an `igraph` object, `tr`, to represent the tree.
+The edge list is a matrix with two columns: the left column represents parent nodes or categories, and the right column represents children or subcategories of the parents.
+There is one row for every parent-child pair. 
 The set of names of leaf nodes in `tr` should be equal to the set of unique values in the `outcomes` vector.
 We then plot the tree using the `ggtree` package from bioconductor.
+Note that there is also a function `moretrees::ccs_tree()` that automatically produces trees based on the CCS multi-level hierarchy and returns a mapping to ICD9 codes.
+Here, we create the tree from its edge list because
 
 ```{r tree, eval = TRUE, cache = T, warning = FALSE, fig.height = 3, fig.width = 4, fig.align = 'center'}
 library(moretrees)
@@ -183,7 +187,7 @@ Note that each case is associated with *exactly one* outcome; the model assumes 
 We now fit the MOReTreeS model without adjustment for covariates.
 
 ```{r mod1, eval = TRUE}
-mod1 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+mod1 <- moretrees::moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                  outcomes = outcomes, tr = tr,
                  nrestarts = 1, print_freq = 500)
 ```
@@ -222,7 +226,7 @@ vi_params_init <- mod1$mod$vi_params[c("prob", "mu", "Sigma",
                                        "Sigma_inv", "Sigma_det",
                                        "tau_t", "a_t", "b_t")]
 hyperparams_init <- mod1$mod$hyperparams[c("eta", "tau")]
-mod2 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+mod2 <- moretrees::moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                   Wcase = Wcase, Wcontrol = Wcontrol,
                   vi_params_init = vi_params_init,
                   hyperparams_init = hyperparams_init,
@@ -236,7 +240,7 @@ We therefore increase `max_iter` and run the model again, using as new starting 
 ```{r mod2_2, eval = TRUE}
 vi_params_init <- mod2$mod$vi_params
 hyperparams_init <- mod2$mod$hyperparams
-mod2 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+mod2 <- moretrees::moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                   Wcase = Wcase, Wcontrol = Wcontrol,
                   vi_params_init = vi_params_init,
                   hyperparams_init = hyperparams_init,
@@ -288,7 +292,7 @@ doParallel::registerDoParallel(cores = nrestarts)
 set.seed(345083)
 log_dir <- "restart_logs"
 dir.create(log_dir)
-mod3 <- moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
+mod3 <- moretrees::moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
                   Wcase = Wcase, Wcontrol = Wcontrol,
                   outcomes = outcomes, tr = tr,
                   vi_params_init = mod2$mod$vi_params,

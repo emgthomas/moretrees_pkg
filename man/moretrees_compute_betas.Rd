@@ -2,8 +2,7 @@
 % Please edit documentation in R/moretrees_compute_betas.R
 \name{moretrees_compute_betas}
 \alias{moretrees_compute_betas}
-\title{Here's a brief description.
-\code{moretrees_compute_betas} Computes MOReTreeS estimates and credible
+\title{\code{moretrees_compute_betas} Computes MOReTreeS estimates and credible
   intervals for exposure effects from model output}
 \usage{
 moretrees_compute_betas(mod, ci_level, A_leaves, outcomes)
@@ -24,16 +23,11 @@ A list containing the following elements:
 2. beta_est: estimated coefficients and credible intervals by outcome;
 }
 \description{
-All the details go here!
+\code{moretrees_compute_betas} Computes MOReTreeS estimates and credible
+  intervals for exposure effects from model output
 }
-\section{Details}{
-NA
-}
-
 \seealso{
-Other MOReTreeS functions: \code{\link{moretrees_compute_thetas}},
-  \code{\link{moretrees_design_tree}},
-  \code{\link{moretrees_init_logistic}},
-  \code{\link{moretrees}}
+Other Processing model output: \code{\link{ml_by_group}},
+  \code{\link{moretrees_compute_thetas}}
 }
-\concept{MOReTreeS functions}
+\concept{Processing model output}

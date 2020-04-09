@@ -3,7 +3,7 @@
 \name{update_hyperparams_logistic_moretrees}
 \alias{update_hyperparams_logistic_moretrees}
 \title{\code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
-  current value of ELBO in VI algorithm for bernoulli outcomes.}
+  current value of ELBO in VI algorithm.}
 \usage{
 update_hyperparams_logistic_moretrees(X, W, y, outcomes_units, ancestors,
   levels, n, K, p, m, Fg, prob, mu, Sigma, Sigma_det, tau_t, delta, Omega,
@@ -11,5 +11,11 @@ update_hyperparams_logistic_moretrees(X, W, y, outcomes_units, ancestors,
 }
 \description{
 \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
-  current value of ELBO in VI algorithm for bernoulli outcomes.
+  current value of ELBO in VI algorithm.
 }
+\seealso{
+Other Internal VI functions: \code{\link{moretrees_init_logistic}},
+  \code{\link{spike_and_slab_logistic_moretrees}},
+  \code{\link{update_vi_params_logistic_moretrees}}
+}
+\concept{Internal VI functions}

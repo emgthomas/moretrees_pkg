@@ -2,7 +2,7 @@
 % Please edit documentation in R/update_vi_params_logistic_moretrees.R
 \name{update_vi_params_logistic_moretrees}
 \alias{update_vi_params_logistic_moretrees}
-\title{\code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.}
+\title{\code{update_vi_logistic_moretrees} Performs variational updates in VI algorithm.}
 \usage{
 update_vi_params_logistic_moretrees(X, W, y, xxT, wwT, outcomes_nodes,
   outcomes_units, ancestors, levels, n, p, pL, K, m, Fg, prob, mu, Sigma,
@@ -10,5 +10,11 @@ update_vi_params_logistic_moretrees(X, W, y, xxT, wwT, outcomes_nodes,
   b_t, eta, g_eta, tau, omega, a, b)
 }
 \description{
-\code{update_vi_logistic_moretrees} Performs variational updates for bernoulli outcomes.
+\code{update_vi_logistic_moretrees} Performs variational updates in VI algorithm.
 }
+\seealso{
+Other Internal VI functions: \code{\link{moretrees_init_logistic}},
+  \code{\link{spike_and_slab_logistic_moretrees}},
+  \code{\link{update_hyperparams_logistic_moretrees}}
+}
+\concept{Internal VI functions}

@@ -3,15 +3,9 @@
 # -------- needed to fit MOReTreeS model ------------------------------------------ #
 # --------------------------------------------------------------------------------- #
 
-#' Here's a brief description.
 #'   \code{moretrees_design_tree} converts outcome, exposure, and covariate data
 #'   into format suitable for analysis using MOReTreeS.
 #' 
-#' All the details go here!
-#' 
-#' @export
-#' @section Model Description:
-#'   Describe group spike and slab prior and all parameters here.
 #' 
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
@@ -47,7 +41,7 @@
 #' that share common hyperparameters rho[f], tau[f], and omega[f], where f is the value
 #' in levels.
 #' @examples
-#' @family MOReTreeS functions
+#' @family Data processing functions
 
 moretrees_design_tree <- function(y, X, W = NULL, outcomes, tr) {
   # Some checks

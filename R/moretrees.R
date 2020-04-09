@@ -1,11 +1,11 @@
-#' moretrees: A package for fitting Multi-Outcome Regression with 
-#' Tree-structured Shrinkage (MOReTreeS)
+#' moretrees: fitting Multi-Outcome Regression with 
+#' Tree-structured Shrinkage (MOReTreeS) models
 #'
-#' Fit MOReTreeS to: normally distributed outcome data (moretrees_normal) or
-#' binary data (moretrees_logistic). 
-#' 
-#' @section Here are some functions:
-#' All about functions!
+#'   Fits MOReTreeS model to matched case-control or case-crossover data.
+#'   The posterior is approximated via variational inference.
+#'   Returns estimated outcome groups and group-specific coefficient 
+#'   estimates with credible intervals. See vignette('moretrees') for
+#'   model details and example usage.
 #'
 #' @docType package
 #' @name moretrees

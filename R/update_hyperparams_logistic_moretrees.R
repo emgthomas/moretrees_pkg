@@ -1,9 +1,10 @@
-# --------------------------------------------------------------------------------- #
-# --------------------- Computes the ELBO for Gaussian outcome  ------------------- #
-# --------------------------------------------------------------------------------- #
+# ------------------------------------------------------------ #
+# --------------------- Computes the ELBO  ------------------- #
+# ------------------------------------------------------------ #
 
 #'   \code{update_hyperparams_logistic_moretrees} Performs hyperparameter updates and computes 
-#'   current value of ELBO in VI algorithm for bernoulli outcomes.
+#'   current value of ELBO in VI algorithm.
+#' @family Internal VI functions
 
 update_hyperparams_logistic_moretrees <- function(X, W, y, 
                                                   outcomes_units,

@@ -2,15 +2,9 @@
 # ----- computing MOReTreeS estimates for covariates effects from model output ---- #
 # --------------------------------------------------------------------------------- #
 
-#' Here's a brief description.
 #' \code{moretrees_compute_thetas} Computes MOReTreeS estimates and credible
 #'   intervals for covariate effects from model output
 #' 
-#' All the details go here!
-#' 
-#' @section Details
-#' 
-#' @export
 #' @param mod List containing outputs from spike and slab VI algorithm
 #' @param ci_level A number between 0 and 1 giving the desired credible interval.
 #' For example, ci_level = 0.95 (the default) returns a 95\% credible interval.
@@ -20,8 +14,7 @@
 #' of tree (outcomes) and columns correspond to nodes on tree. Results in mod
 #' must have same ordering as columns of A_leaves.
 #' @return A matrix containing the estimates and confidence intervals.
-#' @examples 
-#' @family MOReTreeS functions
+#' @family Processing model output
 
 moretrees_compute_thetas <- function(mod, ci_level,
                                      m, A_leaves = NULL) {
