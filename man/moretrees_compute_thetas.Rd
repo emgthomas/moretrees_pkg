@@ -18,9 +18,6 @@ For example, ci_level = 0.95 (the default) returns a 95\% credible interval.}
 \item{A_leaves}{pL x p sparse ancestor Matrix where rows correspond to leaves
 of tree (outcomes) and columns correspond to nodes on tree. Results in mod
 must have same ordering as columns of A_leaves.}
-
-\item{outcomes}{Character vector of length n. outcomes[i] is a string indicating the 
-outcome experienced by unit i.}
 }
 \value{
 A matrix containing the estimates and confidence intervals.

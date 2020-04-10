@@ -12,8 +12,6 @@
 #' @param A_leaves pL x p sparse ancestor Matrix where rows correspond to leaves
 #' of tree (outcomes) and columns correspond to nodes on tree. Results in mod
 #' must have same ordering as columns of A_leaves.
-#' @param outcomes Character vector of length n. outcomes[i] is a string indicating the 
-#' outcome experienced by unit i.
 #' @return A matrix containing the estimates and confidence intervals.
 #' @family Processing model output
 

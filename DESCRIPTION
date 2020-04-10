@@ -19,12 +19,14 @@ Imports:
     stringr (>= 1.4.0),
     magrittr (>= 1.5),
     doParallel (>= 1.0.15),
+    foreach (>= 1.5.0),
     Rcpp (>= 1.0.3),
     R.utils (>= 2.9.2)
 RoxygenNote: 6.1.1
 Suggests: 
     testthat,
     ggtree (>= 2.0.1),
+    ggplot2 (>= 3.2.1),
     knitr,
     rmarkdown
 LinkingTo: 

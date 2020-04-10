@@ -18,16 +18,7 @@
 #' CCS code. Useful for converting from ICD9 to CCS.}
 #' }
 #' @examples 
-#' tr <- ccs_tree("7.4")$tr
-#' # Plot tree
-#' library(ggtree)
-#' library(ggplot2)
-#' ggtree(tr, ladderize = F, layout = "slanted") + 
-#' geom_tiplab(geom = "label") + 
-#' geom_nodelab(geom = "label") +
-#' theme(plot.margin = unit(c(0, 1.5, 0, 0.2), "cm")) +
-#' coord_cartesian(clip = "off") + 
-#' scale_y_reverse()
+#' ccs_tree("7.4")
 #' @family Tree functions
 
 ccs_tree <- function(group = NULL) {
