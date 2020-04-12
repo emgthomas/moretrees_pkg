@@ -54,4 +54,12 @@ for (i in 1:nrow(params)) {
                      if (m == 0) expect_equal(mod_end$theta_ml, NULL)
                      if (m > 0) expect_equal(ncol(mod_end$theta_ml), m * 3 + 2)
                    })
+  # Test plot
+  p <- plot(mod_end)
+  test_that(paste0("Dimension of theta_ml when K = ", K,
+                   ", m = ", m, 
+                   ", nrestarts = ", nrestarts), {
+                     expect_is(p, "ggtree")
+                     expect_is(p, "ggplot")
+                   })
 }

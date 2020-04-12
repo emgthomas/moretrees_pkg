@@ -284,7 +284,8 @@ moretrees <- function(Xcase, Xcontrol,
                  theta_est = theta_est,
                  theta_ml = theta_ml,
                  mod = mod,
-                 mod_restarts = mod_restarts)
+                 mod_restarts = mod_restarts,
+                 tr = tr)
   
   class(result) <- c("moretrees_result", "list")
   
