@@ -278,12 +278,16 @@ moretrees <- function(Xcase, Xcontrol,
     theta_ml <- NULL
   }
   
+  result <- list(beta_est = betas$beta_est,
+                 beta_moretrees = betas$beta_moretrees,
+                 beta_ml = beta_ml, 
+                 theta_est = theta_est,
+                 theta_ml = theta_ml,
+                 mod = mod,
+                 mod_restarts = mod_restarts)
+  
+  class(result) <- c("moretrees_result", "list")
+  
   # Return results
-  return(list(beta_est = betas$beta_est,
-              beta_moretrees = betas$beta_moretrees,
-              beta_ml = beta_ml, 
-              theta_est = theta_est,
-              theta_ml = theta_ml,
-              mod = mod,
-              mod_restarts = mod_restarts))
+  return(result)
 }

@@ -24,6 +24,7 @@ for (i in 1:nrow(params)) {
   test_that(paste0("model output is a list when K = ", K,
                    ", m = ", m, 
                    ", nrestarts = ", nrestarts), {
+                     expect_is(mod_end, "moretrees_result")
                      expect_is(mod_end, "list")
                    })
   test_that(paste0("dimension of beta_est is K*3+1 when K = ", K,
