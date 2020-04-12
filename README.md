@@ -1,6 +1,6 @@
 # moretrees
 
-![](https://travis-ci.org/IQSS/moretrees.svg?branch=master) [![Github All Releases](https://img.shields.io/github/downloads/IQSS/moretrees/total.svg)]()
+![](https://travis-ci.org/emgthomas/moretrees_pkg.svg?branch=master) [![Github All Releases](https://img.shields.io/github/downloads/emgthomas/moretrees_pkg/total.svg)]()
 
 This package fits multi-outcome regression models to matched case-control and case-crossover data using Multi-Outcome Regression
 with Tree-structured Shrinkage (MOReTreeS).
