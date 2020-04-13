@@ -24,11 +24,10 @@ print.summary.moretrees_compact <- function(x,
                                             ...) {
   
   transform <- x$transform
-  est <- x$est
-  if (!print_outcomes) est$outcomes <- NULL
+  if (!print_outcomes) x$est$outcomes <- NULL
   
   if (x$coeff_type == "clr") {
-    cat("Showing estimates from running separate conditional logistic regression models on discovered groups.\n\n")
+    cat("Showing conditional logistic regression estimates for discovered groups.\n\n")
   }
   
   if (transform == "exp") cat("Group-specific odds ratio estimate(s):")

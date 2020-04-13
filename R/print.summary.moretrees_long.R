@@ -28,7 +28,7 @@ print.summary.moretrees_long <- function(x,
   
   cat("Group-specific exposure effect estimates for the", length(x), "groups discovered by MOReTreeS\n")
   if (x$coeff_type == "clr") {
-    cat("Showing estimates from running separate conditional logistic regression models on discovered groups.\n\n")
+    cat("Showing conditional logistic regression estimates for discovered groups.\n\n")
   }
   x$coeff_type <- NULL
   

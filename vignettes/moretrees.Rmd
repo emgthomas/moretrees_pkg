@@ -199,20 +199,21 @@ We now print the estimated odds ratios (or rate ratios, for a case-crossover mod
 The table also shows which outcomes belong to each group and the number of observations associated with outcomes in each group.
 
 ```{r moretrees_est1, eval = TRUE}
-est <- mod1$beta_moretrees
-outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
-knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), 
-                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
-             digits = 2)
+print(mod1, digits = 2)
+```
+
+We can also plot the discovered groups on the outcome tree:
+
+```{r tree_est, eval = TRUE, cache = T, warning = FALSE, fig.height = 3, fig.width = 4, fig.align = 'center', message = FALSE}
+plot(mod1, layout = "slanted", horizontal = FALSE)
 ```
 
 Finally, for comparison, we inspect the group-specific estimates obtained by running a classical CLR model on the data for each discovered group separately.
+Here, we use a more compact printing method to save space.
 
 ```{r ml_est1, eval = TRUE}
-est_ml <- mod1$beta_ml
-knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), 
-                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
-             digits = 2)
+print(mod1, compact = T, digits = 2, 
+      coeff_type = "clr", print_outcomes = FALSE)
 ```
 
 ## Model with covariate adjustment
@@ -251,24 +252,11 @@ mod2 <- moretrees::moretrees(Xcase = Xcase, Xcontrol = Xcontrol,
 
 The model has now converged.
 Next, we print the estimated odds ratios for the discovered groups *adjusted for the covariates in* `W`.
+We suppress printing of the outcomes associated with each group, since in this example these happen to be the same as for the model with no covariates.
 
 ```{r moretrees_est2, eval = TRUE}
-est <- mod2$beta_moretrees
-outcome_groups <- sapply(est$outcomes, function(x) paste0(x, collapse = ", "))
-knitr::kable(cbind("group" = est$group, exp(est[ , 2:7]), 
-                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
-             digits = 2)
+print(mod2, compact = T, digits = 2, print_outcomes = FALSE)
 ```
-
-Again, we compare to the group-specific estimates obtained using CLR.
-
-```{r ml_est2, eval = TRUE}
-est_ml <- mod2$beta_ml
-knitr::kable(cbind("group" = est_ml$group, exp(est_ml[ , 2:7]), 
-                   "outcomes" = outcome_groups, "n_obs" = est$n_obs), 
-             digits = 2)
-```
-
 
 ## Using random restarts
 
