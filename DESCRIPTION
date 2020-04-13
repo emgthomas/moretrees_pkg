@@ -24,11 +24,11 @@ Imports:
     R.utils (>= 2.9.2),
     RColorBrewer (>= 1.1-2),
     ggplot2 (>= 3.2.1),
-    ggtree (>= 2.0.1)
+    ggtree (>= 2.0.1),
+    knitr (>= 1.25)
 RoxygenNote: 6.1.1
 Suggests: 
     testthat,
-    knitr,
     rmarkdown
 LinkingTo: 
     Rcpp

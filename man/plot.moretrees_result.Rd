@@ -10,7 +10,8 @@ on the outcome tree.}
   layout = "rectangular", horizontal = TRUE, ...)
 }
 \arguments{
-\item{x}{Output from \code{moretrees()}}
+\item{x}{Output from \code{moretrees()}
+An object of class "moretrees_result".}
 
 \item{group.text.size}{Text size for the group labels}
 
@@ -43,6 +44,9 @@ on the outcome tree.
 vignette("moretrees")
 }
 \seealso{
-Other Tree functions: \code{\link{ccs_tree}}
+Other MOReTrees results: \code{\link{print.moretrees_result}},
+  \code{\link{print.summary.moretrees_compact}},
+  \code{\link{print.summary.moretrees_long}},
+  \code{\link{summary.moretrees_result}}
 }
-\concept{Tree functions}
+\concept{MOReTrees results}

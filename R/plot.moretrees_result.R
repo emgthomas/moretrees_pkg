@@ -5,6 +5,7 @@
 #' @export
 #' @importFrom ggtree %<+%
 #' @param x Output from \code{moretrees()}
+#' An object of class "moretrees_result".
 #' @param group.text.size Text size for the group labels
 #' @param group.text.offset Offset of the group label from the 
 #' leaves of the tree
@@ -22,7 +23,7 @@
 #' @examples 
 #' # See vignette
 #' vignette("moretrees")
-#' @family Tree functions
+#' @family MOReTrees results
 
 plot.moretrees_result <- function(x,
                                   group.text.size = 4,

@@ -29,7 +29,4 @@ Adapted from \code{icd9_map_multi_ccs} in the \code{icd} package.
 \examples{
 ccs_tree("7.4")
 }
-\seealso{
-Other Tree functions: \code{\link{plot.moretrees_result}}
-}
 \concept{Tree functions}
