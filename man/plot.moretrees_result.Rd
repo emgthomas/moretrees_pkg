@@ -5,12 +5,12 @@
 \title{\code{plot.moretrees_result} plots the groups discovered by MOReTreeS
 on the outcome tree.}
 \usage{
-\method{plot}{moretrees_result}(res, group.text.size = 4,
+\method{plot}{moretrees_result}(x, group.text.size = 4,
   group.text.offset = 0.1, legend.text.size = 10,
-  layout = "rectangular", horizontal = TRUE)
+  layout = "rectangular", horizontal = TRUE, ...)
 }
 \arguments{
-\item{res}{Output from \code{moretrees()}}
+\item{x}{Output from \code{moretrees()}}
 
 \item{group.text.size}{Text size for the group labels}
 
@@ -27,6 +27,8 @@ possibilities}
 the root node at the top and all other nodes below. If FALSE, the tree
 will be plotted with the root node to the left and all other nodes to
 the right.}
+
+\item{...}{Not used.}
 }
 \value{
 A plot showing the groups discovered by MOReTreeS on the original
