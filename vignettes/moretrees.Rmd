@@ -3,13 +3,13 @@ title: "moretrees: an R package to fit Multi-Outcome Regression with Tree-Struct
 author: "Emma Thomas"
 date: "`r Sys.Date()`"
 output: 
-  # to generate latex file, uncomment below, then run render("./vignettes/moretrees.Rmd")
+  # to generate latex file, uncomment below, then run rmarkdown::render("./vignettes/moretrees.Rmd")
   rmarkdown::html_vignette:
   # pdf_document:
     toc: true
     toc_depth: 2
     number_sections: true
-    # keep_tex: true
+    keep_tex: true
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{moretrees}

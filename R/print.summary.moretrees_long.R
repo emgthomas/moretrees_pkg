@@ -49,7 +49,7 @@ print.summary.moretrees_long <- function(x,
     if (transform == "exp") cat("Odds ratio estimate(s):")
     if (transform == "er") cat("Excess rate estimate(s):")
     if (transform == "identity") cat("Coefficient estimate(s):")
-    print(knitr::kable(est$est, digits = digits))
+    print(knitr::kable(est$est, digits = digits, row.names = FALSE))
     
     cat("\n")
   }

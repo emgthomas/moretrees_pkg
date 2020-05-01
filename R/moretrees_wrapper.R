@@ -176,10 +176,16 @@ moretrees <- function(Xcase, Xcontrol,
                                               u_sd_frac = 0.2)) {
   
   if (!(is.matrix(Xcase) & is.matrix(Xcontrol))) stop("Xcase and Xcontrol must be matrices")
-  if (!identical(dim(Wcase), dim(Wcontrol))) stop("Xcase and Xcontrol must have same dimension")
+  if (!identical(dim(Xcase), dim(Xcontrol))) stop("Xcase and Xcontrol must have same dimension")
+  if (sum(is.na(Xcase)) + sum(is.na(Xcontrol)) > 0 ) {
+    stop("NA values found in Xcase or Xcontrol; please remove NAs before running moretrees")
+  }
   if (!is.null(Wcase)) {
     if (!(is.matrix(Wcase) & is.matrix(Wcontrol))) stop("If not NULL, Wcase & Wcontrol must be matrices")
     if (!identical(dim(Wcase), dim(Wcontrol))) stop("If not NULL, Wcase and Wcontrol must have same dimension")
+    if (sum(is.na(Wcase)) + sum(is.na(Wcontrol)) > 0 ) {
+      stop("NA values found in Wcase or Wcontrol; please remove NAs before running moretrees")
+    }
   }
   if (!(length(get_ml) == 1 & is.logical(get_ml))) stop("get_ml must be either TRUE or FALSE")
   log_dir <- sub("/$", "", log_dir)
