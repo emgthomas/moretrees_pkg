@@ -2,8 +2,9 @@
 # ------ computing maximum likelihood coefficient estimates by outcome group ------ #
 # --------------------------------------------------------------------------------- #
 
-#'  \code{ml_by_group} gets maximum likelihood estimates for groups of outcomes.
+#' \code{ml_by_group} gets maximum likelihood estimates for groups of outcomes.
 #' 
+#' @importFrom magrittr %>%
 #' @param y Vector of length n containing outcomes data.
 #' If family = "bernoulli", y must be an integer vector where 1 = success, 0 = failure.
 #' If family = "gaussian", y must be a numeric vector containing continuous data.
