@@ -142,8 +142,6 @@ The edge list is a matrix with two columns: the left column represents parent no
 There is one row for every parent-child pair. 
 The set of names of leaf nodes in `tr` should be equal to the set of unique values in the `outcomes` vector.
 We then plot the tree using the `ggtree` package from bioconductor.
-Note that there is also a function `moretrees::ccs_tree()` that automatically produces trees based on the CCS multi-level hierarchy and returns a mapping to ICD9 codes.
-Here, we create the tree from its edge list because
 
 ```{r tree, eval = TRUE, cache = T, warning = FALSE, fig.height = 3, fig.width = 4, fig.align = 'center', message = FALSE}
 library(moretrees)
